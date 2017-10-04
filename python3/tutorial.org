@@ -1,0 +1,20 @@
+* Test code to check python versions
+
+The ~python~ argument in the code block header accepts a path to your python
+executable. I have both =python2= and =python3= in my path so that's why I can
+write only the name of the executable. Evaluate the code by placing the cursor
+inside the code block and press ~C-c C-c~
+
+The following code block evaluates python2 code:
+
+#+BEGIN_SRC python :python python2 :results output
+import sys
+print(sys.version)
+#+END_SRC
+
+And this code block evaluates python3 code:
+
+#+BEGIN_SRC python :python python3 :results output
+import sys
+print(sys.version)
+#+END_SRC

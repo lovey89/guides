@@ -1,0 +1,289 @@
+* Common emacs
+
+* Org Mode
+** Markup
+
+- *Bold*
+- /italic/
+- ~verbatim~
+- =code=
+- +strikethrough+
+
+** Document structure
+
+| Key     | Explanation                                          |
+|---------+------------------------------------------------------|
+| <TAB>   | Rotate view state. FOLDED -> Chilren -> FULL SUBTREE |
+| S-<TAB> | Same as above but affects all trees                  |
+
+*** Navigation
+
+| Key     | Explanation                      |
+|---------+----------------------------------|
+| C-c C-n | Next heading                     |
+| C-c C-p | Previous heading                 |
+| C-c C-f | Next heading same level          |
+| C-c C-b | Previous heading same level.     |
+| C-c C-u | Backward to higher level heading |
+
+*** Editing
+
+| Key                       | Explanation                                                                 |
+|---------------------------+-----------------------------------------------------------------------------|
+| M-<RET>                   | Insert new heading with same level as current                               |
+| M-S-<RET>                 | Insert new TODO entry with same level as current heading                    |
+| <TAB> in new, empty entry | In a new entry with no text yet, <TAB> will cycle through reasonable levels |
+| M-<left>/<right>          | Promote/demote current heading by one level                                 |
+| M-S-<left>/<right>        | Promote/demote the current subtree by one level                             |
+| M-S-<up>/<down>           | Move subtree up/down (swap with previous/next subtree of same level)        |
+| C-x n s/w                 | Narrow buffer to current subtree / widen it again                           |
+
+*** Lists
+
+- Unordered list items start with '-', '+', or '*' as bullets
+- Ordered list items start with '1.' or '1)'
+- Description list use ' :: ' to separate the term from the description
+
+| Key                | Explanation                                                                                                                                  |
+|--------------------+----------------------------------------------------------------------------------------------------------------------------------------------|
+| <TAB>              | Items can be folded just like headline levels                                                                                                |
+| M-<RET>            | Insert new item at current level. With a prefix argument, force a new heading (see Structure editing)                                        |
+| M-S-<RET>          | Insert a new item with a checkbox                                                                                                            |
+| M-S-<up>/<down>    | Move the item including subitems up/down (swap with previous/next item of same indentation)                                                  |
+| M-<left>/M-<right> | Decrease/increase the indentation of an item, leaving children alone                                                                         |
+| M-S-<left>/<right> | Decrease/increase the indentation of the item, including subitems                                                                            |
+| C-c C-c            | If there is a checkbox in the item line, toggle the state of the checkbox. Also verify bullets and indentation consistency in the whole list |
+| C-c -              | Cycle the entire list level through the different itemize/enumerate bullets ('-', '+', '*', '1.', '1)')                              |
+
+**** Example
+
+My favourite scenes are (in this order)
+1. The attack of the Rohirrim
+2. Eowyn's fight with the witch king
+   + this was already my favorite scene in the book
+   + I really like Miranda Otto
+3. Another scene
+Important actors in this film are:
+- Elijah Wood :: He plays Frodo
+- Sean Astin :: He plays Sam, Frodo's friend.
+
+** Tables
+
+Start with writing your heading like this:
+
+#+BEGIN_SRC 
+|Your|Heading|
+#+END_SRC
+
+The table is created. Go to the next line and type ~|-~ followed by tab and it
+will expand to:
+
+#+BEGIN_SRC 
+| Your | Heading |
+|------+---------|
+|      |         |
+#+END_SRC
+
+The second step could be done by just pressing ~C-c <RET>~ at the end of the
+first line.
+
+| Key              | Explanation                                                                                                    |
+|------------------+----------------------------------------------------------------------------------------------------------------|
+| C-c C-c          | Re-align the table without moving the cursor                                                                   |
+| <TAB>            | Re-align the table, move to the next field. Creates a new row if necessary                                     |
+| S-<TAB>          | Re-align, move to previous field                                                                               |
+| <RET>            | Re-align the table and move down to next row. Creates a new row if necessary                                   |
+| M-<left>/<right> | Move the current column left/right                                                                             |
+| M-S-<left>       | Kill the current column                                                                                        |
+| M-S-<right>      | Insert a new column to the left of the cursor position                                                         |
+| M-<up>/<down>    | Move the current row up/down                                                                                   |
+| M-S-<up>         | Kill the current row or horizontal line                                                                        |
+| M-S-<down>       | Insert a new row above the current row. With a prefix argument, the line is created below the current one.     |
+| C-c -            | Insert a horizontal line below current row. With a prefix argument, the line is created above the current line |
+| C-c <RET>        | Insert a horizontal line below current row, and move the cursor into the row below that line                   |
+| C-c ^            | Sort the table lines in the region. See [[*C-c ^][below]]                                                                  |
+| C-c ¦            | Converts the active region to table. See [[*C-c ¦][below]]                                                                 |
+| M-e              | Move to end of the current table field, or on to the next field                                                |
+
+*** C-c ^
+
+Sort the table lines in the region. The position of point indicates the column
+to be used for sorting, and the range of lines is the range between the nearest
+horizontal separator lines, or the entire table.
+
+*** C-c ¦
+
+Convert the active region to table. If every line contains at least one TAB
+character, the function assumes that the material is tab separated. If every
+line contains a comma, comma-separated values (CSV) are assumed. If not, lines
+are split at whitespace into fields. 
+
+If there is no active region, this command creates an empty Org table
+
+** Hyperlinks
+
+[[http://orgmode.org/guide/Hyperlinks.html#Hyperlinks][Link to hyperlink section]]
+
+| Key     | Explanation                                      |
+|---------+--------------------------------------------------|
+| C-c l   | Store a link to the current location (see [[*C-c%20l:%20Store%20a%20link%20to%20the%20current%20location][below]]) |
+| C-c C-l | Create/edit link (see [[*C-c%20C-l:%20Create/edit%20link][below]])                     |
+| C-c C-o | Open link at point                               |
+| C-c &   | Jump to a recorded position (see [[*C-c%20&:%20Jump%20to%20a%20recorded%20position][below]])          |
+| C-c %   | Manually record a position                       |
+
+| Link Prefix   | Type of link                                        |
+|---------------+-----------------------------------------------------|
+| http://       | Web link                                            |
+| file:         | File link. Supports both relative and absolute path |
+| /path/to/file | Also file link                                      |
+
+| Special link                 | Explanation               |
+|------------------------------+---------------------------|
+| file:~/code/main.c::255      | Find line 255             |
+| file:~/xx.org::My Target     | Find '<<My Target>>'      |
+| file:~/xx.org::#my-custom-id | Find entry with custom id |
+
+*** C-c l: Store a link to the current location
+
+This is a global command (you must create the key binding yourself) which can be
+used in any buffer to create a link. The link will be stored for later insertion
+into an Org buffer.
+
+*** C-c C-l: Create/edit link
+
+This prompts for a link to be inserted into the buffer. You can just type a
+link, or use history keys ~<up>~ and ~<down>~ to access stored links. You will
+be prompted for the description part of the link. When called with a ~C-u~
+prefix argument, file name completion is used to link to a file.
+
+*** C-c &: Jump to a recorded position
+
+Jump to a recorded position. A position is recorded by the commands following
+internal links. Using this command several times moves through a ring of
+previously recorded positions
+
+** Todo items
+
+Any headline becomes a TODO item when it starts with the word 'TODO'
+
+| Key              | Explanation                                                                                                        |
+|------------------+--------------------------------------------------------------------------------------------------------------------|
+| C-c C-t          | Rotate the TODO state of the current item among (<unmarked> -> TODO -> DONE -> <unmarked>)                         |
+| S-<right>/<left> | Select the following/preceding TODO state, similar to cycling                                                      |
+| C-c / t          | View TODO items in a sparse tree. Folds the buffer, but shows all TODO items and the headings hierarchy above them |
+| C-c a t          | Show the global TODO list. Collects the TODO items from all agenda files into a single buffer                      |
+| S-M-<RET>        | Insert a new TODO entry below the current one                                                                      |
+| S-<up>/<dwn>     | Increase/decrease priority of current headline. Priorities make a difference only in the agenda                    |
+| C-c C-c          | Toggle checkbox status or (with prefix arg) checkbox presence at point                                             |
+| M-S-<RET>        | Insert a new item with a checkbox. This works only if the cursor is already in a plain list item with a checkbox   |
+
+*** Multi state workflows
+
+You can use TODO keywords to indicate sequential working progress states:
+
+#+BEGIN_SRC emacs-lisp
+  (setq org-todo-keywords
+    '((sequence "TODO" "FEEDBACK" "VERIFY" "|" "DONE" "DELEGATED")))
+#+END_SRC
+
+The vertical bar separates the TODO keywords (states that need action) from the
+DONE states (which need no further action). If you don't provide the separator
+bar, the last state is used as the DONE state. With this setup, the command C-c
+C-t will cycle an entry from TODO to FEEDBACK, then to VERIFY, and finally to
+DONE and DELEGATED. Sometimes you may want to use different sets of TODO
+keywords in parallel. For example, you may want to have the basic TODO/DONE, but
+also a workflow for bug fixing. Your setup would then look like this:
+
+#+BEGIN_SRC emacs-lisp
+  (setq org-todo-keywords
+    '((sequence "TODO(t)" "|" "DONE(d)")
+      (sequence "REPORT(r)" "BUG(b)" "KNOWNCAUSE(k)" "|" "FIXED(f)")))
+#+END_SRC
+
+The keywords should all be different, this helps Org mode to keep track of which
+subsequence should be used for a given entry. The example also shows how to
+define keys for fast access of a particular state, by adding a letter in
+parenthesis after each keyword—you will be prompted for the key after 
+~C-c C-t~.
+
+You can also include a date stamp (add =!= in the paranthesis) or a note (add a
+=@=). If you want both you can type =@/!=. Following code is not tested:
+
+#+BEGIN_SRC emacs-lisp
+  (setq org-todo-keywords
+    '((sequence "TODO(t)" "WAIT(w@/!)" "|" "DONE(d!)" "CANCELED(c@)")))
+#+END_SRC
+
+*** Breaking down tasks
+
+It is often advisable to break down large tasks into smaller, manageable
+subtasks. You can do this by creating an outline tree below a TODO item, with
+detailed subtasks on the tree. To keep the overview over the fraction of
+subtasks that are already completed, insert either =[/]= or =[%]= anywhere in
+the headline. These cookies will be updated each time the TODO status of a child
+changes, or when pressing C-c C-c on the cookie. For example: 
+
+**** Organize Party [33%]
+***** TODO Call people [1/2]
+****** TODO Peter
+****** DONE Sarah
+***** TODO Buy food
+***** DONE Talk to neighbor
+
+*** Checkboxes
+
+Every item in a plain list (see Plain lists) can be made into a checkbox by
+starting it with the string ‘[ ]’. Checkboxes are not included in the global
+TODO list, so they are often great to split a task into a number of simple
+steps. Here is an example of a checkbox list.
+
+Checkboxes work hierarchically, so if a checkbox item has children that are
+checkboxes, toggling one of the children checkboxes will make the parent
+checkbox reflect if none, some, or all of the children are checked.
+
+**** TODO Organize party [1/2]
+- [-] call people [1/2]
+  - [ ] Peter
+  - [X] Sarah
+- [X] order food
+
+** Dates and times
+
+| Key              | Explanation                                                                                                                                 |
+|------------------+---------------------------------------------------------------------------------------------------------------------------------------------|
+| C-c .            | Create/edit a time stamp. When this command is used twice in succession, a time range is inserted. With a prefix, also add the current time |
+| C-c !            | Like C-c ., but insert an inactive timestamp that will not cause an agenda entry.                                                           |
+| S-<left>/<right> | Change date at cursor by one day                                                                                                            |
+| S-<up>/<down>    | Change the item under the cursor in a timestamp. The cursor can be on a year, month, day, hour or minute                                    |
+| C-c C-d          | Insert 'DEADLINE' keyword along with a stamp, in the line following the headline                                                            |
+| C-c C-s          | Insert 'SCHEDULED' keyword along with a stamp, in the line following the headline                                                           |
+
+*** Deadlines and scheduling
+
+A timestamp may be preceded by special keywords to facilitate planning:
+
+**** DEADLINE
+
+Insert =DEADLINE= keyword along with a stamp, in the line following the
+headline. On the deadline date, the task will be listed in the agenda. In
+addition, the agenda for today will carry a warning about the approaching or
+missed deadline, starting org-deadline-warning-days before the due date, and
+continuing until the entry is marked DONE. An example: 
+
+***** TODO write article about the Earth for the Guide
+DEADLINE: <2017-09-03 Sun>
+
+**** SCHEDULED
+Meaning: you are planning to start working on that task on the given
+date. Example:
+
+***** TODO Call Trillian for a date on New Years Eve.
+SCHEDULED: <2017-09-17 Sun>
+
+** Misc
+
+| Key       | Explanation             |
+|-----------+-------------------------|
+| ~C-c C-e~ | Export to other formats |
+   

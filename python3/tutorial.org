@@ -18,3 +18,219 @@ And this code block evaluates python3 code:
 import sys
 print(sys.version)
 #+END_SRC
+
+* Types
+
+#+BEGIN_SRC python :python python3 :results output
+print("Integer:", 3)
+print("Float:", 3.0)
+print("Float:", 3.1)
+#+END_SRC
+
+* Basic math
+
+Mathematical operators
+
+#+BEGIN_SRC python :python python3 :results output
+print(1 + 2)
+print(10 - 4)
+print(4 * 5)
+print(7 / 3)
+print(10 / 2, "(The result of division is always a float)")
+#+END_SRC
+
+Integer division
+
+#+BEGIN_SRC python :python python3 :results output
+print(7 // 3)
+print(7.0 // 2.9 , "(Also works on floats)")
+print(10.0 // 3.3)
+print(10.0 // 3.4)
+print(-7 // 3, "(The result is always rounded down)")
+print(-7.0 // 3.0)
+#+END_SRC
+
+Modulo
+
+#+BEGIN_SRC python :python python3 :results output
+print(7 % 3, "(Smallest positive integer)")
+print(-7 % 3)
+#+END_SRC
+
+Exponentiation
+
+#+BEGIN_SRC python :python python3 :results output
+print(2 ** 4)
+print(2.0 ** 4)
+print(2 ** 4.0)
+print(2.0 ** 4.0)
+#+END_SRC
+
+Change precedence
+
+#+BEGIN_SRC python :python python3 :results output
+print(1 + 2 * 3)
+print((1 + 2) * 3)
+#+END_SRC
+
+* Comparisons
+
+Boolean values (note capitalization)
+
+#+BEGIN_SRC python :python python3 :results output
+print(True)
+print(False)
+#+END_SRC
+
+Negation
+
+#+BEGIN_SRC python :python python3 :results output
+print(not True)
+print(not False)
+#+END_SRC
+
+Boolean operators (~and~ and ~or~)
+
+#+BEGIN_SRC python :python python3 :results output
+print(True and False)
+print(True or False)
+#+END_SRC
+
+Boolean operators with integers
+
+#+BEGIN_SRC python :python python3 :results output
+print(0 and 2)
+print(-5 or 0)
+print(0 == False)
+print(2 == True)
+print(1 == True)
+#+END_SRC
+
+Equality symbol (~==~)
+
+#+BEGIN_SRC python :python python3 :results output
+print(1 == 1)
+print(2 == 1)
+#+END_SRC
+
+Inequality operator (~!=~)
+
+#+BEGIN_SRC python :python python3 :results output
+print(1 != 1)
+print(2 != 1)
+#+END_SRC
+
+Size comparisons
+
+#+BEGIN_SRC python :python python3 :results output
+print(1 < 10)
+print(1 > 10)
+print(2 <= 2)
+print(2 >= 2)
+#+END_SRC
+
+Chained comparisons
+
+#+BEGIN_SRC python :python python3 :results output
+print(1 < 2 < 3)
+print(2 < 3 < 2)
+#+END_SRC
+
+Lazy evaluation
+
+#+BEGIN_SRC python :python python3 :results output
+print(False and (5 / 0))
+#+END_SRC
+
+What different types evaluate to
+
+#+BEGIN_SRC python :python python3 :results output
+print(bool(0))
+print(bool(0.0))
+print(bool(""))
+print(bool([]))
+print(bool({}))
+print(bool(()))
+print("Other values evaluate to True (this doesn't mean that they are equal to True as seen earlier)")
+#+END_SRC
+
+Equality (~==~) vs ~is~ operator
+~is~ checks if two variables refer to the same object, but ~==~ checks if the
+objects pointed to have the same values
+
+#+BEGIN_SRC python :python python3 :results output
+a = [1, 2, 3, 4]         # Point a at a new list, [1, 2, 3, 4]
+b = a                    # Point b at what a is pointing to
+print("b is a:", b is a) # => True, a and b refer to the same object
+print("b == a:", b == a) # => True, a's and b's objects are equal
+b = [1, 2, 3, 4]         # Point b at a new list, [1, 2, 3, 4]
+print("b is a:", b is a) # => False, a and b do not refer to the same object
+print("b == a:", b == a) # => True, a's and b's objects are equal
+#+END_SRC
+
+* Strings
+
+Strings are surrounded with ~"~ or ~'~
+
+#+BEGIN_SRC python :python python3 :results output
+print("This is a string.")
+print('This is also a string.')
+#+END_SRC
+
+Concatenation
+
+#+BEGIN_SRC python :python python3 :results output
+print("Hello " + "world!")
+print("Hello " "world!") # Prefered way
+#+END_SRC
+
+Treat it as a list of characters
+
+#+BEGIN_SRC python :python python3 :results output
+print("This is a string"[0])
+#+END_SRC
+
+Find the length of the string
+
+#+BEGIN_SRC python :python python3 :results output
+print(len("This is a string"))
+#+END_SRC
+
+Formatting string
+
+#+BEGIN_SRC python :python python3 :results output
+print("{} can be {}".format("Strings", "interpolated"))
+print("{0} be nimble, {0} be quick, {0} jump over the {1}".format("Jack", "candle stick"))
+print("{name} wants to eat {food}".format(name="Bob", food="lasagna"))
+#+END_SRC
+
+* The ~None~ object
+
+#+BEGIN_SRC python :python python3 :results output
+print(None)
+#+END_SRC
+
+Compare with ~is~ operator instead of ~==~
+
+#+BEGIN_SRC python :python python3 :results output
+print('"etc" is None:', "etc" is None)
+print('None is None:', None is None)
+#+END_SRC
+
+* Variables
+
+No need to declare variables before assigning to them. Convention is to use
+lower_case_with_underscores
+
+#+BEGIN_SRC python :python python3 :results output
+some_var = 5
+print("some_var:", some_var)
+#+END_SRC
+
+Accessing a previously unassigned variable raises an exception
+
+#+BEGIN_SRC python :python python3 :results output
+# The following error is intentional
+some_unknown_var  # Raises a NameError
+#+END_SRC
+

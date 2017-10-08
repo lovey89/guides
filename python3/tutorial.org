@@ -19,7 +19,8 @@ import sys
 print(sys.version)
 #+END_SRC
 
-* Types
+* Basics
+** Types
 
 #+BEGIN_SRC python :python python3 :results output
 print("Integer:", 3)
@@ -27,7 +28,7 @@ print("Float:", 3.0)
 print("Float:", 3.1)
 #+END_SRC
 
-* Basic math
+** Basic math
 
 Mathematical operators
 
@@ -73,7 +74,7 @@ print(1 + 2 * 3)
 print((1 + 2) * 3)
 #+END_SRC
 
-* Comparisons
+** Comparisons
 
 Boolean values (note capitalization)
 
@@ -168,7 +169,7 @@ print("b is a:", b is a) # => False, a and b do not refer to the same object
 print("b == a:", b == a) # => True, a's and b's objects are equal
 #+END_SRC
 
-* Strings
+** Strings
 
 Strings are surrounded with ~"~ or ~'~
 
@@ -204,7 +205,7 @@ print("{0} be nimble, {0} be quick, {0} jump over the {1}".format("Jack", "candl
 print("{name} wants to eat {food}".format(name="Bob", food="lasagna"))
 #+END_SRC
 
-* The ~None~ object
+** The ~None~ object
 
 #+BEGIN_SRC python :python python3 :results output
 print(None)
@@ -217,7 +218,7 @@ print('"etc" is None:', "etc" is None)
 print('None is None:', None is None)
 #+END_SRC
 
-* Variables
+** Variables
 
 No need to declare variables before assigning to them. Convention is to use
 lower_case_with_underscores

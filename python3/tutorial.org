@@ -332,3 +332,147 @@ print("li == li2:", li == li2) # Check for equality
 print("li is li2:", li is li2) # Check if they are the same object
 #+END_SRC
 
+** Removing an element
+
+#+BEGIN_SRC python :python python3 :results output
+li = [1, 2, 4, 3]
+del li[2]
+print("li:", li)
+print("li[2]:", li[2])
+#+END_SRC
+
+** Remove first occurence of a value
+
+#+BEGIN_SRC python :python python3 :results output
+li = [1, 2, 4, 3]
+li.remove(2) # Calling this twice would result in a ValueError exception since 2 is not in the list
+print("li:", li)
+#+END_SRC
+
+** Inserting an element in list
+
+#+BEGIN_SRC python :python python3 :results output
+li = [1, 2, 4, 3]
+li.insert(1, 5) # At index 1 insert 5
+print("li:", li)
+#+END_SRC
+
+** Get index of first occurence of a value
+
+#+BEGIN_SRC python :python python3 :results output
+li = [1, 2, 4, 3, 2]
+print("li.index(2):", li.index(2)) # A non existing value would raise an ValueError exception
+#+END_SRC
+
+** Concatenating lists
+
+The following code will create a new list:
+
+#+BEGIN_SRC python :python python3 :results output
+li = [1, 2, 4, 3]
+li2 = [11, 12, 14, 13]
+print("li + li2:", li + li2) # The lists are not affected
+print("li:      ", li)
+print("li2:     ", li2)
+#+END_SRC
+
+This code will update list ~li~:
+
+#+BEGIN_SRC python :python python3 :results output
+li = [1, 2, 4, 3]
+li2 = [11, 12, 14, 13]
+li.extend(li2) # Now li has changed
+print("li: ", li)
+print("li2:", li2)
+#+END_SRC
+
+** Check for existence with ~in~
+
+#+BEGIN_SRC python :python python3 :results output
+li = [1, 2, 4, 3]
+print("1 in li:", 1 in li)
+print("7 in li:", 7 in li)
+#+END_SRC
+
+** Length of list
+
+#+BEGIN_SRC python :python python3 :results output
+li = [1, 2, 4, 3]
+print("len(li): ", len(li))
+#+END_SRC
+
+* Tuples
+
+Tuples are immutable. The mutable equivalent would be list
+
+** Creating tuples
+
+#+BEGIN_SRC python :python python3 :results output
+print("tup = (1, 2, 3)")
+tup = (1, 2, 3)
+print("tup:       ", tup)
+print("A one element long tuple needs comma after the last element:")
+print("type((1)): ", type((1)))
+print("type((1,)):", type((1,)))
+print("type(()):  ", type(()))
+#+END_SRC
+
+** Accessing elements
+
+#+BEGIN_SRC python :python python3 :results output
+tup = (1, 2, 3)
+print("tup[0]:", tup[0])
+# tup[0] = 3 is not allowed (tuples are immutable) and would raise a TypeError exception
+#+END_SRC
+
+** List elements that also works on tuples
+
+#+BEGIN_SRC python :python python3 :results output
+tup = (1, 2, 3)
+print("len(tup):       ", len(tup))
+print("tup + (4, 5, 6):", tup + (4, 5, 6))
+print("tup[:2]:        ", tup[:2])
+print("2 in tup:       ", 2 in tup)
+#+END_SRC
+
+** Unpacking tuples (also lists)
+
+The number of variables and values must match
+
+#+BEGIN_SRC python :python python3 :results output
+a, b, c = (1, 2, 3)
+print("a:", a)
+print("b:", b)
+print("c:", c)
+#+END_SRC
+
+You can also use the asterisk to capture several variables
+
+#+BEGIN_SRC python :python python3 :results output
+a, *b, c = (1, 2, 3, 4) # Only one variable may use the asterisk
+print("a:", a)
+print("b:", b) # This will be a list
+print("c:", c)
+#+END_SRC
+
+The paranthesis are not needed. Tuples are created by default
+
+#+BEGIN_SRC python :python python3 :results output
+d, e, f = 4, 5, 6
+print("d:", d)
+print("e:", e)
+print("f:", f)
+#+END_SRC
+
+This makes it very easy to swap two values
+
+#+BEGIN_SRC python :python python3 :results output
+d = 4
+e = 5
+e, d = d, e
+print("d:", d)
+print("e:", e)
+#+END_SRC
+
+* Dictionairies
+

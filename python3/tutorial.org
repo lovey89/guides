@@ -475,4 +475,90 @@ print("e:", e)
 #+END_SRC
 
 * Dictionairies
+** Creating dictionairies
+
+#+BEGIN_SRC python :python python3 :results output
+# Can be either an empty dictionairy
+empty_dict = {}
+print("empty_dict:", empty_dict)
+
+# Or a prefilled dictionairy
+filled_dict = {"one": 1, "two": 2, "three": 3}
+print("filled_dict:", filled_dict)
+#+END_SRC
+
+The keys of the dictionairy needs to be of an immutable type (such as int,
+float, string or tuple). This is because python needs to calculate hash values
+for lookups. Values can be of any type.
+
+#+BEGIN_SRC python :python python3 :results output
+valid_dict = {(1,2,3):[1,2,3]}
+print("valid_dict:", valid_dict)
+# You are not limited to one type of key/value
+other_valid_dict = {1: 2, "three": "four"}
+print("other_valid_dict:", other_valid_dict)
+#+END_SRC
+
+** Look for existence of keys
+
+#+BEGIN_SRC python :python python3 :results output
+filled_dict = {"one": 1, "two": 2, "three": 3}
+print('"one" in filled_dict:', "one" in filled_dict)
+print("1 in filled_dict:    ", 1 in filled_dict)
+#+END_SRC
+
+** Look for values (using keys)
+
+#+BEGIN_SRC python :python python3 :results output
+filled_dict = {"one": 1, "two": 2, "three": 3}
+print('filled_dict["one"]:        ', filled_dict["one"])
+# Looking up a non-existing key raises and KeyError. Use get instead
+print('filled_dict.get("one"):    ', filled_dict.get("one"))
+print('filled_dict.get("four"):   ', filled_dict.get("four"))
+print('filled_dict.get("one", 4): ', filled_dict.get("one", 4))
+print('filled_dict.get("four", 4):', filled_dict.get("four", 4))
+#+END_SRC
+
+** Get all keys and values
+
+#+BEGIN_SRC python :python python3 :results output
+filled_dict = {"one": 1, "two": 2, "three": 3}
+print("filled_dict.keys():        ", filled_dict.keys())       # The order is non predictable
+print("list(filled_dict.keys()):  ", list(filled_dict.keys())) # To get the result as a list
+print("filled_dict.values():      ", filled_dict.values())     # The indexes seems to match for keys and values
+print("list(filled_dict.values()):", list(filled_dict.values()))
+#+END_SRC
+
+** Adding value to dictionairy
+
+#+BEGIN_SRC python :python python3 :results output
+filled_dict = {"one": 1, "two": 2, "three": 3}
+filled_dict["four"] = 5
+print("filled_dict:", filled_dict)
+returnValue = filled_dict.update({"four":4}) # Always return None (not the previous value)
+print("returnValue:", returnValue)
+print("filled_dict:", filled_dict)
+#+END_SRC
+
+** Add value if it is not present
+
+The method ~setdefault()~ is similar to ~get()~, but will set
+~dict[key]=default~ if key is not already in dict.
+
+#+BEGIN_SRC python :python python3 :results output
+filled_dict = {"one": 1, "two": 2, "three": 3}
+print('filled_dict.setdefault("five", 5):', filled_dict.setdefault("five", 5))
+print("filled_dict:", filled_dict)
+print('filled_dict.setdefault("five", 6):', filled_dict.setdefault("five", 6)) # Will still be 5
+print("filled_dict:", filled_dict)
+#+END_SRC
+
+** Remove key/value pair using key
+
+#+BEGIN_SRC python :python python3 :results output
+filled_dict = {"one": 1, "two": 2, "three": 3}
+print("filled_dict:", filled_dict)
+del filled_dict["one"]
+print("filled_dict:", filled_dict)
+#+END_SRC
 

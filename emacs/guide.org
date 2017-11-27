@@ -1,4 +1,29 @@
 * Common emacs
+** TRAMP (ssh)
+
+Code to connect to a remote server using emacs from command line:
+
+#+BEGIN_SRC
+emacs -nw -eval "(find-file \"/ssh:user@host:\")"
+#+END_SRC
+
+Connect to another port:
+
+#+BEGIN_SRC
+emacs -nw -eval "(find-file \"/ssh:user@host#port:\")"
+#+END_SRC
+
+Open a file directly:
+
+#+BEGIN_SRC
+emacs -nw -eval "(find-file \"/ssh:user@host:path/to/file\")"
+#+END_SRC
+
+Become root after connect (note that =host= below should be the same):
+
+#+BEGIN_SRC
+emacs -nw -eval "(find-file \"/ssh:user@host|sudo:root@host:\")"
+#+END_SRC
 
 * Org Mode
 ** Markup

@@ -848,6 +848,211 @@ f100 = fib2(100)
 print(f100)
 #+END_SRC
 
+~return~ without arguments will return ~None~. If execution reaches the end of
+the method it will also return ~None~
+
+** Variable number of arguments
+
+*** Default argument values
+
+#+BEGIN_SRC python :python python3 :results output
+def ask_ok(prompt, retries=100, reminder='Please try again!'):
+    print("prompt:  ", prompt)
+    print("retries: ", retries)
+    print("reminder:", reminder)
+    print()
+
+ask_ok("Test", 5, "Last")
+ask_ok("Test", 5)
+ask_ok("Test")
+ask_ok("Test", reminder="Last")
+#+END_SRC
+
+Note that the default value will only be evaluated once. Mutable objects may be
+updated
+
+#+BEGIN_SRC python :python python3 :results output
+def f(a, L=[]):
+    L.append(a)
+    return L
+
+print(f(1))
+print(f(2))
+print(f(3))
+#+END_SRC
+
+*** Keyword arguments
+
+All keyword arguments must be placed after all positional arguments
+
+#+BEGIN_SRC python :python python3 :results output
+def parrot(voltage, state='a stiff', action='voom', type='Norwegian Blue'):
+    print("-- This parrot wouldn't", action, end=' ')
+    print("if you put", voltage, "volts through it.")
+    print("-- Lovely plumage, the", type)
+    print("-- It's", state, "!")
+    print()
+
+# This method can be called in several different ways
+parrot(1000)                                          # 1 positional argument
+parrot(voltage=1000)                                  # 1 keyword argument
+parrot(voltage=1000000, action='VOOOOOM')             # 2 keyword arguments
+parrot(action='VOOOOOM', voltage=1000000)             # 2 keyword arguments
+parrot('a million', 'bereft of life', 'jump')         # 3 positional arguments
+parrot('a thousand', state='pushing up the daisies')  # 1 positional, 1 keyword
+#+END_SRC
+
+*** Arbitrary Argument Lists
+
+Can be preceded by zero or more normal arguments. Can also be followed by
+keyword arguments. A variadic variable will be a tuple
+
+#+BEGIN_SRC python :python python3 :results output
+def report(header, *entries, sep='\n'):
+    print(header)
+    print('-' * len(header))
+    print(sep.join(entries))
+    print()
+
+report("Food", "Bread", "Butter")
+report("Food", "Bread", "Butter", sep=" ")
+#+END_SRC
+
+A special variadic element can also be defined with ~**~ which will be treated
+as a dictionairy. The dictionairy will _always_ be in the same order as the
+arguments passed
+
+#+BEGIN_SRC python :python python3 :results output
+def report(header, *entries, **dictentries):
+    print(header)
+    print('-' * len(header))
+    print('\n'.join(entries))
+    print('-' * len(header))
+    for kw in dictentries:
+        print(kw, ":", dictentries[kw])
+    print()
+
+report("Food", "Bread", "Butter", test1=1, test2=2)
+report("Food", "Bread", "Butter", sep=" ")
+#+END_SRC
+
+*** Unpacking variables
+
+Sometimes you have the arguments in a list and you need to provide them to a
+function separately. Then you'll have to unpack them
+
+#+BEGIN_SRC python :python python3 :results output
+print(list(range(3, 6)))
+args = [3, 6]
+print(list(range(*args)))
+#print(list(range(args))) # This will fail
+#+END_SRC
+
+Same thing when unpacking dictionairies. But you'll unpack it with the ~**~
+operator
+
+#+BEGIN_SRC python :python python3 :results output
+def parrot(voltage, state='a stiff', action='voom'):
+    print("-- This parrot wouldn't", action, end=' ')
+    print("if you put", voltage, "volts through it.", end=' ')
+    print("E's", state, "!")
+
+d = {"voltage": "four million", "state": "bleedin' demised", "action": "VOOM"}
+parrot(**d)
+#+END_SRC
+
+#+RESULTS:
+: -- This parrot wouldn't VOOM if you put four million volts through it. E's bleedin' demised !
+
+
+** Lambda Expressions
+
+In the following example we uses a lambda to create a new function (currying?)
+
+#+BEGIN_SRC python :python python3 :results output
+def make_incrementor(n):
+    return lambda x: x + n
+
+f = make_incrementor(42)
+print(f(0))
+print(f(1))
+#+END_SRC
+
+You can also use lambdas when you need to provide a function to another
+function. In this example we want to sort the list on the string (the second
+entry in each tuple)
+
+#+BEGIN_SRC python :python python3 :results output
+pairs = [(1, 'one'), (2, 'two'), (3, 'three'), (4, 'four')]
+pairs.sort(key=lambda pair: pair[1])
+print(pairs)
+#+END_SRC
+
+
+** Documentation string
+
+The first line in the documentation string should be short, concise summary of
+the object’s purpose. If more documentation is needed the second line should be
+blank. You can reach the doc string with the ~.__doc__~ call.
+
+#+BEGIN_SRC python :python python3 :results output
+def my_function():
+    """Do nothing, but document it.
+
+    No, really, it doesn't do anything.
+    """
+    pass
+
+print(my_function.__doc__)
+#+END_SRC
+
+** Function annotations
+
+Function annotations are optional and they can be used for whatever you feel.
+Parameter annotations are defined by a colon after the parameter name, followed
+by an expression evaluating to the value of the annotation. Return annotations
+are defined by a literal ~->~, followed by an expression, between the parameter
+list and the colon denoting the end of the def statement.
+
+#+BEGIN_SRC python :python python3 :results output
+def f(ham: str, eggs: str = 'eggs') -> str:
+    print("Annotations:", f.__annotations__)
+    print("Arguments:", ham, eggs)
+    return ham + ' and ' + eggs
+
+print(f('spam'))
+#+END_SRC
+
+A more advanced example
+
+#+BEGIN_SRC python :python python3 :results output
+def validate(func, locals):
+    for var, test in func.__annotations__.items():
+        value = locals[var]
+        msg = 'Var: {0}\tValue: {1}\tTest: {2.__name__}'.format(var, value, test)
+        assert test(value), msg
+
+
+def is_int(x):
+    return isinstance(x, int)
+
+def between(lo, hi):
+    def _between(x):
+            return lo <= x <= hi
+    return _between
+
+def f(x: between(3, 10), y: is_int = 1):
+    validate(f, locals()) # locals return a dictionairy for the arguments
+    print(x, y)
+
+
+f(5)
+f(5, 1)
+#+END_SRC
+
+You can also use them for documentation if you want. E.g. what kind of data you
+expect or the types of the arguments.
+
 * Example programs
 ** Read command line arguments
 

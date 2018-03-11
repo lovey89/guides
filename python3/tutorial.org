@@ -961,10 +961,6 @@ d = {"voltage": "four million", "state": "bleedin' demised", "action": "VOOM"}
 parrot(**d)
 #+END_SRC
 
-#+RESULTS:
-: -- This parrot wouldn't VOOM if you put four million volts through it. E's bleedin' demised !
-
-
 ** Lambda Expressions
 
 In the following example we uses a lambda to create a new function (currying?)
@@ -987,7 +983,6 @@ pairs = [(1, 'one'), (2, 'two'), (3, 'three'), (4, 'four')]
 pairs.sort(key=lambda pair: pair[1])
 print(pairs)
 #+END_SRC
-
 
 ** Documentation string
 

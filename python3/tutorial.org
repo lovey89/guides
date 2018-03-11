@@ -633,7 +633,7 @@ print("filled_dict:", filled_dict)
 #+END_SRC
 
 * Control flows
-** if statement
+** ~if~ statement
 
 #+BEGIN_SRC python :python python3 :results output :preamble def input(x): return 2
 # In the header of this block we have redefined input as we can't run this interactively
@@ -650,7 +650,7 @@ else:
     print('More')
 #+END_SRC
 
-** for statement
+** ~for~ statement
 
 Iterates over any sequence and not only an arithmetic progression
 
@@ -693,7 +693,20 @@ else:
     print("exit")
 #+END_SRC
 
-** while statement
+*** An example
+
+#+BEGIN_SRC python :python python3 :results output
+for n in range(2, 10):
+    for x in range(2, n):
+        if n % x == 0:
+            print(n, 'equals', x, '*', n//x)
+            break
+    else:
+        # loop fell through without finding a factor
+        print(n, 'is a prime number')
+#+END_SRC
+
+** ~while~ statement
 
 Works as expected
 
@@ -755,6 +768,85 @@ for i in range(len(a)):
     print(i, a[i])
 #+END_SRC
 
+Printing a range
+
+#+BEGIN_SRC python :python python3 :results output
+myRange = range(5)
+print(myRange)
+print(list(myRange))
+print(tuple(myRange))
+#+END_SRC
+
+** ~pass~ statement
+
+Does nothing but can be used when a statement is needed syntactically
+
+#+BEGIN_SRC python :python python3 :results output
+def f(arg):
+    pass    # a function that does nothing
+#+END_SRC
+
+* Functions
+
+The first line in the following function is the documenation string (and is
+optional). Some tools can extract this string
+
+#+BEGIN_SRC python :python python3 :results output
+def fib(n):    # write Fibonacci series up to n
+    """Print a Fibonacci series up to n."""
+    a, b = 0, 1
+    while a < n:
+        print(a, end=' ')
+        a, b = b, a+b
+    print()
+
+# Now call the function we just defined:
+fib(2000)
+#+END_SRC
+
+Call by value
+
+#+BEGIN_SRC python :python python3 :results output
+def f(n):
+    print("In function:   ", n)
+    n = 3
+    print("In function:   ", n)
+
+myVar = 5
+f(myVar)
+print("After function:", myVar)
+#+END_SRC
+
+But passes references
+
+#+BEGIN_SRC python :python python3 :results output
+def f(aList):
+    print("In function:   ", aList)
+    aList[1] = 5
+    print("In function:   ", aList)
+
+myList = [1, 2, 3]
+f(myList)
+print("After function:", myList)
+#+END_SRC
+
+A function that doesn't return any value will return the value ~None~.
+
+You can create a function which returns a value with the ~return~ keyword
+
+#+BEGIN_SRC python :python python3 :results output
+def fib2(n):  # return Fibonacci series up to n
+    """Return a list containing the Fibonacci series up to n."""
+    result = []
+    a, b = 0, 1
+    while a < n:
+        result.append(a)    # see below
+        a, b = b, a+b
+    return result
+
+f100 = fib2(100)
+print(f100)
+#+END_SRC
 
 * Example programs
 ** Read command line arguments
@@ -764,9 +856,7 @@ for i in range(len(a)):
 import sys
 
 print(len(sys.argv))
-print(sys.argv[0])
-print(sys.argv[1])
-print(sys.argv[2])
+for arg in sys.argv:
+    print(arg)
 #+END_SRC
-
 

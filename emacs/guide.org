@@ -92,6 +92,13 @@ Important actors in this film are:
 - Elijah Wood :: He plays Frodo
 - Sean Astin :: He plays Sam, Frodo's friend.
 
+** Code blocks
+
+| Key       | Explanation                   |
+|-----------+-------------------------------|
+| ~C-c C-c~ | Execute code block            |
+| ~C-c '~   | Edit code block in new buffer |
+
 ** Tables
 
 Start with writing your heading like this:

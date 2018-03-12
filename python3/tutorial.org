@@ -1181,6 +1181,13 @@ myVar = [num for elem in vec for num in elem]
 print(myVar)
 #+END_SRC
 
+You can also create a dictionairy with dict comprehension
+
+#+BEGIN_SRC python :python python3 :results output
+myDict = {x: x**2 for x in (2, 4, 6)}
+print(myDict)
+#+END_SRC
+
 ** Nested list comprehensions
 
 The expression in a list comprehension can be another comprehension. The

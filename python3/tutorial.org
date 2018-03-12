@@ -393,13 +393,21 @@ print("li is li2:", li is li2) # Check if they are the same object
 
 ** Removing an element (~del~)
 
+Removes an element given an index or slice
+
 #+BEGIN_SRC python :python python3 :results output
-li = [1, 2, 4, 3]
+li = [1, 2, 4, 3, 4, 5, 6, 7, 8]
 print("li:", li)
 print("li[2]:", li[2])
 del li[2]
 print("li:", li)
 print("li[2]:", li[2])
+del li[2::2]
+print("li:", li)
+# Remove the whole list
+del li
+# The following line will result in an error
+#print("li:", li)
 #+END_SRC
 
 ** Remove first occurence of a value (~remove~)
@@ -467,6 +475,29 @@ print("len(li): ", len(li))
 #+BEGIN_SRC python :python python3 :results output
 matrix = [[1, 2, 3],['a', 'b', 'c']]
 print(matrix[0][1]) # 2
+#+END_SRC
+
+** Some commands in actions
+
+#+BEGIN_SRC python :python python3 :results output
+fruits = ['orange', 'apple', 'pear', 'banana', 'kiwi', 'apple', 'banana']
+print("fruits:                   ", fruits)
+print("fruits.count('apple'):    ", fruits.count('apple'))
+print("fruits.count('tangerine'):", fruits.count('tangerine'))
+print("fruits.index('banana'):   ", fruits.index('banana'))
+# Find next banana starting a position 4
+print("fruits.index('banana', 4):", fruits.index('banana', 4))
+print("fruits.reverse()")
+fruits.reverse()
+print("fruits:                   ", fruits)
+print("fruits.append('grape')")
+fruits.append('grape')
+print("fruits:                   ", fruits)
+print("fruits.sort()")
+fruits.sort()
+print("fruits:                   ", fruits)
+print("fruits.pop():             ", fruits.pop())
+print("fruits:                   ", fruits)
 #+END_SRC
 
 * Tuples
@@ -632,6 +663,44 @@ del filled_dict["one"]
 print("filled_dict:", filled_dict)
 #+END_SRC
 
+* Sets
+
+A ~set~ is an unordered collection with no duplicate elements. Supports typical
+set operations like union, intersection, difference, and symmetric difference.
+
+Uses curly braces, just like dictionairies but with single values instead. To
+create an empty set you will have to use ~set()~ as ~{}~ creates an empty
+directory
+
+#+BEGIN_SRC python :python python3 :results output
+empty = set()
+print(empty)
+basket = {'apple', 'orange', 'apple', 'pear', 'orange', 'banana'}
+print(basket)
+print('orange' in basket)
+print('crabgrass' in basket)
+#+END_SRC
+
+Set operations. String is an iterable so when giving a string to the ~set~
+constructor it will build a set of the characters
+
+#+BEGIN_SRC python :python python3 :results output
+a = set('abracadabra')
+b = set('alacazam')
+
+print("a:    ", a)
+print("b:    ", b)
+print()
+# Difference
+print("a - b:", a - b)
+# Union
+print("a | b:", a | b)
+# Intersection
+print("a & b:", a & b)
+# Symmetric difference
+print("a ^ b:", a ^ b)
+#+END_SRC
+
 * Control flows
 ** ~if~ statement
 
@@ -658,6 +727,16 @@ Iterates over any sequence and not only an arithmetic progression
 words = ['cat', 'window', 'defenestrate']
 for w in words:
     print(w, len(w))
+#+END_SRC
+
+Note that the variable w will still be set after the loop finishes
+
+#+BEGIN_SRC python :python python3 :results output
+words = ['cat', 'window', 'defenestrate']
+for w in words:
+    print(w, len(w))
+
+print("After loop:", w)
 #+END_SRC
 
 Also supports ~else~ when it is exiting the ~for~ loop
@@ -852,7 +931,6 @@ print(f100)
 the method it will also return ~None~
 
 ** Variable number of arguments
-
 *** Default argument values
 
 #+BEGIN_SRC python :python python3 :results output
@@ -1047,6 +1125,72 @@ f(5, 1)
 
 You can also use them for documentation if you want. E.g. what kind of data you
 expect or the types of the arguments.
+
+* Data structures
+** List comprehensions
+
+Can be used to create new lists where each element is the result of some
+operations applied to each member of another sequence or iterable, or to create
+a subsequence of those elements that satisfy a certain condition.
+
+#+BEGIN_SRC python :python python3 :results output
+squares = []
+for x in range(10):
+    squares.append(x**2)
+
+print(squares)
+# A side effect of doing it this way
+print(x)
+#+END_SRC
+
+This can be replaced with
+
+#+BEGIN_SRC python :python python3 :results output
+squares = list(map(lambda x: x**2, range(10)))
+print(squares)
+#+END_SRC
+
+or (note that there are no side effects on this call)
+
+#+BEGIN_SRC python :python python3 :results output
+x = 3
+squares = [x**2 for x in range(10)]
+print(squares)
+print(x)
+#+END_SRC
+
+You can add more ~for~ clauses and optional ~if~ clasuses to the comprehension.
+
+#+BEGIN_SRC python :python python3 :results output
+myVar = [(x, y) for x in [1,2,3] for y in [3,1,4] if x != y]
+print(myVar)
+#+END_SRC
+
+You can use the variable multiple times
+
+#+BEGIN_SRC python :python python3 :results output
+myVar = [(x, x**2) for x in range(6)]
+print(myVar)
+#+END_SRC
+
+Or flatten a matrix
+
+#+BEGIN_SRC python :python python3 :results output
+vec = [[1,2,3], [4,5,6], [7,8,9]]
+myVar = [num for elem in vec for num in elem]
+print(myVar)
+#+END_SRC
+
+** Nested list comprehensions
+
+The expression in a list comprehension can be another comprehension. The
+following code will transpose the matrix
+
+#+BEGIN_SRC python :python python3 :results output
+matrix = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]
+transposed = [[row[i] for row in matrix] for i in range(4)]
+print(transposed)
+#+END_SRC
 
 * Example programs
 ** Read command line arguments

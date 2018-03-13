@@ -141,6 +141,8 @@ Chained comparisons
 #+BEGIN_SRC python :python python3 :results output
 print(1 < 2 < 3)
 print(2 < 3 < 2)
+print(1 < 2 == 2)
+print(1 < 2 == 1)
 #+END_SRC
 
 Lazy evaluation
@@ -151,6 +153,16 @@ print(False and (5 / 0))
 
 #+BEGIN_SRC python :python python3 :results output
 print(5 / 0) # Run as a comparison. This one fails
+#+END_SRC
+
+When not comparing booleans the result of a comparison will be equal to the last
+evaluated expression
+
+#+BEGIN_SRC python :python python3 :results output
+myVar = '' or 'Second string' or 'Third string'
+print(myVar)
+myVar = '' or 1 or 'Third string'
+print(myVar)
 #+END_SRC
 
 What different types evaluate to
@@ -477,6 +489,21 @@ matrix = [[1, 2, 3],['a', 'b', 'c']]
 print(matrix[0][1]) # 2
 #+END_SRC
 
+** Comparing sequences
+
+It will compare each object from left to right
+
+#+BEGIN_SRC python :python python3 :results output
+print((1, 2, 3)    < (1, 2, 4))
+print([1, 2, 3]    < [1, 2, 4])
+print('ABC' < 'C'  < 'Pascal' < 'Python')
+print((1, 2, 3, 4) < (1, 2, 4)) # The size doesn't matter. 3 is less than 4
+print((1, 2)       < (1, 2, -1)) # One list was a subsequence of the other.
+                                 # The shorter is the smaller
+print((1, 2, 3) == (1.0, 2.0, 3.0)) # Different types can be compared if they have appropriate compare methods
+print((1, 2, ('aa', 'ab')) < (1, 2, ('abc', 'a'), 4)) # An element is a sequence which will be compared
+#+END_SRC
+
 ** Some commands in actions
 
 #+BEGIN_SRC python :python python3 :results output
@@ -599,7 +626,17 @@ other_valid_dict = {1: 2, "three": "four"}
 print("other_valid_dict:", other_valid_dict)
 #+END_SRC
 
+A dictionairy can also be created with the constructor. It accepts a sequence of
+key-value pairs
+
+#+BEGIN_SRC python :python python3 :results output
+myDict = dict([("one", 1), ("two", 2), ("three", 3)])
+print(myDict)
+#+END_SRC
+
 ** Look for existence of keys
+
+The ~in~ keyword will search for keys in the dictionairy
 
 #+BEGIN_SRC python :python python3 :results output
 filled_dict = {"one": 1, "two": 2, "three": 3}
@@ -627,6 +664,14 @@ print("filled_dict.keys():        ", filled_dict.keys())       # The order is no
 print("list(filled_dict.keys()):  ", list(filled_dict.keys())) # To get the result as a list
 print("filled_dict.values():      ", filled_dict.values())     # The indexes seems to match for keys and values
 print("list(filled_dict.values()):", list(filled_dict.values()))
+#+END_SRC
+
+You can also extract all items as key-value pairs
+
+#+BEGIN_SRC python :python python3 :results output
+filled_dict = {"one": 1, "two": 2, "three": 3}
+print("filled_dict.items():      ", filled_dict.items())
+print("list(filled_dict.items()):", list(filled_dict.items()))
 #+END_SRC
 
 ** Adding value to dictionairy
@@ -1199,6 +1244,40 @@ transposed = [[row[i] for row in matrix] for i in range(4)]
 print(transposed)
 #+END_SRC
 
+** Looping techniques
+
+Looping over all key-value pairs in a dictionairy
+
+#+BEGIN_SRC python :python python3 :results output
+filled_dict = {"one": 1, "two": 2, "three": 3}
+for k, v in filled_dict.items():
+    print ("Key:", k, "Value:", v)
+#+END_SRC
+
+Loop over a sequence and keep track of the index for each element
+
+#+BEGIN_SRC python :python python3 :results output
+for i, v in enumerate(['First', 'Second', 'Third']):
+    print(i, v, "element")
+#+END_SRC
+
+To loop over multiple sequences at the same time you can use zip
+
+#+BEGIN_SRC python :python python3 :results output
+numbers = [1, 2, 3, 4]
+squares = [1, 4, 9, 16]
+
+for n, s in zip(numbers, squares):
+    print("The square of", n, "is", s)
+#+END_SRC
+
+If you want to travese a sequence in reverse order
+
+#+BEGIN_SRC python :python python3 :results output
+for i in reversed([1, 2, 3, 4]):
+    print(i)
+#+END_SRC
+
 * Example programs
 ** Read command line arguments
 
@@ -1210,4 +1289,3 @@ print(len(sys.argv))
 for arg in sys.argv:
     print(arg)
 #+END_SRC
-

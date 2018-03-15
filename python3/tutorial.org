@@ -499,7 +499,7 @@ print([1, 2, 3]    < [1, 2, 4])
 print('ABC' < 'C'  < 'Pascal' < 'Python')
 print((1, 2, 3, 4) < (1, 2, 4)) # The size doesn't matter. 3 is less than 4
 print((1, 2)       < (1, 2, -1)) # One list was a subsequence of the other.
-                                 # The shorter is the smaller
+                                 # The shorter is the smaller one
 print((1, 2, 3) == (1.0, 2.0, 3.0)) # Different types can be compared if they have appropriate compare methods
 print((1, 2, ('aa', 'ab')) < (1, 2, ('abc', 'a'), 4)) # An element is a sequence which will be compared
 #+END_SRC
@@ -1278,6 +1278,106 @@ for i in reversed([1, 2, 3, 4]):
     print(i)
 #+END_SRC
 
+* Modules
+
+The module name is the file name without the ~.py~ file ending. The module name
+can be fetched from the ~__name__~ variable.
+
+I have already created a module called [[file:mymodule.py][mymodule]] in this directory. We can now
+import it to our script with the ~import~ keyword. Now you can access the
+module's functions by refering to the module name
+
+#+BEGIN_SRC python :python python3 :results output
+import mymodule as mymodule
+
+mymodule.fib(1000)
+myvar = mymodule.fib2(1000)
+print(myvar)
+print(mymodule.__name__)
+#+END_SRC
+
+You can also assign a function to a variable
+
+#+BEGIN_SRC python :python python3 :results output
+import mymodule
+
+fib = mymodule.fib
+fib(1000)
+#+END_SRC
+
+** More on modules
+
+Each module has its own private symbol table, which is used as the global symbol
+table by all functions defined in the module. There is no risk of naming
+conflicts between modules. On the other hand, if you know what you are doing you
+can touch a module’s global variables with the same notation used to refer to
+its functions, ~modname.itemname~
+
+There is a variant of the import statement that imports names from a module
+directly into the importing module’s symbol table (no need to call a method
+using the module name). With the following code you won't be able to refer to
+the ~mymodule~ module
+
+#+BEGIN_SRC python :python python3 :results output
+from mymodule import fib, fib2
+
+fib(1000)
+#mymodule.fib(1000) # name 'mymodule' is not defined
+#+END_SRC
+
+You can also import all names a module defines (except those that begin with a
+underscore)
+
+#+BEGIN_SRC python :python python3 :results output
+from mymodule import *
+
+fib(1000)
+myvar = fib2(1000)
+print(myvar)
+#+END_SRC
+
+You can also "rename" a module when you import it
+
+#+BEGIN_SRC python :python python3 :results output
+import mymodule as fib
+
+fib.fib(1000)
+print(fib.__name__)
+#+END_SRC
+
+We can also use the ~as~ keyword together with ~from~
+
+#+BEGIN_SRC python :python python3 :results output
+from mymodule import fib as fibonacci
+
+fibonacci(1000)
+#+END_SRC
+
+** Executing a module as a script
+
+If the ~__name__~ variable is set to ~__main__~ it means that the current module
+is the file which was invoked (e.g. from command line)
+
+#+BEGIN_SRC python :python python3 :results output :preamble import sys; sys.argv = ["filename","50"]
+from mymodule import fib
+if __name__ == "__main__":
+    import sys
+    fib(int(sys.argv[1]))
+#+END_SRC
+
+If this file is imported to another file now the code will not be called.
+Otherwise the code will run. This is often used either to provide a convenient
+user interface to a module, or for testing purposes (running the module as a
+script executes a test suite).
+
+** Module search path
+
+When importing a module python will first search within the built-in modules,
+otherwise it will look in for it in a list of directories given by the variable
+~sys.path~. This is initialized to the directory containing the input script and
+the path given by the ~PYTHONPATH~ environment variable. The python program can
+alter the ~sys.path~ during execution.
+
 * Example programs
 ** Read command line arguments
 
@@ -1289,3 +1389,8 @@ print(len(sys.argv))
 for arg in sys.argv:
     print(arg)
 #+END_SRC
+
+* Things that maybe isn't included in the tutorial
+
+- Inner functions
+

@@ -1375,8 +1375,101 @@ script executes a test suite).
 When importing a module python will first search within the built-in modules,
 otherwise it will look in for it in a list of directories given by the variable
 ~sys.path~. This is initialized to the directory containing the input script and
-the path given by the ~PYTHONPATH~ environment variable. The python program can
-alter the ~sys.path~ during execution.
+the path given by the ~PYTHONPATH~ environment variable and lastly the
+installation-dependent default. The python program can alter the ~sys.path~
+during execution using standard list operations.
+
+** The ~dir~ function
+
+The ~dir~ function is used to find out which names a module defines. It returns
+a sorted list of strings. With no arguments you find the names the names you
+have currently defined. Not the built-in functions and variables. To see those
+you can run ~dir(builtins)~
+
+#+BEGIN_SRC python :python python3 :results output
+import mymodule, sys
+print("mymodule\n", dir(mymodule), sep='')
+print("sys\n", dir(sys), sep='')
+print("noarg\n", dir(), sep='')
+import builtins
+print("builtins\n", dir(builtins), sep='')
+#+END_SRC
+
+** Packages
+
+Packages are a way of structuring Python’s module namespace by using “dotted
+module names”. Can be used so different authors of multi-module packages won't
+have to worry about colliding module names. Here is a directoy structure
+
+#+BEGIN_SRC
+mypackage/            # The package
+    __init__.py       # Initialize the package
+    mysubpackage1/    # Subpackage
+        __init__.py
+        module11.py
+        module12.py
+    mysubpackage2/
+        __init__.py
+        module21.py
+        module22.py
+#+END_SRC
+
+The ~__init__.py~ are required so python know that the directory contains
+packages. It can be empty or contain initialization code for the package or
+set the ~__all__~ variable.
+
+You can now import a module by refering to the full name. You have to refer to
+it's full name in the code as well
+
+#+BEGIN_SRC python :python python3 :results output
+import mypackage.mysubpackage1.module11
+
+mypackage.mysubpackage1.module11.function(var)
+#+END_SRC
+
+You can also import the submodule with ~from package import module~. Then you
+won't have to refer to the full name
+
+#+BEGIN_SRC python :python python3 :results output
+from mypackage.mysubpackage1 import module11
+
+module11.function(var)
+#+END_SRC
+
+or
+
+#+BEGIN_SRC python :python python3 :results output
+from mypackage.mysubpackage1.module11 import function
+
+function(var)
+#+END_SRC
+
+*** Import * from a package
+
+If a package's ~__init__.py~ file defines a list called ~__all__~ it will import
+all modules defined in that list when ~from package import *~ is encountered.
+If the file ~mypackage/mysubpackage1/__init__.py~ contains
+
+#+BEGIN_SRC python :python python3 :results output
+__all__ = ["module11", "module12"]
+#+END_SRC
+
+those two modules will be imported when ~from mypackage.mysubpackage1 import *~
+is encountered. If ~__all__~ is not defined it does not import any modules, it
+only runs initialization code in ~__init__.py~
+
+*** Module references inside package
+
+You can use absolute referencing inside a package as described above or you can
+use relative referencing. In the ~module11.py~ file you can write
+
+#+BEGIN_SRC python :python python3 :results output
+from . import module12
+from .. import mysubpackage2
+from ..mysubpackage2 import module21
+#+END_SRC
+
+Relative import can't be used in the main module of a program!
 
 * Example programs
 ** Read command line arguments

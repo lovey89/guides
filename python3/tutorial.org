@@ -1473,7 +1473,7 @@ Relative import can't be used in the main module of a program!
 
 * Input/output
 
-** Output
+** Formatting
 
 Python can convert values to strings in two ways, using ~str()~ (used for human
 readable text) or ~repr()~ (for generating representations which can be read
@@ -1563,18 +1563,138 @@ import math
 print('The value of PI is approximately %5.3f.' % math.pi)
 #+END_SRC
 
-*** Stdout
+** Reading and writing files
 
-*** Files
+The ~open()~ function returns a file object. It is commonly used with ~filename~
+and ~mode~ arguments
 
-sys.stdout
+#+BEGIN_SRC python :python python3 :results output
+f = open('mymodule.py', 'r')
+#+END_SRC
+
+The mode can be any of these strings:
+
+| Mode | Description                                |
+|------+--------------------------------------------|
+| 'r'  | Read only                                  |
+| 'w'  | Write only (overwrite a file if it exists) |
+| 'a'  | Append to the end of the file              |
+| 'r+' | Read and write                             |
+
+The ~mode~ argument is optional and is defaulted to ~'r'~. If you append a ~b~
+to the ~mode~ argument (e.g. ~'rb'~) the file will be opened in binary mode and
+the data is read and written in byte objects.
+
+It's a good practice to open a file using the ~with~ keyword. It will close the
+file when we exit the block (even if an exception is raised). This can also be
+done using ~try-finally~. If you don't use any of these approaches you will have
+to make sure you call the ~file.close()~ function yourself
+
+#+BEGIN_SRC python :python python3 :results output
+with open('mymodule.py') as f:
+    read_data = f.read()
+    print(read_data)
+print("Is file closed?", f.closed)
+#+END_SRC
+
+*** Read
+
+If you don't want to read the full file, the ~read()~ method also accepts a
+~size~ argument which is the maximum number of data to be read. If EOF has been
+reached ~read()~ will return an empty string (~''~)
+
+#+BEGIN_SRC python :python python3 :results output
+with open('mymodule.py') as f:
+    read_data = f.read(15)
+    print('First read: ', read_data)
+    read_data = f.read(15)
+    print('Second read:', read_data)
+#+END_SRC
+
+To read a full line you can use the ~readline()~ method. This method will also
+read the newline character. It is only omitted on the last line if there is no
+newline character. If an empty string is returned it means that we have reached
+the end of the file
+
+#+BEGIN_SRC python :python python3 :results output
+with open('mymodule.py') as f:
+    while True:
+        read_data = f.readline()
+        if read_data == '':
+            break
+        # The variable already contains a newline
+        print(read_data, end='')
+#+END_SRC
+
+An easier way to achive the same result is to loop over the file object
+
+#+BEGIN_SRC python :python python3 :results output
+with open('mymodule.py') as f:
+    for line in f:
+        print(line, end='')
+#+END_SRC
+
+You can also read all lines into a list
+
+#+BEGIN_SRC python :python python3 :results output
+with open('mymodule.py') as f:
+    linesList = list(f)
+    print(linesList)
+#+END_SRC
+
+or
+
+#+BEGIN_SRC python :python python3 :results output
+with open('mymodule.py') as f:
+    linesList = f.readlines()
+    print(linesList)
+#+END_SRC
+
+*** Write
+
+If you want to write to a file you can us the ~write()~ function which accepts a
+string and returns the number of characters written
+
+#+BEGIN_SRC python :python python3 :results output
+with open('temp_output.txt', "w") as f:
+    charsWritten = f.write('This is a test\n')
+print('Chars written:', charsWritten)
+#+END_SRC
+
+The output is now written to [[file:temp_output.txt][temp_output.txt]]. Other types needs to be converted
+to string or bytes object before writing them
+
+#+BEGIN_SRC python :python python3 :results output
+with open('temp_output.txt', "w") as f:
+    value = ('the answer', 42)
+    charsWritten = f.write(str(value))
+print('Chars written:', charsWritten)
+#+END_SRC
+
+*** Search
+
+~tell()~ return the current position represented as the number of bytes from the
+beginning of the file for binary files and an non-modifiable object for text
+files (only meant to be used to get back to the current position)
+
+To change the current position you can use ~seek()~ which accepts two arguments
+~offset~ and ~from_what~. ~from_what~ can be either
+
+| ~from_what~ | Description                 |
+|-------------+-----------------------------|
+|           0 | Beginning of file (default) |
+|           1 | Current file position       |
+|           2 | End of file                 |
+
+For text files only ~0~ is allowed. The only exception is to find the very end
+of the file ~f.seek(0, 2)~. For text files the only valid offsets are those
+which are returned from ~tell()~ and ~0~
 
 ** Input
 
 #+BEGIN_SRC python :python python3 :results output
 input("Please enter an integer: ")
 #+END_SRC
-
 
 * Example programs
 ** Read command line arguments

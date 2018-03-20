@@ -1471,6 +1471,111 @@ from ..mysubpackage2 import module21
 
 Relative import can't be used in the main module of a program!
 
+* Input/output
+
+** Output
+
+Python can convert values to strings in two ways, using ~str()~ (used for human
+readable text) or ~repr()~ (for generating representations which can be read
+by the interpreter). For many values both calls will result in the same string.
+Here we used a string but any python object can be passed
+
+#+BEGIN_SRC python :python python3 :results output
+s = 'Hello, world.\n'
+print("str(s): ", str(s))
+print("repr(s):", repr(s))
+#+END_SRC
+
+You can justify a string using ~ljust()~, ~rjust()~ and ~center()~. Not that
+none of these calls will truncate the value if it would be too long
+
+#+BEGIN_SRC python :python python3 :results output
+for x in range(1, 11):
+    print(repr(x).rjust(2), repr(x*x).rjust(3), repr(x*x*x).rjust(4))
+#+END_SRC
+
+The ~zfill()~ will pad a numeric string with zeros to the left. It understands
+plus and minus
+
+#+BEGIN_SRC python :python python3 :results output
+print('12'.zfill(5))
+print('-3.14'.zfill(7))
+print('3.14159265359'.zfill(5))
+#+END_SRC
+
+*** The ~str.format()~ function
+
+The basic form looks like this
+
+#+BEGIN_SRC python :python python3 :results output
+print('{} and {}'.format('rock', 'roll'))
+#+END_SRC
+
+You can also add an index the format fields
+
+#+BEGIN_SRC python :python python3 :results output
+print('{0} and {1}'.format('rock', 'roll'))
+print('{1} and {0}'.format('rock', 'roll'))
+print('{0}, {1} and {0}'.format('rock', 'roll'))
+#+END_SRC
+
+or keywords
+
+#+BEGIN_SRC python :python python3 :results output
+print('{person} smells {smell}'.format(person='Sara', smell='wonderful'))
+#+END_SRC
+
+You're also allowed to mix these. You can also add a ~:~ after the field name
+which gives you control how a value is formatted
+
+#+BEGIN_SRC python :python python3 :results output
+import math
+print('The value of PI is approximately {0:.3f}.'.format(math.pi))
+#+END_SRC
+
+Passing an integer after ~:~ will force that field to be at least of that length
+
+#+BEGIN_SRC python :python python3 :results output
+table = {'Sjoerd': 4127, 'Jack': 4098, 'Dcab': 7678}
+for name, phone in table.items():
+    print('{0:10} ==> {1:10d}'.format(name, phone))
+#+END_SRC
+
+You can also pass a dictionairy
+
+#+BEGIN_SRC python :python python3 :results output
+table = {'firstkey' : 'firstvalue1', 'secondkey' : 'secondvalue1'}
+table2 = {'firstkey' : 'firstvalue2', 'secondkey' : 'secondvalue2'}
+print('First: {0[firstkey]}. Second: {1[secondkey]}'.format(table, table2))
+#+END_SRC
+
+Something similar could be done with the ~**~ operator
+
+#+BEGIN_SRC python :python python3 :results output
+table = {'firstkey' : 'firstvalue1', 'secondkey' : 'secondvalue1'}
+print('First: {firstkey}. Second: {secondkey}'.format(**table))
+#+END_SRC
+
+Python also has support for printf style string formatting
+
+#+BEGIN_SRC python :python python3 :results output
+import math
+print('The value of PI is approximately %5.3f.' % math.pi)
+#+END_SRC
+
+*** Stdout
+
+*** Files
+
+sys.stdout
+
+** Input
+
+#+BEGIN_SRC python :python python3 :results output
+input("Please enter an integer: ")
+#+END_SRC
+
+
 * Example programs
 ** Read command line arguments
 
@@ -1486,4 +1591,9 @@ for arg in sys.argv:
 * Things that maybe isn't included in the tutorial
 
 - Inner functions
+- ~with~ keyword
+- Formatted string literals
 
+* Links
+
+[[https://docs.python.org/3/library/functions.html][Built-in functions]]

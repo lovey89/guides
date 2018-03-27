@@ -1696,6 +1696,84 @@ which are returned from ~tell()~ and ~0~
 input("Please enter an integer: ")
 #+END_SRC
 
+* Scopes
+
+Module attributes are writable. Writable attributes can also be deleted with the
+~del~ keyword. I once again use [[file:mymodule.py][mymodule]] as my assisting module
+
+#+BEGIN_SRC python :python python3 :results output
+# Add example where we set a module attribute and call a function that prints it
+import mymodule
+
+mymodule.printMyVariable()
+mymodule.myvariable = 15
+mymodule.printMyVariable()
+# The following lines will make it fail
+#del mymodule.myvariable
+#mymodule.printMyVariable()
+#+END_SRC
+
+There are at least three nested scopes whose namespaces are directly accessible:
+
+- The innermost scope, which is searched first, contains the local names
+- The scopes of any enclosing functions, which are searched starting with the
+  nearest enclosing scope, contains non-local, but also non-global names
+- The next-to-last scope contains the current module’s global names
+- The outermost scope (searched last) is the namespace containing built-in names
+
+If a name is declared ~global~, then all references and assignments go directly
+to the middle scope containing the module’s global names. To rebind variables
+found outside of the innermost scope, the ~nonlocal~ statement can be used; if
+not declared ~nonlocal~, those variables are read-only (an attempt to write to
+such a variable will simply create a new local variable in the innermost scope,
+leaving the identically named outer variable unchanged).
+
+All operations that introduce new names use the local scope: in particular,
+~import~ statements and function definitions bind the module or function name
+in the local scope.
+
+Note that a variable which is declared ~nonlocal~ needs to refer to a
+pre-existing variable in an enclosing scope. A variable which is declared as
+~global~ can be newly introduced
+
+#+BEGIN_SRC python :python python3 :results output
+def scope_test():
+    def do_local():
+        spam = "local spam"
+
+    def do_nonlocal():
+        nonlocal spam
+        spam = "nonlocal spam"
+
+    def do_global():
+        global spam
+        spam = "global spam"
+
+    spam = "test spam"
+    do_local()
+    print("After local assignment:", spam)
+    do_nonlocal()
+    print("After nonlocal assignment:", spam)
+    do_global()
+    print("After global assignment:", spam)
+
+scope_test()
+print("In global scope:", spam)
+#+END_SRC
+
+* Classes
+* Errors and Exception
+
+[[https://docs.python.org/3/library/exceptions.html][Exceptions]]
+
+#+BEGIN_SRC python :python python3 :results output
+if True:
+    print('Hej')
+else:
+    asdfasdf(asd)
+#+END_SRC
+
+
 * Example programs
 ** Read command line arguments
 

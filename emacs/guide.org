@@ -94,6 +94,8 @@ Important actors in this film are:
 
 ** Code blocks
 
+Create a basic code block by typing ~<s~ and then press ~<TAB>~
+
 | Key       | Explanation                   |
 |-----------+-------------------------------|
 | ~C-c C-c~ | Execute code block            |

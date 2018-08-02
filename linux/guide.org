@@ -1,0 +1,147 @@
+* tar
+** Main operation modes
+
+| Flag | Description               |
+|------+---------------------------|
+| ~c~  | Create an archive         |
+| ~x~  | Extract an archive        |
+| ~t~  | Table of contents         |
+| ~r~  | Append to exising archive |
+
+** Examples
+*** Create a tar (~.tar~)
+
+#+BEGIN_SRC bash
+tar -cf file.tar file1 file2 file3
+#+END_SRC
+
+It's important that the ~f~ flag is the last parameter as it accepts multiple
+arguements. If you want to see what is put in the tar ball also use the verbose
+flag, ~v~.
+
+#+BEGIN_SRC bash
+tar -cvf file.tar file1 file2 file3
+#+END_SRC
+
+Creating a tar is recursive (it accepts directories and it's content). Files
+are by default not removed when a tar i created.
+
+**** Extract
+
+Use the ~x~ flag (extract) with ~f~ flag. ~v~ can optionally be used to see what
+is extracted.
+
+#+BEGIN_SRC bash
+tar -xvf file.tar
+#+END_SRC
+
+***  Create a zipped tar (~.tar.gz~)
+
+As above but also include the ~z~ flag for zipped files or ~j~ for ~.bz2~.
+
+#+BEGIN_SRC bash
+tar -cvzf files.tar.gz file1 file2 file3
+#+END_SRC
+
+**** Extract
+
+As above but also include the ~z~ or ~j~ flag
+
+#+BEGIN_SRC bash
+tar -xzvf files.tar.gz
+#+END_SRC
+
+*** Add files to an already existing tar file
+
+You should be able to use the command below with the ~v~ flag and ~z~ or ~j~
+flags as well
+
+#+BEGIN_SRC bash
+tar -rf file.tar file1
+#+END_SRC
+
+*** List the files in a tar
+
+I guess you can run this command with the ~z~ or ~j~ flags as well
+
+#+BEGIN_SRC bash
+tar -tf file.tar
+#+END_SRC
+
+* find
+
+#+BEGIN_SRC bash
+find <paths>.. options
+#+END_SRC
+
+** Options
+
+| Option            | Description                                                                                                         |
+|-------------------+---------------------------------------------------------------------------------------------------------------------|
+| ~-print~          | The name of the found file is printed                                                                               |
+| ~-name~ /pattern/ | Files that matches /pattern/ which is a glob so don't forget to escape it. Only matches name and not the whole path |
+| ~-type~ /type/    | Match file of certain type. Examples of type are: ~d~ (directory), ~f~ (file) or ~l~ (symbolic link)                |
+| ~-size~           | Size of the file. See man page                                                                                      |
+| ~-mtime~          | When the file was modifiled. See man page                                                                           |
+| ~-atime~          | When the file was accessed. See man page                                                                            |
+| ~-user~           | Owned of file. The number is found in e.g. ~/etc/passwd~. See man page                                              |
+| ~-group~          | Owning group of the file. The number is found in e.g. ~/etc/group~. See man page                                    |
+| ~-perm~           | Files that have a set of permissions set. See man page                                                              |
+| ~-ls~             | Almost as if you would run ~ls -l~ on the found file                                                                |
+| ~-a~              | Logical /AND/ operator. Prio over ~-o~. Lazy evaluation. This is default if multiple options are provided           |
+| ~-o~              | Logical /OR/ operator                                                                                               |
+| ~!~               | Logical /NOT/. Put in front of the argument. E.g. ~find . \( -name a.out -a ! -type l \) -print~                    |
+
+*** ~-exec~
+
+Executes the command that follows. ~{}~ will be replaced with what the ~find~
+command has found (you're only allowed to use it once). Maybe bash forces you to
+escape those characters. The command needs to be terminated with a ~;~ (also
+needs to be escaped). If you want to remove the group read permission for files
+that have it set you can run the following command:
+
+#+BEGIN_SRC bash
+find . -perm -020 -exec chmod g-w {} ';'
+#+END_SRC
+
+The ~-exec~ option handles files with spaces in the name. If you want to confirm
+that the command is to be executed first you can run find with the ~-ok~ option
+instead of ~-exec~.
+
+*** ~-prune~
+
+Always returns true. If the currently investigated file is a directory the ~find~
+command will not traverse it. The following command will print all files in a
+directory but will not look at any files in any found directories:
+
+#+BEGIN_SRC bash
+find * -type f -print -o -type d -prune
+#+END_SRC
+
+** Use ~find~ together with ~xargs~
+
+~xargs~ executes it's commands as commands and also accepts arguments from stdin.
+
+#+BEGIN_SRC bash
+find / -print | xargs ls -ld
+#+END_SRC
+
+This would run ~ls -ld~ on all files in the file system.
+
+To handle files with spaces you can make ~find~ output null terminated strings
+and make ~xargs~ handle null terminated strings instead:
+
+#+BEGIN_SRC bash
+find / -print0 | xargs -0 ls -ld
+#+END_SRC
+
+** Example
+
+#+BEGIN_SRC bash
+alias efind='find -L . \( ! -name .git -a ! -name <dir_name> -o -prune \) -type f -print0 | xargs -0 grep --color=auto -in'
+#+END_SRC
+
+Here we see why it's important that ~-prune~ returns true. We won't search in
+directories called ~.git~ and other directories which we can decide ourselves.
+If such a directory is found we will end up in the ~prune~ and the content of
+that directory will be ignored.

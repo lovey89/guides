@@ -1,3 +1,5 @@
+#+OPTIONS: toc:2
+
 * tar
 ** Main operation modes
 

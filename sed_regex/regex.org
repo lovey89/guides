@@ -44,10 +44,11 @@ as possible
 
 Match any character enclosed by the brackets (but only once). E.g ~[aeiouy]~.
 ~-~ can be used to define a range. E.g. ~[0-9]~ or ~[0-9a-zA-Z]~. If you want to
-match on the character ~-~ this one need to be placed first (e.g. ~[-abc]~). If
-you need to match ~]~ this one should also be placed first (~[]abc]~). I don't
-think you are allowed to escape characters inside the brackets (looks like as if
-it works if you put the expression like ~$'regexp'~ instead of just ~'regexp'~).
+match on the character ~-~ this one need to be placed first or last (e.g.
+~[-abc]~). If you need to match ~]~ this one should also be placed first
+(~[]abc]~). I don't think you are allowed to escape characters inside the
+brackets (looks like as if it works if you put the expression like ~$'regexp'~
+instead of just ~'regexp'~).
 
 ** Examples
 
@@ -92,10 +93,6 @@ Very similar to ~BRE~ with some additions and some changes
 
 * Glob
 
-Note that some of the expressions below has a space before the last ~]~. This
-was needed because otherwise they would have been interpreted as links by org
-mode.
-
 | Expression      | Description                                                                                                            |
 |-----------------+------------------------------------------------------------------------------------------------------------------------|
 | ~*~             | Match all strings, inclusive the empty string                                                                          |
@@ -103,16 +100,117 @@ mode.
 | ~[abcd]~        | Will match ~a~, ~b~, ~c~ or ~d~                                                                                        |
 | ~[a-d]~         | Same as above                                                                                                          |
 | ~[!aA]~         | Will match any character except ~a~ and ~A~                                                                            |
-| ~[[:alnum:] ]~  | Alphanumerical characters in the current locale                                                                        |
-| ~[[:alpha:] ]~  | Letters                                                                                                                |
-| ~[[:lower:] ]~  | Lower case letters                                                                                                     |
-| ~[[:upper:] ]~  | Upper case letters                                                                                                     |
-| ~[[:print:] ]~  | Printable characters                                                                                                   |
-| ~[[:punct:] ]~  | Punctuation characters                                                                                                 |
-| ~[[:blank:] ]~  | Tabs and spaces                                                                                                        |
-| ~[[:space:] ]~  | Matches all white space characters. E.g. ~form feed~, ~new line~, ~carriage return~, ~tab~, ~vertical tab~ and ~space~ |
-| ~[![:space:]]~  | The opposite of above                                                                                                  |
-| ~[[:digit:]_.]~ | Matches any number and ~_~ and ~.~                                                                                     |
-| ~[[:xdigit:] ]~ | Characters which can be interpreted as hexadecimal numbers                                                             |
 
+Globs needs to be matched on both end so ~a*~ won't match ~cat~. It will look in
+the current directory for matches. Globs should not be quoted since quotes are
+handled before globs.
+
+When matching on file names neither ~?~ or ~*~ will match the ~/~ character. So
+~*/bin~ will match ~foo/bin~ but not ~/usr/local/bin~. When you are matching on
+other patterns this restriction doesn't apply.
+
+In bash file name expanies is done after word splitting which means that the
+file names that the glob finds will always be treated correctly.
+
+** extglob
+
+Activate with (can be done in the script that uses it):
+
+#+BEGIN_SRC bash
+shopt -s extglob
+#+END_SRC
+
+| Expression        | Description                                   |
+|-------------------+-----------------------------------------------|
+| ~?(pattern-list)~ | Matches zero or one of the provided patterns  |
+| ~*(pattern-list)~ | Matches zero or more of the provided patterns |
+| ~+(pattern-list)~ | Matches one or more of the provided patterns  |
+| ~@(pattern-list)~ | Matches one of the provided patterns          |
+| ~!(pattern-list)~ | Matches anything except the provided patterns |
+
+The patterns are separated with the ~|~ character.
+
+** failglob
+
+Activate with:
+
+#+BEGIN_SRC bash
+shopt -s failglob
+#+END_SRC
+
+Good to use in the command line. If the glob fails to find any matches it will
+print a message instead of doing unexpected things.
+
+#+BEGIN_SRC bash
+# Not using failglob
+$ touch *.foo # creates file '*.foo' if glob fails to match
+
+# Using failglob
+$ shopt -s failglob
+$ touch *.foo # touch doesn't get executed
+-bash: no match: *.foo
+#+END_SRC
+
+
+** dotglob
+
+Activate with:
+
+#+BEGIN_SRC bash
+shopt -s dotglob
+#+END_SRC
+
+With this option globs will include files which starts with a ~.~ (i.e. hidden
+files).
+
+** globstar
+
+Activate with:
+
+#+BEGIN_SRC bash
+shopt -s globstar
+#+END_SRC
+
+With this option you can use ~**~ to match directories in multiple levels
+instead of only one
+
+** ~GLOBIGNORE~ variable
+
+This variable can be used to set which files glob is not allowed to expand to:
+
+#+BEGIN_SRC bash
+$ echo .*
+. .. .bash_history .bash_logout .bashrc .inputrc .vimrc
+$ GLOBIGNORE=.:..
+$ echo .*
+.bash_history .bash_logout .bashrc .inputrc .vimrc
+#+END_SRC
+
+** Character classes
+
+| POSIX        | ASCII                                                      | Description                                                                                                            |
+|--------------+------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------|
+| ~[:alnum:]~  | ~[A-Za-z0-9]~                                              | Alphanumerical characters in the current locale (so the ascii representation is probably not always accurate)          |
+| ~[:alpha:]~  | ~[A-Za-z]~                                                 | Letters                                                                                                                |
+| ~[:lower:]~  | ~[a-z]~                                                    | Lower case letters                                                                                                     |
+| ~[:upper:]~  | ~[A-Z]~                                                    | Upper case letters                                                                                                     |
+| ~[:print:]~  | ~[\x20-\x7E]~                                              | Printable characters (including space)                                                                                 |
+| ~[:graph:]~  | ~[\x21-\x7E]~                                              | Printable characters (excluding space)                                                                                 |
+| ~[:punct:]~  | ~[][!"#$%&'()*+,./:;<=>?@\^_`{}-]~ and ~~~ and pipe symbol | Punctuation characters                                                                                                 |
+| ~[:blank:]~  | ~[ \t]~                                                    | Tabs and spaces                                                                                                        |
+| ~[:space:]~  | ~[ \t\r\n\v\f]~                                            | Matches all white space characters. E.g. ~form feed~, ~new line~, ~carriage return~, ~tab~, ~vertical tab~ and ~space~ |
+| ~[:digit:]~  | ~[0-9]~                                                    | Matches any number and ~_~ and ~.~                                                                                     |
+| ~[:xdigit:]~ | ~[A-Fa-f0-9]~                                              | Characters which can be interpreted as hexadecimal numbers                                                             |
+| ~[:cntrl:]~  | ~[\x00-\x1F\x7F]~                                          | Control characters                                                                                                     |
+
+E.g. ~[![:space:]]~ will match anything except white space characters and
+~[[:upper:]ab]~ will match upper case characters and ~a~ and ~b~.
+
+* Links
+
+[[http://mywiki.wooledge.org/glob][http://mywiki.wooledge.org/glob]]
+[[http://mywiki.wooledge.org/RegularExpression]]
+[[http://en.wikipedia.org/wiki/Regular_expression]]
+[[http://www.robelle.com/smugbook/regexpr.html]]
+[[http://www.grymoire.com/Unix/Regular.html]]
 

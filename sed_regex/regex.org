@@ -1,0 +1,118 @@
+* Grep
+
+| Command                  | Description                                                                                   |
+|--------------------------+-----------------------------------------------------------------------------------------------|
+| ~grep BOB tmpfile~       | Search in ~tmpfile~ after the string ~BOB~ anywhere in the text                               |
+| ~grep -i -w blkptr *~    | Search in all files in the current directory after the exact word ~blkptr~ (case insensitive) |
+| ~grep run[- ]time *.txt~ | Will look for ~run-time~ or ~run time~ in all ~.txt~ files in the current directory           |
+
+** Force ~grep~ to print the file name as well
+
+To print the file name you need to provide at least two files to search in. You
+can then provide ~/dev/null~ as the second file
+
+#+BEGIN_SRC bash
+grep -i $* /dev/null
+#+END_SRC
+
+* BRE
+
+Regexps are case sensitive. In ~grep~ you can use the ~-i~ option to come get
+around this.
+
+Also keep in mind that BRE is greedy and will try to find a match that is as big
+as possible
+
+| Expression | Description                                                                                 |
+|------------+---------------------------------------------------------------------------------------------|
+| ~^~        | Match expressions in the beginning of a line                                                |
+| ~$~        | Match expressions in the end of a line                                                      |
+| ~\~        | Escape character                                                                            |
+| ~[ ]~      | Match any character enclosed by the brackets (but only once)                                |
+| ~[^ ]~     | Inverts the behaviour above                                                                 |
+| ~.~        | Match any character except new line                                                         |
+| ~*~        | Match the preceeding character/expression zero or more times                                |
+| ~\( \)~    | Sub expression. The string enclosed by the brackets can be referenced by ~\n~ (see below)   |
+| ~\n~       | ~n~ is a number between 1 and 9. Matches what the ~n~:th sub expression contains            |
+| ~\{x,y\}~  | Matches ~x~ to ~y~ occurences of the preceeding character/expression (both inclusive)       |
+| ~\{x\}~    | Matches exact ~x~ occurences of the preceeding character/expression                         |
+| ~\{x,\}~   | Matches ~x~ or more occurences of the preceeding character/expression                       |
+| ~\<~       | Match expressions in the beginning of a word (where the word starts with the coming string) |
+| ~\>~       | Match expressions in the end of a word (where the word ends with the coming string)         |
+
+** More info about ~[ ]~
+
+Match any character enclosed by the brackets (but only once). E.g ~[aeiouy]~.
+~-~ can be used to define a range. E.g. ~[0-9]~ or ~[0-9a-zA-Z]~. If you want to
+match on the character ~-~ this one need to be placed first (e.g. ~[-abc]~). If
+you need to match ~]~ this one should also be placed first (~[]abc]~). I don't
+think you are allowed to escape characters inside the brackets (looks like as if
+it works if you put the expression like ~$'regexp'~ instead of just ~'regexp'~).
+
+** Examples
+
+| Command                    | Description                                                                                                                      |
+|----------------------------+----------------------------------------------------------------------------------------------------------------------------------|
+| ~grep smug files~          | Look in the file ~files~ for occurences of ~smug~                                                                                |
+| ~grep '^smug' files~       | Will match if ~smug~ appears in the beginning of a line                                                                          |
+| ~grep 'smug$' files~       | Will match if ~smug~ appears in the end of a line                                                                                |
+| ~grep '^smug$' files~      | Will match if a line is exactly ~smug~                                                                                           |
+| ~grep '\^s' files~         | Will match all occurences of ~^s~. The ~\~ escapes the ~^~                                                                       |
+| ~grep '[Ss]mug' files~     | Will match both ~Smug~ and ~smug~                                                                                                |
+| ~grep 'B[oO][bB]' files~   | Will match ~BOB~, ~Bob~, ~BOb~ and ~BoB~                                                                                         |
+| ~grep '^$' files~          | Will match an empty line                                                                                                         |
+| ~grep '[0-9][0-9]' file~   | Will match two consecutive numbers                                                                                               |
+| ~grep '[0-9]\{2\}' file~   | Same as above                                                                                                                    |
+| ~grep '[a-zA-Z]' file~     | Will match one letter (a-z both uppercase and lowercase)                                                                         |
+| ~grep '[^a-zA-Z0-9]' file~ | Will match anything which is not a letter or a number (a-z both uppercase and lowercase)                                         |
+| ~grep '[abcx-z]' file~     | Will match ~a~, ~b~, ~c~, ~x~, ~y~ eller ~z~                                                                                     |
+| ~grep '^.$' file~          | Will match a row with exactly one character                                                                                      |
+| ~grep '”smug”' file~       | Will match all occurences of ~”smug”~                                                                                            |
+| ~grep '^\.' file~          | Will match if ~.~ occurs in the beginning of the line                                                                            |
+| ~grep '\<smug\>' file~     | Will match the word ~smug~. The word needs to be separated from other text in both beginning and the end. Will not match ~smugg~ |
+| ~grep '\<smug' file~       | Will match the word ~smug~. The word needs to be separated from other text in the beginning                                      |
+
+* ERE
+
+Very similar to ~BRE~ with some additions and some changes
+
+| Expression                                          | Description                                                                                                        |
+|-----------------------------------------------------+--------------------------------------------------------------------------------------------------------------------|
+| ~?~                                                 | Match zero or one occurence of the preceeding character/expression                                                 |
+| ~+~                                                 | Match one or more occurences of the preceeding character/expression                                                |
+| ~a¦b~ (note that the character is a pipe character) | Will match either expression ~A~ or ~B~. You can use more alternatives as well. Is usually but in a sub expression |
+| ~{ }~                                               | Like ~\{ \}~ as presented in ~BRE~ but you should no longer use ~\~                                                |
+| ~( )~                                               | Like ~\( \)~ as presented in ~BRE~ but you should no longer use ~\~                                                |
+
+** Examples
+
+| Command                  | Description                                                         |
+|--------------------------+---------------------------------------------------------------------|
+| ~egrep '^abc¦abc$' file~ | Match the string ~abc~ in either the beginning or the end of a line |
+
+* Glob
+
+Note that some of the expressions below has a space before the last ~]~. This
+was needed because otherwise they would have been interpreted as links by org
+mode.
+
+| Expression      | Description                                                                                                            |
+|-----------------+------------------------------------------------------------------------------------------------------------------------|
+| ~*~             | Match all strings, inclusive the empty string                                                                          |
+| ~?~             | Will match any character                                                                                               |
+| ~[abcd]~        | Will match ~a~, ~b~, ~c~ or ~d~                                                                                        |
+| ~[a-d]~         | Same as above                                                                                                          |
+| ~[!aA]~         | Will match any character except ~a~ and ~A~                                                                            |
+| ~[[:alnum:] ]~  | Alphanumerical characters in the current locale                                                                        |
+| ~[[:alpha:] ]~  | Letters                                                                                                                |
+| ~[[:lower:] ]~  | Lower case letters                                                                                                     |
+| ~[[:upper:] ]~  | Upper case letters                                                                                                     |
+| ~[[:print:] ]~  | Printable characters                                                                                                   |
+| ~[[:punct:] ]~  | Punctuation characters                                                                                                 |
+| ~[[:blank:] ]~  | Tabs and spaces                                                                                                        |
+| ~[[:space:] ]~  | Matches all white space characters. E.g. ~form feed~, ~new line~, ~carriage return~, ~tab~, ~vertical tab~ and ~space~ |
+| ~[![:space:]]~  | The opposite of above                                                                                                  |
+| ~[[:digit:]_.]~ | Matches any number and ~_~ and ~.~                                                                                     |
+| ~[[:xdigit:] ]~ | Characters which can be interpreted as hexadecimal numbers                                                             |
+
+

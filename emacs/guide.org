@@ -25,6 +25,13 @@ Become root after connect (note that =host= below should be the same):
 emacs -nw -eval "(find-file \"/ssh:user@host|sudo:root@host:\")"
 #+END_SRC
 
+** Run a shell command on marked text
+
+- Select the area that you want to change
+- ~C-u~
+- ~M-|~ (this will run a shell command on the selected region
+- ~tr '&' '\n'~ (or your equivalent perl one liner)
+
 * Org Mode
 ** Markup
 

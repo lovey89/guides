@@ -55,7 +55,7 @@ sed -r
 
 Substitution is done with the ~s~ command and looks like ~s/old_pattern/new_pattern/~.
 The _first_ occurence of ~old_pattern~ will be replaced with ~new_pattern~ on each
-row. To replace all occurences see the section about [[#global_replacement][global replacement]] below.
+row. To replace all occurences see the section about [[#global-replacement-g][global replacement]] below.
 
 #+BEGIN_SRC bash :results output
 sed 's/day/night/' \
@@ -128,7 +128,7 @@ sed -r 's/^(.)(.)(.)/\3\2\1/' \
 ** Flags when doing substitution
 *** Global replacement (~/g~)
 :PROPERTIES:
-:CUSTOM_ID: global_replacement
+:CUSTOM_ID: global-replacement-g
 :END:
 
 If you want to replace all occurences on a row (not only the first) you can add
@@ -164,7 +164,7 @@ sed 's/[^ ]*/DELETED/2g' \
 
 *** Print (~/p~)
 :PROPERTIES:
-:CUSTOM_ID: print_flag
+:CUSTOM_ID: print-p
 :END:
 
 Sed will by default print all rows. If a substitution is done then that row will
@@ -215,7 +215,7 @@ sed -n 's/a/A/2pw /tmp/file' file
 ** No printing (~-n~)
 
 With the ~-n~ option active sed won't print anything unless it is requested (see
-section about [[#print_flag][print flag]] above). So if you use both the ~-n~ option and the ~p~
+section about [[#print-p][print flag]] above). So if you use both the ~-n~ option and the ~p~
 flag together only rows where the pattern has been found will be printed. If you
 use the ~p~ flag without the ~-n~ option rows where the pattern has been found
 will be printed twice.

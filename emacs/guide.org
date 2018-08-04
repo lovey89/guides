@@ -179,11 +179,11 @@ If there is no active region, this command creates an empty Org table
 | file:         | File link. Supports both relative and absolute path |
 | /path/to/file | Also file link                                      |
 
-| Special link                 | Explanation               |
-|------------------------------+---------------------------|
-| file:~/code/main.c::255      | Find line 255             |
-| file:~/xx.org::My Target     | Find '<<My Target>>'      |
-| file:~/xx.org::#my-custom-id | Find entry with custom id |
+| Special link                 | Explanation                                   |
+|------------------------------+-----------------------------------------------|
+| file:~/code/main.c::255      | Find line 255                                 |
+| file:~/xx.org::My-Target     | Find the dedicated target '<<My-Target>>'     |
+| file:~/xx.org::#my-custom-id | Find entry with the custom id: ~my-custom-id~ |
 
 *** C-c l: Store a link to the current location
 
@@ -203,6 +203,16 @@ prefix argument, file name completion is used to link to a file.
 Jump to a recorded position. A position is recorded by the commands following
 internal links. Using this command several times moves through a ring of
 previously recorded positions
+
+*** Custom ids
+
+Custom ids are placed directly under a headline and looks like this:
+
+#+BEGIN_SRC
+:PROPERTIES:
+:CUSTOM_ID: my-custom-id
+:END:
+#+END_SRC
 
 ** Todo items
 

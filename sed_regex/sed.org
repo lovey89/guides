@@ -1,0 +1,407 @@
+* Links
+
+[[http://www.grymoire.com/Unix/Sed.html]]
+[[http://www.panix.com/~elflord/unix/sed.html]]
+
+* Things to think about
+
+Sed is not recursive. During substitution sed won't read through the genereated
+string but will continue with the generated string. We will never end up in an
+infinite loop.
+
+#+BEGIN_SRC bash :results output
+sed 's/loop/loop the loop/g' \
+  <(echo -e 'loop')
+#+END_SRC
+
+The special characters for tab (~\t~) and new line (~\n~) are handled with no
+problems and can be used inside ~'..'~. E.g.
+
+#+BEGIN_SRC bash :results output
+sed 's/\t/\n/' \
+  <(echo -e 'abc\tdef')
+#+END_SRC
+
+which replaces tabs with newlines
+
+** Comments
+
+Comments are allowed in sed. Anything after the ~#~ character will be ignored.
+See examples below
+
+** Workflow (from grymoire)
+
+The next line is read from the input file and places it in the pattern space. If
+the end of file is found, and if there are additional files to read, the current
+file is closed, the next file is opened, and the first line of the new file is
+placed into the pattern space. The line count is incremented by one. Opening a
+new file does not reset this number. Each sed command is examined. If there is a
+restriction placed on the command, and the current line in the pattern space
+meets that restriction, the command is executed. Some commands, like ~n~ or ~d~
+cause sed to go to the top of the loop. The ~q~ command causes sed to stop.
+Otherwise the next command is examined. After all of the commands are examined,
+the pattern space is output unless sed has the optional ~-n~ argument.
+
+** ERE can be used with the ~-r~ flag
+
+Sed uses BRE by default but ERE is more powerful than BRE so I usually use the
+~-r~ option to activate ERE:
+
+#+BEGIN_SRC bash :results output
+sed -r
+#+END_SRC
+
+* Substitution (~s~)
+
+Substitution is done with the ~s~ command and looks like ~s/old_pattern/new_pattern/~.
+The _first_ occurence of ~old_pattern~ will be replaced with ~new_pattern~ on each
+row. To replace all occurences see the section about [[*Global replacement (~/g~)][global replacement]] below.
+
+#+BEGIN_SRC bash :results output
+sed 's/day/night/' \
+  <(echo -e 'day is day')
+#+END_SRC
+
+** Delimiter
+
+You don't necessarily need to use ~/~ as a delimiter. If you need to match on ~/~
+you will have to escape it using ~\~. Then it might be easier to use another
+delimiter. In the following example we have used ~f~ as a delimiter.
+
+#+BEGIN_SRC bash :results output
+sed 'sfdayfnightf' \
+  <(echo -e 'day is day')
+#+END_SRC
+
+** Match strings
+*** The whole matched pattern (~&~)
+
+~&~ corresponds to the matched pattern. E.g. if you want to enclose numbers in
+parentheses you can use this command
+
+#+BEGIN_SRC bash :results output
+sed -r 's/[0-9]+/(&)/' \
+  <(echo -e "Hi 123 Hi")
+#+END_SRC
+
+You can use ~&~ multiple times so if you want to repeat numbers found twice you
+can use
+
+#+BEGIN_SRC bash :results output
+sed -r 's/[0-9]+/& &/' \
+  <(echo -e "Hi 123 Hi")
+#+END_SRC
+
+*** Match part of pattern (~\1~, ~\2~,... ~\9~)
+
+You can use ~\1~, ~\2~,... ~\9~ to match sub expressions (BRE: ~\(..\)~,
+ERE: ~(..)~). ~\1~ refers to the first sub expression, ~\2~ to the second, and
+so on. If you only want to keep the first word on each row you can use
+
+#+BEGIN_SRC bash :results output
+sed -r 's/^([A-Za-z]+).*/\1/' \
+  <(echo -e 'Day is day')
+#+END_SRC
+
+If you want to switch place on the first two words you can use this command:
+
+#+BEGIN_SRC bash :results output
+sed -r 's/^([A-Za-z]+) *([A-Za-z]+)/\2 \1/' \
+  <(echo -e 'Day is day')
+#+END_SRC
+
+~\1~ doesn't have to exist on the right hand side but can also be used for
+matching. The following command will remove duplicate words:
+
+#+BEGIN_SRC bash :results output
+sed -r 's/([A-Za-z]+) \1/\1/' \
+  <(echo -e 'Day is is day')
+#+END_SRC
+
+If you want to change the order of the first three characters one a row:
+
+#+BEGIN_SRC bash :results output
+sed -r 's/^(.)(.)(.)/\3\2\1/' \
+  <(echo -e 'Day is day')
+#+END_SRC
+
+** Flags when doing substitution
+*** Global replacement (~/g~)
+
+If you want to replace all occurences on a row (not only the first) you can add
+the ~g~ flag after the last delimiter:
+
+#+BEGIN_SRC bash :results output
+echo "Without g flag:"
+sed 's/\([0-9][0-9]*\)/(\1)/' \
+  <(echo -e '"123 123 hi"')
+echo "With g flag:"
+sed 's/\([0-9][0-9]*\)/(\1)/g' \
+  <(echo -e '"123 123 hi"')
+#+END_SRC
+
+*** Which occurence that should be replaced (~\1~, ~\2~,... ~\512~)
+
+With this flag you can state which occurence is to be replace. The following
+command will replace the second word on each row to ~DELETED~:
+
+#+BEGIN_SRC bash :results output
+sed 's/[^ ]*/DELETED/2' \
+  <(echo -e 'day is day')
+#+END_SRC
+
+This flag can also be combined so all word from the specified word will be
+replace. The following command will replace all words except the first one to
+~DELETED~:
+
+#+BEGIN_SRC bash :results output
+sed 's/[^ ]*/DELETED/2g' \
+  <(echo -e 'day is day')
+#+END_SRC
+
+*** Print (~/p~)
+
+Sed will by default print all rows. If a substitution is done then that row will
+be printed instead. If you provide sed with the ~-n~ option (~sed -n~) then no
+rows will be printed. Then you can use the ~/p~ flag to only print modified
+rows:
+
+#+BEGIN_SRC bash :results output
+sed -n 's/day/night/p' \
+  <(echo -e 'Row 1: day is day\nRow 2: night is night\nRow 3: day is day')
+#+END_SRC
+
+*** Write to a file (~/w~)
+
+With the ~/w~ flag you can define which file sed should write the data. E.g.
+
+#+BEGIN_SRC bash :results output
+sed -n 's/^[0-9]*[02468] /&/w even' file
+#+END_SRC
+
+This command will write even numbers which is followed by a space to the file
+/even/. It's important that there is exactly one space between the ~w~ and the
+file name. In this way you can split up the data into several files.
+
+*** Ignore case (~/i~)
+
+The pattern matching will be case insensitive:
+
+#+BEGIN_SRC bash :results output
+echo "Without i flag:"
+sed 's/day/night/' \
+  <(echo -e 'Day is day')
+echo "With i flag:"
+sed 's/day/night/i' \
+  <(echo -e 'Day is day')
+#+END_SRC
+
+*** Combine flags
+
+Flags can be combined when it makes sense. The ~/w~ flag needs to be put as the
+last flag if you want to use it: E.g.
+
+#+BEGIN_SRC bash :results output
+sed -n 's/a/A/2pw /tmp/file' file
+#+END_SRC
+
+* Options
+** No printing (~-n~)
+
+With the ~-n~ option active sed won't print anything unless it is requested (see
+section about [[*Print (~/p~)][print flag]] above). So if you use both the ~-n~ option and the ~p~
+flag together only rows where the pattern has been found will be printed. If you
+use the ~p~ flag without the ~-n~ option rows where the pattern has been found
+will be printed twice.
+
+** Use ERE (~-r~)
+
+Use ERE instead of the BRE
+
+** Multiple commands (~-e~)
+
+If you want to do perform several commands you can easily just pipe together
+several sed commands. Or you use the ~-e~ option in front of each command
+(including the first). The following command replaces all lower case ~a~:s and
+~b~:s to upper case letters:
+
+#+BEGIN_SRC bash :results output
+sed -e 's/a/A/g' -e 's/b/B/g' \
+  <(echo -e "abcabc")
+#+END_SRC
+
+You can of course put each of these commands on separate lines for better
+structure:
+
+#+BEGIN_SRC bash :results output
+sed -e 's/a/A/g' \
+    -e 's/e/E/g' \
+    -e 's/i/I/g' \
+    -e 's/o/O/g' \
+    -e 's/u/U/g' \
+  <(echo -e "abcdefghijklmnopqrstuvwxyz")
+#+END_SRC
+
+If you put them on separate lines you can also omit the ~-e~ option:
+
+#+BEGIN_SRC bash :results output
+sed 's/a/A/g 
+     s/e/E/g 
+     s/i/I/g 
+     s/o/O/g 
+     s/u/U/g' \
+  <(echo -e "abcdefghijklmnopqrstuvwxyz")
+#+END_SRC
+
+Note that the leading spaces doesn't matter.
+
+* Restrictions
+
+You can restrict sed to perform a command only on specific rows.
+
+** Only on one specific row
+
+Provide the row number before the command. E.g. remove the first word on the
+second row:
+
+#+BEGIN_SRC bash :results output
+sed -r '2 s/^([^ ]+) +(.*)/\2/' \
+  <(echo -e "first second third\nfourth, fifth, sixth\nseventh, eighth, ninth")
+#+END_SRC
+
+You can use ~$~ to refer to the last row
+
+** Only on rows with a specific pattern
+
+Put the pattern before the command like this:
+
+#+BEGIN_SRC bash :results output
+sed '/pattern/ command'
+
+# Or if you want to use another delimiter than /. In this case : (note that you need to escape the delimiter)
+
+sed '\:pattern:' command
+#+END_SRC
+
+In the following example we will replace replace each word on rows that start
+with ~#~ with the word ~COMMENT~
+
+#+BEGIN_SRC bash :results output
+sed -r '/^#/ s/[^# ]+/COMMENT/g' \
+  <(echo -e "This is not a comment
+#But this is a comment
+Not a comment
+# Comment again")
+#+END_SRC
+
+The space between the restriction and the command is not necessary but can be
+used for readability
+
+** Interval using row numbers
+
+Is done using this format:
+
+#+BEGIN_SRC bash :results output
+sed 'from_row,to_row command'
+#+END_SRC
+
+Both ~from_row~ and ~to_row~ are inclusive. You can refer to the last row with
+~$~. The following command will remove all letter ~a~ from the second row to the
+end:
+
+#+BEGIN_SRC bash :results output
+sed -r '2,$ s/a//g' \
+  <(echo -e "abab\nabab\nabab")
+#+END_SRC
+
+** Interval using patterns
+
+Is done using this format:
+
+#+BEGIN_SRC bash :results output
+sed '/start_pattern/,/stop_pattern/ commando'
+#+END_SRC
+
+When the ~start_pattern~ is found the command will be executed on all rows until
+the ~stop_pattern~ is found (inclusive that row). If the ~stop_pattern~ is not
+found the command will be executed on all remaining rows. The following command
+will remove all between (and including) the rows that start with ~START~ and
+~STOP~. Note that can handle the interval multiple times
+
+#+BEGIN_SRC bash :results output
+sed -r '/^START/,/^STOP/ s/.*/REMOVED/' \
+  <(echo -e "Row 1
+START
+Row 2
+STOP
+Row 3
+START
+Row 4
+STOP
+Row 5")
+#+END_SRC
+
+** Combine row number and pattern in intervals
+
+You can also combine row numbers and patterns when creating an interval. The
+following command will remove all ~a~:s on rows from the beginning until a row
+containing the word ~start~ is found (inclusive that row). Then it will continue
+again when a row containing the word ~stop~ is found. Beware if the found row
+contains both the words ~start~ and ~stop~ both commands will be executed on
+this row (in this case it doesn't matter but for other commands it may matter)
+
+#+BEGIN_SRC bash :results output
+sed -e '1,/start/ s/a//g' -e '/stop/,$ s/a//g'
+#+END_SRC
+
+* Commands
+
+** Delete (~d~)
+
+
+
+** Print (~p~)
+
+
+
+** Negate restiction (~!~)
+
+
+
+** Quit sed (~q~)
+
+
+
+** Group commands (~{..}~)
+
+
+
+** Write to file (~w~)
+
+
+
+** Read from file (~r~)
+
+
+
+** Add row after current row (~a~)
+
+
+
+** Add row before current row (~i~)
+
+
+
+** Replace row (~c~)
+
+
+
+** Print line number (~=~)
+
+
+
+** Transform (~y/../../~)
+
+
+
+** Print current pattern space (~l~)

@@ -361,24 +361,109 @@ sed -e '1,/start/ s/a//g' -e '/stop/,$ s/a//g'
 #+END_SRC
 
 * Commands
+** Delete row (~d~)
 
-** Delete (~d~)
+Delete the current row. The following command removes rows starting with ~#~
 
+#+BEGIN_SRC bash :results output
+sed '/^#/ d' \
+  <(echo -e "This is not a comment
+#But this is a comment
+Not a comment
+# Comment again")
+#+END_SRC
 
+** Print row (~p~)
 
-** Print (~p~)
+Print the current row. The following command prints rows starting with ~#~. Note
+that the ~-n~ option is used to suppress the default printing
 
-
+#+BEGIN_SRC bash :results output
+sed -n '/^#/ p' \
+  <(echo -e "This is not a comment
+#But this is a comment
+Not a comment
+# Comment again")
+#+END_SRC
 
 ** Negate restiction (~!~)
 
-
+#+BEGIN_SRC bash :results output
+sed -r '/^START/,/^STOP/ ! s/.*/REMOVED/' \
+  <(echo -e "Row 1
+START
+Row 2
+STOP
+Row 3
+START
+Row 4
+STOP
+Row 5")
+#+END_SRC
 
 ** Quit sed (~q~)
 
+Immediately terminate sed. The following command will print the first two lines
+and then terminate. It looks like as if it prints the row before it terminates
 
+#+BEGIN_SRC bash :results output
+sed '2 q' \
+  <(echo -e "This is not a comment
+#But this is a comment
+Not a comment
+# Comment again")
+#+END_SRC
 
 ** Group commands (~{..}~)
+
+If you have multiple commands that you want to execute when a restriction is
+fulfilled you can group them together using ~{~ and ~}~. Sed forces each command
+to be on different rows and this also applies to ~{~ and ~}~.
+
+The following command will operate on an interval which starts on a row
+containing the word ~begin~ and and ends on a row containing the word ~end~. On
+these rows it will replace rows starting with ~#~ with an empty row, remove
+trailing whitespaces and remove empty rows (so rows starting with ~#~ will
+eventually be removed). If the row wasn't removed it will be printed. Note that
+the ~-n~ option is used.
+
+#+BEGIN_SRC bash :results output
+sed -n '
+    /begin/,/end/ {
+        s/#.*//
+        s/[ \t]*$//
+        /^$/ d
+        p
+    }' \
+<(echo -e "# Should not be printed because it is before the begin key word
+-- begin here
+A row
+# Should be removed
+
+ # Should also be remove. First comment is removed then the remaining trailing space
+Another row
+-- here we end
+# Should not be printed")
+#+END_SRC
+
+You can of course negate the restriction by putting a ~!~ before the ~{~.
+
+We can also nest grouping. The following command will do the same thing as above
+but only for row 1 to 100:
+
+#+BEGIN_SRC bash :results output
+sed -n '
+    1,100 {
+        /begin/,/end/ {
+            s/#.*//
+            s/[ \t]*$//
+            /^$/ d
+            p
+        }
+    }' file
+#+END_SRC
+
+** Next line (~n~)
 
 
 

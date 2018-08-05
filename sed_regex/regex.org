@@ -93,13 +93,13 @@ Very similar to ~BRE~ with some additions and some changes
 
 * Glob
 
-| Expression      | Description                                                                                                            |
-|-----------------+------------------------------------------------------------------------------------------------------------------------|
-| ~*~             | Match all strings, inclusive the empty string                                                                          |
-| ~?~             | Will match any character                                                                                               |
-| ~[abcd]~        | Will match ~a~, ~b~, ~c~ or ~d~                                                                                        |
-| ~[a-d]~         | Same as above                                                                                                          |
-| ~[!aA]~         | Will match any character except ~a~ and ~A~                                                                            |
+| Expression | Description                                   |
+|------------+-----------------------------------------------|
+| ~*~        | Match all strings, inclusive the empty string |
+| ~?~        | Will match any character                      |
+| ~[abcd]~   | Will match ~a~, ~b~, ~c~ or ~d~               |
+| ~[a-d]~    | Same as above                                 |
+| ~[!aA]~    | Will match any character except ~a~ and ~A~   |
 
 Globs needs to be matched on both end so ~a*~ won't match ~cat~. It will look in
 the current directory for matches. Globs should not be quoted since quotes are
@@ -151,7 +151,6 @@ $ touch *.foo # touch doesn't get executed
 -bash: no match: *.foo
 #+END_SRC
 
-
 ** dotglob
 
 Activate with:
@@ -188,20 +187,24 @@ $ echo .*
 
 ** Character classes
 
-| POSIX        | ASCII                                                      | Description                                                                                                            |
-|--------------+------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------|
-| ~[:alnum:]~  | ~[A-Za-z0-9]~                                              | Alphanumerical characters in the current locale (so the ascii representation is probably not always accurate)          |
-| ~[:alpha:]~  | ~[A-Za-z]~                                                 | Letters                                                                                                                |
-| ~[:lower:]~  | ~[a-z]~                                                    | Lower case letters                                                                                                     |
-| ~[:upper:]~  | ~[A-Z]~                                                    | Upper case letters                                                                                                     |
-| ~[:print:]~  | ~[\x20-\x7E]~                                              | Printable characters (including space)                                                                                 |
-| ~[:graph:]~  | ~[\x21-\x7E]~                                              | Printable characters (excluding space)                                                                                 |
-| ~[:punct:]~  | ~[][!"#$%&'()*+,./:;<=>?@\^_`{}-]~ and ~~~ and pipe symbol | Punctuation characters                                                                                                 |
-| ~[:blank:]~  | ~[ \t]~                                                    | Tabs and spaces                                                                                                        |
-| ~[:space:]~  | ~[ \t\r\n\v\f]~                                            | Matches all white space characters. E.g. ~form feed~, ~new line~, ~carriage return~, ~tab~, ~vertical tab~ and ~space~ |
-| ~[:digit:]~  | ~[0-9]~                                                    | Matches any number and ~_~ and ~.~                                                                                     |
-| ~[:xdigit:]~ | ~[A-Fa-f0-9]~                                              | Characters which can be interpreted as hexadecimal numbers                                                             |
-| ~[:cntrl:]~  | ~[\x00-\x1F\x7F]~                                          | Control characters                                                                                                     |
+| POSIX        | ASCII                                                      | Perl | Description                                                                                                            |
+|--------------+------------------------------------------------------------+------+------------------------------------------------------------------------------------------------------------------------|
+| ~[:alnum:]~  | ~[A-Za-z0-9]~                                              |      | Alphanumerical characters in the current locale (so the ascii representation is probably not always accurate)          |
+| ~[:word:]~   | ~[A-Za-z0-9]~                                              | ~\w~ | Same as above plus ~_~ (the posix version is not standard)                                                             |
+|              | ~[^A-Za-z0-9]~                                             | ~\W~ | The opposite of the above                                                                                              |
+| ~[:alpha:]~  | ~[A-Za-z]~                                                 |      | Letters                                                                                                                |
+| ~[:lower:]~  | ~[a-z]~                                                    |      | Lower case letters                                                                                                     |
+| ~[:upper:]~  | ~[A-Z]~                                                    |      | Upper case letters                                                                                                     |
+| ~[:print:]~  | ~[\x20-\x7E]~                                              |      | Printable characters (including space)                                                                                 |
+| ~[:graph:]~  | ~[\x21-\x7E]~                                              |      | Printable characters (excluding space)                                                                                 |
+| ~[:punct:]~  | ~[][!"#$%&'()*+,./:;<=>?@\^_`{}-]~ and ~~~ and pipe symbol |      | Punctuation characters                                                                                                 |
+| ~[:blank:]~  | ~[ \t]~                                                    |      | Tabs and spaces                                                                                                        |
+| ~[:space:]~  | ~[ \t\r\n\v\f]~                                            | ~\s~ | Matches all white space characters. E.g. ~form feed~, ~new line~, ~carriage return~, ~tab~, ~vertical tab~ and ~space~ |
+|              | ~[^ \t\r\n\v\f]~                                           | ~\S~ | Non white space characters                                                                                             |
+| ~[:digit:]~  | ~[0-9]~                                                    | ~\d~ | Matches any number                                                                                                     |
+|              | ~[^0-9]~                                                   | ~\D~ | Anything but a number                                                                                                  |
+| ~[:xdigit:]~ | ~[A-Fa-f0-9]~                                              |      | Characters which can be interpreted as hexadecimal numbers                                                             |
+| ~[:cntrl:]~  | ~[\x00-\x1F\x7F]~                                          |      | Control characters                                                                                                     |
 
 E.g. ~[![:space:]]~ will match anything except white space characters and
 ~[[:upper:]ab]~ will match upper case characters and ~a~ and ~b~.

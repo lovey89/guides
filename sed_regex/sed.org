@@ -1,7 +1,7 @@
 * Links
 
-[[http://www.grymoire.com/Unix/Sed.html]]
-[[http://www.panix.com/~elflord/unix/sed.html]]
+- [[http://www.grymoire.com/Unix/Sed.html]]
+- [[http://www.panix.com/~elflord/unix/sed.html]]
 
 * Things to think about
 
@@ -784,6 +784,239 @@ pattern space
 
 * The hold buffer
 
+A buffer where you can store and fetch data.
 
+** Replace (~x~)
+
+Swaps the hold buffer and the current pattern space. The hold buffer is
+initialized with a blank line.
+
+The following script will find a row containing the word ~WORD~ and print it
+along with the line before and the line after. It contains a bug so if ~WORD~
+would be on row 4 as well it wouldn't be found but I think it's good enough to
+demonstrate the ~x~ command.
+
+#+BEGIN_SRC bash :results output
+sed -n '
+/WORD/ ! {
+    # No match. Put the current line in the hold buffer
+    x
+    # delete the old one, which is now in the pattern buffer
+    d
+}
+/WORD/ {
+    # a match - get last line
+    x
+    # print it
+    p
+    # get the original line back
+    x
+    # print it
+    p
+    # get the next line 
+    n
+    # print it
+    p
+    # now add three dashes as a marker
+    a\
+---
+    # now put this line into the hold buffer
+	x
+}' \
+\
+<(echo "Row 1
+Row 2
+Row 3: WORD
+Row 4
+Row 5: WORD
+Row 6
+Row 7")
+#+END_SRC
+
+** Hold (~h~ and ~H~)
+:PROPERTIES:
+:CUSTOM_ID: hold-h-and-h
+:END:
+
+The ~h~ command will replace content of the hold buffer with the content of the
+current pattern space but will leave the pattern space as it is. The ~H~ command
+will append a new line character and the current pattern space to the hold
+buffer.
+
+The following command will find a row containing the word ~WORD~ and print it
+along with the 4 lines around it (this command is not perfect either)
+
+#+BEGIN_SRC bash :results output
+sed -n '
+/WORD/ ! {
+    # does not match - append this line to the hold space
+    H
+}
+# bring everything in the hold buffer into the pattern space
+x
+# Delete extra lines - keep two
+s/^.*\n\(.*\n.*\)$/\1/
+# now put the two lines (at most) into the hold buffer again
+x
+/WORD/ {
+    # matches - Mark this row with an arrow
+    s/.*/->&/
+    # append the current line to the hold buffer
+    H
+    # get the next line
+    n
+    # append that one also
+    H
+    # bring it back, but keep the current line in the hold buffer. This is the
+    # line after the pattern, and we want to place it in hold in case the next
+    # line has the desired pattern
+    x
+    # print the 4 lines
+    p
+    # add the mark
+    a\
+---
+    x
+}' \
+\
+<(echo "Row 1
+Row 2
+Row 3
+Row 4: WORD
+Row 5
+Row 6: WORD
+Row 7")
+#+END_SRC
+
+** Fetch (~g~ and ~G~)
+
+The opposite of ~h~ and ~H~.  The ~g~ command will replace the content of the
+pattern space with the context of the hold buffer (the hold buffer is not
+altered). The ~G~ command will append a new line charcter and the hold buffer to
+the pattern space.
 
 * Flow control
+
+** Branch (~b~)
+
+The ~b~ command is used for branching. The argument to the ~b~ command is a the
+name of a label (which is defined as a string directly followed by a ~:~). If
+you haven't provided a label to the ~b~ command it will branch to the end of the
+script. This is nice to end work with the current row and start with a new from
+top.
+
+The following command will look for the word ~WORD~ in a text and if found it
+will print the whole paragraph
+
+#+BEGIN_SRC bash :results output
+sed -n '
+# if an empty line, check the paragraph
+/^$/ b para
+# else add it to the hold buffer
+H
+# at end of file, check paragraph
+$ b para
+# now branch to end of script (to read in next line)
+b
+# this is where a paragraph is checked for the pattern
+:para
+# return the entire paragraph
+# into the pattern space
+x
+# look for the pattern, if there - print
+/WORD/ p
+' \
+\
+<(echo "
+This is
+a paragraph
+which doesn't contain
+the word
+
+But here
+we have another
+paragraph which does contain
+the word WORD
+
+
+Also this one contains the word WORD")
+#+END_SRC
+
+** Testing (~t~)
+
+~t~ works pretty much like ~b~ but will only branch of the last substitution
+command did modify the current pattern space. E.g. if you want to remove empty
+parentheses the following command wouldn't make it (it only removes the
+innermost pair):
+
+#+BEGIN_SRC bash :results output
+sed 's/([ ^I]*)//g' \
+\
+<(echo "(( ( ( ())) ))")
+#+END_SRC 
+
+And this one would also remove unmatched parentheses
+
+#+BEGIN_SRC bash :results output
+sed 's/([ ^I()]*)//g' \
+\
+<(echo "(( ( ( ())) )))") # There is an unmatched parenthesis in the end which is also remvoed
+#<(echo "(( (s ( ())) ))") # And this one doesn't work either
+#+END_SRC
+
+We have to use the ~t~ command:
+
+#+BEGIN_SRC bash :results output
+sed '
+:again
+    s/([ ^I]*)//
+    t again
+' \
+\
+<(echo "(( s( ( ())) ))")
+#+END_SRC
+
+* Misc
+
+** Commands on the same row (~;~)
+
+You can write multiple commands on the same row with the ~;~ character. The
+following command will do the same thing as the example in the section about
+[[#hold-h-and-h][hold command]] above (now without comments).
+
+#+BEGIN_SRC bash :results output
+sed -n '/WORD/ !{;H};x;s/^.*\n\(.*\n.*\)$/\1/;x;/WORD/ {;s/.*/->&/;H;n;H;x;p;a\
+---
+x;}' \
+\
+<(echo "Row 1
+Row 2
+Row 3
+Row 4: WORD
+Row 5
+Row 6: WORD
+Row 7")
+#+END_SRC
+
+** Change case
+
+The following commands are used on the right hand side in a substitution
+
+| Command | Description                                            |
+|---------+--------------------------------------------------------|
+| ~\U~    | Makes all text to the right uppercase                  |
+| ~\u~    | Makes only the first character to the right uppercase  |
+| ~\L~    | Makes all text to the right lowercase                  |
+| ~\l~    | Makes only the first character to the right lower case |
+| ~\E~    | Stop case conversion started by \L or \U               |
+
+The following command changes the first word to all upper case, second word as
+it is and the third to all lower case.
+
+#+BEGIN_SRC bash :results output
+sed -r 's/^([^ ]+) *([^ ]+) *([^ ]+)/\L\1\E \2 \U\3/' \
+\
+<(echo "OnE TwO ThReE
+FoUr FiVe SiX
+SeVeN EiGhT NiNe")
+#+END_SRC

@@ -37,6 +37,7 @@ emacs -nw -eval "(find-file \"/ssh:user@host|sudo:root@host:\")"
 
 - *Bold*
 - /italic/
+- _underlined_
 - ~verbatim~
 - =code=
 - +strikethrough+

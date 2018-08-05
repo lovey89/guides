@@ -1,0 +1,12 @@
+https://vaneyckt.io/posts/safer_bash_scripts_with_set_euxo_pipefail/
+
+#+BEGIN_SRC bash :results output :shebang "#!/bin/bash\nset bon jour"
+#!/bin/bash
+
+# An example where the input variables are provided in the source block header
+
+echo $1
+echo $2
+echo $1$2
+echo $#
+#+END_SRC

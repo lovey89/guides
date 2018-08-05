@@ -446,7 +446,7 @@ Not a comment
 
 ** Group commands (~{..}~)
 :PROPERTIES:
-:CUSTOM_ID: group-command
+:CUSTOM_ID: group-commands-
 :END:
 
 If you have multiple commands that you want to execute when a restriction is

@@ -11,7 +11,8 @@ infinite loop.
 
 #+BEGIN_SRC bash :results output
 sed 's/loop/loop the loop/g' \
-  <(echo -e 'loop')
+\
+<(echo -e 'loop')
 #+END_SRC
 
 The special characters for tab (~\t~) and new line (~\n~) are handled with no
@@ -19,7 +20,8 @@ problems and can be used inside ~'..'~. E.g.
 
 #+BEGIN_SRC bash :results output
 sed 's/\t/\n/' \
-  <(echo -e 'abc\tdef')
+\
+<(echo -e 'abc\tdef')
 #+END_SRC
 
 which replaces tabs with newlines
@@ -59,7 +61,8 @@ row. To replace all occurences see the section about [[#global-replacement-g][gl
 
 #+BEGIN_SRC bash :results output
 sed 's/day/night/' \
-  <(echo -e 'day is day')
+\
+<(echo -e 'day is day')
 #+END_SRC
 
 ** Delimiter
@@ -70,7 +73,8 @@ delimiter. In the following example we have used ~f~ as a delimiter.
 
 #+BEGIN_SRC bash :results output
 sed 'sfdayfnightf' \
-  <(echo -e 'day is day')
+\
+<(echo -e 'day is day')
 #+END_SRC
 
 ** Match strings
@@ -81,7 +85,8 @@ parentheses you can use this command
 
 #+BEGIN_SRC bash :results output
 sed -r 's/[0-9]+/(&)/' \
-  <(echo -e "Hi 123 Hi")
+\
+<(echo -e "Hi 123 Hi")
 #+END_SRC
 
 You can use ~&~ multiple times so if you want to repeat numbers found twice you
@@ -89,7 +94,8 @@ can use
 
 #+BEGIN_SRC bash :results output
 sed -r 's/[0-9]+/& &/' \
-  <(echo -e "Hi 123 Hi")
+\
+<(echo -e "Hi 123 Hi")
 #+END_SRC
 
 *** Match part of pattern (~\1~, ~\2~,... ~\9~)
@@ -100,14 +106,16 @@ so on. If you only want to keep the first word on each row you can use
 
 #+BEGIN_SRC bash :results output
 sed -r 's/^([A-Za-z]+).*/\1/' \
-  <(echo -e 'Day is day')
+\
+<(echo -e 'Day is day')
 #+END_SRC
 
 If you want to switch place on the first two words you can use this command:
 
 #+BEGIN_SRC bash :results output
 sed -r 's/^([A-Za-z]+) *([A-Za-z]+)/\2 \1/' \
-  <(echo -e 'Day is day')
+\
+<(echo -e 'Day is day')
 #+END_SRC
 
 ~\1~ doesn't have to exist on the right hand side but can also be used for
@@ -115,14 +123,16 @@ matching. The following command will remove duplicate words:
 
 #+BEGIN_SRC bash :results output
 sed -r 's/([A-Za-z]+) \1/\1/' \
-  <(echo -e 'Day is is day')
+\
+<(echo -e 'Day is is day')
 #+END_SRC
 
 If you want to change the order of the first three characters one a row:
 
 #+BEGIN_SRC bash :results output
 sed -r 's/^(.)(.)(.)/\3\2\1/' \
-  <(echo -e 'Day is day')
+\
+<(echo -e 'Day is day')
 #+END_SRC
 
 ** Flags when doing substitution
@@ -137,10 +147,13 @@ the ~g~ flag after the last delimiter:
 #+BEGIN_SRC bash :results output
 echo "Without g flag:"
 sed 's/\([0-9][0-9]*\)/(\1)/' \
-  <(echo -e '"123 123 hi"')
+\
+<(echo -e '"123 123 hi"')
+
 echo "With g flag:"
 sed 's/\([0-9][0-9]*\)/(\1)/g' \
-  <(echo -e '"123 123 hi"')
+\
+<(echo -e '"123 123 hi"')
 #+END_SRC
 
 *** Which occurence that should be replaced (~\1~, ~\2~,... ~\512~)
@@ -150,7 +163,8 @@ command will replace the second word on each row to ~DELETED~:
 
 #+BEGIN_SRC bash :results output
 sed 's/[^ ]*/DELETED/2' \
-  <(echo -e 'day is day')
+\
+<(echo -e 'day is day')
 #+END_SRC
 
 This flag can also be combined so all word from the specified word will be
@@ -159,7 +173,8 @@ replace. The following command will replace all words except the first one to
 
 #+BEGIN_SRC bash :results output
 sed 's/[^ ]*/DELETED/2g' \
-  <(echo -e 'day is day')
+\
+<(echo -e 'day is day')
 #+END_SRC
 
 *** Print (~/p~)
@@ -174,7 +189,8 @@ rows:
 
 #+BEGIN_SRC bash :results output
 sed -n 's/day/night/p' \
-  <(echo -e 'Row 1: day is day\nRow 2: night is night\nRow 3: day is day')
+\
+<(echo -e 'Row 1: day is day\nRow 2: night is night\nRow 3: day is day')
 #+END_SRC
 
 *** Write to a file (~/w~)
@@ -196,10 +212,13 @@ The pattern matching will be case insensitive:
 #+BEGIN_SRC bash :results output
 echo "Without i flag:"
 sed 's/day/night/' \
-  <(echo -e 'Day is day')
+\
+<(echo -e 'Day is day')
+
 echo "With i flag:"
 sed 's/day/night/i' \
-  <(echo -e 'Day is day')
+\
+<(echo -e 'Day is day')
 #+END_SRC
 
 *** Combine flags
@@ -233,7 +252,8 @@ several sed commands. Or you use the ~-e~ option in front of each command
 
 #+BEGIN_SRC bash :results output
 sed -e 's/a/A/g' -e 's/b/B/g' \
-  <(echo -e "abcabc")
+\
+<(echo -e "abcabc")
 #+END_SRC
 
 You can of course put each of these commands on separate lines for better
@@ -245,7 +265,8 @@ sed -e 's/a/A/g' \
     -e 's/i/I/g' \
     -e 's/o/O/g' \
     -e 's/u/U/g' \
-  <(echo -e "abcdefghijklmnopqrstuvwxyz")
+\
+<(echo -e "abcdefghijklmnopqrstuvwxyz")
 #+END_SRC
 
 If you put them on separate lines you can also omit the ~-e~ option:
@@ -256,7 +277,8 @@ sed 's/a/A/g
      s/i/I/g 
      s/o/O/g 
      s/u/U/g' \
-  <(echo -e "abcdefghijklmnopqrstuvwxyz")
+\
+<(echo -e "abcdefghijklmnopqrstuvwxyz")
 #+END_SRC
 
 Note that the leading spaces doesn't matter.
@@ -272,7 +294,8 @@ second row:
 
 #+BEGIN_SRC bash :results output
 sed -r '2 s/^([^ ]+) +(.*)/\2/' \
-  <(echo -e "first second third\nfourth, fifth, sixth\nseventh, eighth, ninth")
+\
+<(echo -e "first second third\nfourth, fifth, sixth\nseventh, eighth, ninth")
 #+END_SRC
 
 You can use ~$~ to refer to the last row
@@ -294,7 +317,8 @@ with ~#~ with the word ~COMMENT~
 
 #+BEGIN_SRC bash :results output
 sed -r '/^#/ s/[^# ]+/COMMENT/g' \
-  <(echo -e "This is not a comment
+\
+<(echo -e "This is not a comment
 #But this is a comment
 Not a comment
 # Comment again")
@@ -317,7 +341,8 @@ end:
 
 #+BEGIN_SRC bash :results output
 sed -r '2,$ s/a//g' \
-  <(echo -e "abab\nabab\nabab")
+\
+<(echo -e "abab\nabab\nabab")
 #+END_SRC
 
 ** Interval using patterns
@@ -336,7 +361,8 @@ will remove all between (and including) the rows that start with ~START~ and
 
 #+BEGIN_SRC bash :results output
 sed -r '/^START/,/^STOP/ s/.*/REMOVED/' \
-  <(echo -e "Row 1
+\
+<(echo -e "Row 1
 START
 Row 2
 STOP
@@ -357,7 +383,7 @@ contains both the words ~start~ and ~stop~ both commands will be executed on
 this row (in this case it doesn't matter but for other commands it may matter)
 
 #+BEGIN_SRC bash :results output
-sed -e '1,/start/ s/a//g' -e '/stop/,$ s/a//g'
+sed -e '1,/start/ s/a//g' -e '/stop/,$ s/a//g' file
 #+END_SRC
 
 * Commands
@@ -367,7 +393,8 @@ Delete the current row. The following command removes rows starting with ~#~
 
 #+BEGIN_SRC bash :results output
 sed '/^#/ d' \
-  <(echo -e "This is not a comment
+\
+<(echo -e "This is not a comment
 #But this is a comment
 Not a comment
 # Comment again")
@@ -380,7 +407,8 @@ that the ~-n~ option is used to suppress the default printing
 
 #+BEGIN_SRC bash :results output
 sed -n '/^#/ p' \
-  <(echo -e "This is not a comment
+\
+<(echo -e "This is not a comment
 #But this is a comment
 Not a comment
 # Comment again")
@@ -390,7 +418,8 @@ Not a comment
 
 #+BEGIN_SRC bash :results output
 sed -r '/^START/,/^STOP/ ! s/.*/REMOVED/' \
-  <(echo -e "Row 1
+\
+<(echo -e "Row 1
 START
 Row 2
 STOP
@@ -408,13 +437,17 @@ and then terminate. It looks like as if it prints the row before it terminates
 
 #+BEGIN_SRC bash :results output
 sed '2 q' \
-  <(echo -e "This is not a comment
+\
+<(echo -e "This is not a comment
 #But this is a comment
 Not a comment
 # Comment again")
 #+END_SRC
 
 ** Group commands (~{..}~)
+:PROPERTIES:
+:CUSTOM_ID: group-command
+:END:
 
 If you have multiple commands that you want to execute when a restriction is
 fulfilled you can group them together using ~{~ and ~}~. Sed forces each command
@@ -435,6 +468,7 @@ sed -n '
         /^$/ d
         p
     }' \
+\
 <(echo -e "# Should not be printed because it is before the begin key word
 -- begin here
 A row
@@ -465,34 +499,291 @@ sed -n '
 
 ** Next line (~n~)
 
+The ~n~ command skips the current row and reads the next one. This commands is
+good to be used when working with intervals when you want to skip the row where
+the start pattern is found.
 
+#+BEGIN_SRC bash :results output
+sed -r '
+    /^START/,/^STOP/ {
+        /^START/n # Skip the rows with the start pattern
+        s/.*/REMOVED/
+    }' \
+\
+<(echo -e "Row 1
+START
+Row 2
+STOP
+Row 3
+START
+Row 4
+STOP
+Row 5")
+#+END_SRC
+
+To also exclude the row with the stop pattern is a little bit trickier. We can
+instead match on all rows _not_ matching the stop pattern:
+
+#+BEGIN_SRC bash :results output
+sed -r '
+    /^START/,/^STOP/ {
+        /START/n # Skip the rows with the start pattern
+        /STOP/ ! s/.*/REMOVED/ # For all rows not matching the end pattern
+    }' \
+\
+<(echo -e "Row 1
+START
+Row 2
+STOP
+Row 3
+START
+Row 4
+STOP
+Row 5")
+#+END_SRC
+
+Note that the ~n~ command replaces the pattern space at the spot and does not
+jump to the top of commands. In the following example ~Row 1~ will be printed
+twice (doesn't match the restriction ~2~). Then ~Row 2~ will be printed once,
+replace the current pattern space with ~Row 3~ and print it. Then since it
+reached the end of execution it will load ~Row 4~ and print it twice.
+
+#+BEGIN_SRC bash :results output
+sed -r -n '
+    p
+    2 n
+    p
+' \
+\
+<(echo -e "Row 1
+Row 2
+Row 3
+Row 4")
+#+END_SRC
 
 ** Write to file (~w~)
 
+The ~w~ command lets you write the current pattern space to a file. Note that
+there should be exactly one space between the space and the file name. The
+following command will write rows that begins with an even number the file
+~even~:
 
+#+BEGIN_SRC bash :results output
+sed -r -n '/^[0-9]*[02468][^0-9]/ w even' \
+\
+<(echo -e "Doesn't begin with even number
+8972 is an even number
+8123 is not an even number but
+9886 is an even number")
+#+END_SRC
 
 ** Read from file (~r~)
 
+With the ~r~ command you can read in a file after the current pattern space.
+The file will be printed directly to ~stdout~ (ignores the ~-n~ option) and sed
+will not be able to operate on this lines in the file. The following command
+will concatenate two files
 
+#+BEGIN_SRC bash :results output
+sed '$ r file_to_read.txt' \
+\
+<(echo "Row 1
+Row 2")
+#+END_SRC
+
+This example will include files after a line which only says ~INCLUDE~:
+
+#+BEGIN_SRC bash :results output
+sed '/^INCLUDE$/ r file_to_read.txt' \
+\
+<(echo "Row 1
+INCLUDE
+Row 2")
+#+END_SRC
+
+You can combine the ~r~ command with ~d~ to remove the row which says ~INCLUDE~
+
+#+BEGIN_SRC bash :results output
+sed '
+    /^INCLUDE$/ {
+        r file_to_read.txt
+        d
+    }' \
+\
+<(echo "Row 1
+INCLUDE
+Row 2")
+#+END_SRC
+
+Unfortunately you can't use regexp to enter the file to be read.
 
 ** Add row after current row (~a~)
 
+The ~a~ command lets you add text after the current line
 
+#+BEGIN_SRC bash :results output
+sed '/WORD/ a New line after line with WORD' \
+\
+<(echo "Row 1
+WORD
+Row 2
+WORD")
+#+END_SRC
+
+You can add multiple lines by ending a line with a ~\~
+
+#+BEGIN_SRC bash :results output
+sed '/WORD/ a\
+New line after line with WORD\
+And another line' \
+\
+<(echo "Row 1
+WORD
+Row 2
+WORD")
+#+END_SRC
+
+Note that the line is added after the current line even if the pattern space
+changes after the ~a~ command
+
+#+BEGIN_SRC bash :results output
+sed '
+    /WORD/ a New line after line with WORD
+    s/WORD/DROW/' \
+\
+<(echo "Row 1
+WORD
+Row 2
+WORD")
+#+END_SRC
 
 ** Add row before current row (~i~)
 
+The ~i~ command is just like the ~a~ command but the line(s) are printed before
+the current line
 
+#+BEGIN_SRC bash :results output
+sed '/WORD/ i\
+New line before line with WORD\
+And another line' \
+\
+<(echo "Row 1
+WORD
+Row 2
+WORD")
+#+END_SRC
 
 ** Replace row (~c~)
 
+The ~c~ command works like the ~a~ and ~i~ commands but it will print the
+defined text and then read in a new line to the pattern space and start from the
+beginning
 
+#+BEGIN_SRC bash :results output
+sed '/WORD/ c\
+New line before line with WORD\
+And another line' \
+\
+<(echo "Row 1
+WORD
+Row 2
+WORD")
+#+END_SRC
 
 ** Print line number (~=~)
 
+~=~ will print the line number of the current line. The following example will
+print the number of lines in a file
 
+#+BEGIN_SRC bash :results output
+sed -n '$ =' \
+\
+<(echo "Row 1
+Row 2
+Row 3
+Row 4")
+#+END_SRC
 
 ** Transform (~y/../../~)
 
+The ~y~ command till replace all characters on the left hand side to the
+character on the corresponding place on the right hand side. E.g. to replace
+all upper case letters with lower case you could run this code:
 
+#+BEGIN_SRC bash :results output
+sed 'y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' \
+\
+<(echo "ThiS Is A seNtance")
+#+END_SRC
 
 ** Print current pattern space (~l~)
+
+Good for debugging. Will print the current pattern space. Will also translate
+non printable characters to octal form with a ~\~ in front of it. Tab becomes
+~\t~
+
+#+BEGIN_SRC bash :results output
+sed -n '/#.*/ l' \
+\
+<(echo -r "This is a line
+#This is a\t comment
+And this is a line
+# Comment again\t")
+#+END_SRC
+
+* Multiple line commands
+
+There are also three commands that can be used when working with multiple lines.
+Those are ~N~, ~P~ and ~D~ which acts similar to the single line commands ~n~,
+~p~ and ~d~. When used together they are usually executed in the order: first
+~N~, then ~P~ and lastly ~D~.
+
+** ~N~
+
+When executing the ~n~ command the current pattern space is printed (unless the
+~-n~ option is used), empties the pattern space and reads the next row. The ~N~
+command neither prints the current pattern space or empties it. It appends a new
+line character (~\n~) and the next line to the current pattern space. You can
+now also match on ~n~ in your commands.
+
+E.g if you're looking for two consecutive lines where the first one contains
+~ONE~ and the second line ~TWO~ you could use the following command:
+
+#+BEGIN_SRC bash :results output
+sed -n '
+/ONE/ {
+    # found "ONE" - read in next line
+    N
+    # look for "TWO" on the second line and print if its found
+    /\n.*TWO/ p
+}' \
+\
+<(echo "Row 1: ZERO
+Row 2: ONE
+Row 3: THREE
+Row 4: TWO
+Row 5: THREE
+Row 6: ONE
+Row 7: TWO")
+#+END_SRC
+
+** ~D~
+
+When executing the ~d~ command the pattern space is emptied, the next line is
+read and restarts the execution from the top with the new pattern space. The ~D~
+command removes everything to (and including) the first new line character and
+then restarts execution from the top. If the ~D~ command is run inside a [[#group-command][group
+command]] the execution will jump to the top of the group. If the pattern space
+would be empty a new line is read into the pattern space and the execution is
+started from the top again.
+
+** ~P~
+The ~p~ command prints the whole pattern space. ~P~ will only print until the
+first new line character (~\n~). Neither of these commands will alter the
+pattern space
+
+* The hold buffer
+
+
+
+* Flow control

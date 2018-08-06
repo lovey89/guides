@@ -896,14 +896,13 @@ altered). The ~G~ command will append a new line charcter and the hold buffer to
 the pattern space.
 
 * Flow control
-
 ** Branch (~b~)
 
 The ~b~ command is used for branching. The argument to the ~b~ command is a the
-name of a label (which is defined as a string directly followed by a ~:~). If
-you haven't provided a label to the ~b~ command it will branch to the end of the
-script. This is nice to end work with the current row and start with a new from
-top.
+name of a label (which is defined as a string preceeded by a ~:~). If you
+haven't provided a label to the ~b~ command it will branch to the end of the
+script. This is nice when you need to end work with the current line and start
+with a new from top.
 
 The following command will look for the word ~WORD~ in a text and if found it
 will print the whole paragraph
@@ -977,7 +976,6 @@ sed '
 #+END_SRC
 
 * Misc
-
 ** Commands on the same row (~;~)
 
 You can write multiple commands on the same row with the ~;~ character. The
@@ -1019,4 +1017,16 @@ sed -r 's/^([^ ]+) *([^ ]+) *([^ ]+)/\L\1\E \2 \U\3/' \
 <(echo "OnE TwO ThReE
 FoUr FiVe SiX
 SeVeN EiGhT NiNe")
+#+END_SRC
+
+* Good one liners
+** Convert a list of values so it can be be used in a in clause in SQL
+
+#+BEGIN_SRC bash :results output
+sed ':a;N;$!ba;s/\n/'"','"'/g; s/.*/'"('&')"'/' \
+\
+<(echo "abd
+def
+ghi
+jkl")
 #+END_SRC

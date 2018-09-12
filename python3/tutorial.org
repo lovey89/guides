@@ -1124,7 +1124,7 @@ pairs.sort(key=lambda pair: pair[1])
 print(pairs)
 #+END_SRC
 
-** Documentation string
+** Documentation string (doc string)
 
 The first line in the documentation string should be short, concise summary of
 the object’s purpose. If more documentation is needed the second line should be
@@ -1725,6 +1725,7 @@ import mymodule
 mymodule.printMyVariable()
 mymodule.myvariable = 15
 mymodule.printMyVariable()
+
 # The following lines will make it fail
 #del mymodule.myvariable
 #mymodule.printMyVariable()
@@ -1779,6 +1780,286 @@ print("In global scope:", spam)
 #+END_SRC
 
 * Classes
+
+Just like function definitions (~def~) the class definition needs to be executed
+before they have any effect. Classes doesn't have to be defined on global level
+but can be defined in e.g. ~if~ statements or functions
+
+** Class object
+
+A class object supports two kinds of operations: /attribute references/ and
+/instantiation/.
+
+*** Attribute references
+
+Attribute references uses the syntax for all attribute references ~obj.name~
+where name can be any of the names that were in the class's namespace when the
+class was defined. The ~doc string~ is also allowed
+
+#+BEGIN_SRC python :python python3 :results output
+class MyClass:
+    """A simple example class"""
+    i = 12345
+
+    def f(self):
+        return 'hello world'
+
+print(MyClass.__doc__)
+print(MyClass.i)
+MyClass.i = 6
+print(MyClass.i)
+#+END_SRC
+
+As you can see in the example above you can also assign values to the referenced
+attributes
+
+*** Instantiation
+
+To create a new instance of a class you just treat the defined class as a
+parameterless function
+
+#+BEGIN_SRC python :python python3 :results output
+class MyClass:
+    """A simple example class"""
+    i = 12345
+
+    def f(self):
+        return 'hello world'
+
+x = MyClass()
+y = MyClass()
+
+print(x.f())
+print(x.i)
+print(y.i)
+x.i = 1
+y.i = 2
+print(x.i)
+print(y.i)
+print(MyClass.i)
+#+END_SRC
+
+The constructor above creates an empty object. We can also define our own
+constructor by defining an ~__init__()~ method
+
+#+BEGIN_SRC python :python python3 :results output
+class MyClass:
+    def __init__(self):
+        self.x = 4
+        self.y = 5
+
+    def printState(self):
+        print("x:", self.x, "y:", self.y)
+
+a = MyClass()
+a.printState()
+a.x = 10
+a.printState()
+#+END_SRC
+
+A constuctor can also accept parameters
+
+#+BEGIN_SRC python :python python3 :results output
+class MyClass:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def printState(self):
+        print("x:", self.x, "y:", self.y)
+
+a = MyClass(20, 30)
+a.printState()
+a.x = 10
+a.printState()
+#+END_SRC
+
+** More about attribute references
+
+There are two forms of attribute references: data attributes and methods.
+
+Data attributes corresponds to instance variables. They don't have to be
+declared but will be created when they are assigned a vales
+
+#+BEGIN_SRC python :python python3 :results output
+class MyClass:
+    pass
+
+x = MyClass()
+
+x.counter = 1
+while x.counter < 10:
+    x.counter = x.counter * 2
+print(x.counter)
+del x.counter
+#+END_SRC
+
+Beware that data attributes override method attributes with the same name when
+assigning! The only way to avoid this is to use some kind of convention to
+minimize the chance of conflicts
+
+#+BEGIN_SRC python :python python3 :results output
+class MyClass:
+    def f(self):
+        return 'hello world'
+
+x = MyClass()
+
+print(type(x.f))
+print(x.f())
+
+x.f = 50;
+
+print(type(x.f))
+print(x.f)
+#+END_SRC
+
+** Method Objects
+
+It's not necessary to call a method directly when referencing a method. Instead
+of ~x.f()~ you can get the method object which can be stored away and called
+later by calling ~x.f~. E.g.
+
+#+BEGIN_SRC python :python python3 :results output
+class MyClass:
+    def f(self):
+        return 'hello world'
+
+x = MyClass()
+xf = x.f
+
+for i in range(5):
+    print(xf())
+#+END_SRC
+
+As you have noticed all methods defined in classes accepts a ~self~ parameter.
+Python passes the instance object as the first object when referencing the
+method. ~x.f()~ is actually equivalent to ~MyClass.f(x)~. So the example above
+could be written as:
+
+#+BEGIN_SRC python :python python3 :results output
+class MyClass:
+    def f(self):
+        return 'hello world'
+
+x = MyClass()
+f = MyClass.f
+
+for i in range(5):
+    print(f(x))
+#+END_SRC
+
+Note that the name ~self~ is nothing else but a convention. You can choose
+another name for it (but that's discouraged!).
+
+** Class and instance variables
+
+#+BEGIN_SRC python :python python3 :results output
+class Dog:
+    kind = 'canine'         # class variable shared by all instances
+
+    def __init__(self, name):
+        self.name = name    # instance variable unique to each instance
+
+d = Dog('Fido')
+e = Dog('Buddy')
+print(d.kind)                  # shared by all dogs
+print(e.kind)                  # shared by all dogs
+Dog.kind = 'doggo'
+print(d.kind)                  # shared by all dogs
+print(e.kind)                  # shared by all dogs
+print(d.name)                  # unique to d
+print(e.name)                  # unique to e
+#+END_SRC
+
+Here's an example how you can accidentally treat a class variable as if it was
+an instance variable
+
+#+BEGIN_SRC python :python python3 :results output
+class Dog:
+    tricks = []             # mistaken use of a class variable
+
+    def __init__(self, name):
+        self.name = name
+
+    def add_trick(self, trick):
+        self.tricks.append(trick)
+
+d = Dog('Fido')
+e = Dog('Buddy')
+d.add_trick('roll over')
+e.add_trick('play dead')
+print(d.tricks)                # unexpectedly shared by all dogs
+#+END_SRC
+
+The correct way to do it would be
+
+#+BEGIN_SRC python :python python3 :results output
+class Dog:
+    def __init__(self, name):
+        self.name = name
+        self.tricks = []    # creates a new empty list for each dog
+
+    def add_trick(self, trick):
+        self.tricks.append(trick)
+
+d = Dog('Fido')
+e = Dog('Buddy')
+d.add_trick('roll over')
+e.add_trick('play dead')
+print(d.tricks)
+print(e.tricks)
+#+END_SRC
+
+** Random remarks
+
+It is not necessary that a class method itself is defined inside the class
+definition. E.g.
+
+#+BEGIN_SRC python :python python3 :results output
+# Function defined outside the class
+def f1(self, x, y):
+    return min(x, x+y)
+
+class C:
+    f = f1
+
+    def g(self):
+        return 'hello world'
+
+    h = g
+
+c = C()
+
+print(c.f(1,4))
+print(c.g())
+print(c.h())
+#+END_SRC
+
+Also it's good to know that methods may call other methods by referencing
+attributes of the ~self~ object
+
+#+BEGIN_SRC python :python python3 :results output
+class Bag:
+    def __init__(self):
+        self.data = []
+
+    def add(self, x):
+        self.data.append(x)
+
+    def addtwice(self, x):
+        self.add(x)
+        self.add(x)
+
+bag = Bag()
+print(bag.data)
+bag.add('thing')
+print(bag.data)
+bag.addtwice('stuff')
+print(bag.data)
+#+END_SRC
+
+** Inheritence
 
 
 

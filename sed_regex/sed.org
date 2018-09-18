@@ -1030,3 +1030,29 @@ def
 ghi
 jkl")
 #+END_SRC
+
+** Generate curl requests from file
+
+#+BEGIN_SRC bash :results output
+sed -rn "s|^([^\t]+)\t+([^\t]+)\t+([^\t]+)\t+([^\t]+)\t+([^\t]+)|curl -X PUT --header 'Content-Type: content-type' --header 'Accept: accept-header' -d '{\\
+   \"field1\": \"\3\",\\
+   \"field2\": \"\4\",\\
+   \"field3\": \"\5\",\\
+  }' 'http://hostname:port/path/to/\1/\2'\n|p" \
+\
+<(echo -e "value1\tvalue2\tvalue3\tvalue4\tvalue5
+value6\tvalue7\tvalue8\tvalue9\tvalue10")
+#+END_SRC
+
+Or if each row should end with a ~\~
+
+#+BEGIN_SRC bash :results output
+sed -rn "s|^([^\t]+)\t+([^\t]+)\t+([^\t]+)\t+([^\t]+)\t+([^\t]+)|curl -X PUT --header 'Content-Type: content-type' --header 'Accept: accept-header' -d '{ \\\\\\
+   \"field1\": \"\3\", \\\\\\
+   \"field2\": \"\4\", \\\\\\
+   \"field3\": \"\5\", \\\\\\
+  }' 'http://hostname:port/path/to/\1/\2'\n|p" \
+\
+<(echo -e "value1\tvalue2\tvalue3\tvalue4\tvalue5
+value6\tvalue7\tvalue8\tvalue9\tvalue10")
+#+END_SRC

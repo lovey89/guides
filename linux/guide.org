@@ -147,3 +147,11 @@ Here we see why it's important that ~-prune~ returns true. We won't search in
 directories called ~.git~ and other directories which we can decide ourselves.
 If such a directory is found we will end up in the ~prune~ and the content of
 that directory will be ignored.
+
+* tcpdump
+
+** Example
+
+#+BEGIN_SRC bash
+tcpdump -c 2000 -s 0 -i eth0 -A -w dump.pcap
+#+END_SRC

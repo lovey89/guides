@@ -2061,6 +2061,180 @@ print(bag.data)
 
 ** Inheritence
 
+You subclass another class by putting it in paranthesis
+
+#+BEGIN_SRC python :python python3 :results output
+class Animal:
+    def noise(self):
+        print('Noise')
+
+    def run(self):
+        print('Running')
+
+class Dog(Animal):
+    def noise(self):
+        print('Bark')
+
+animal = Animal()
+dog = Dog()
+
+animal.noise()
+animal.run()
+dog.noise()
+dog.run()
+Animal.noise(dog)
+#+END_SRC
+
+As you can see by running the example above a subclass inherits the methods from
+its parent and can also override methods. If you still want to call the parent
+class method definition it can be done like the last row:
+~BaseClass.func(subClass_instance)~. ~BaseClass~ needs to be accessible of
+course.
+
+In this case the ~Animal~ class was defined in the same module but if was
+defined in another module it could be sub classed with
+~class Dog(modulename.Animal):~.
+
+You can check inheritence with the methods ~isinstance~ (to check instance type)
+and ~issubclass~ (to check class inheritence)
+
+#+BEGIN_SRC python :python python3 :results output
+class Animal:
+    pass
+
+class Dog(Animal):
+    pass
+
+animal = Animal()
+dog = Dog()
+
+print(isinstance(animal, Animal))
+print(isinstance(animal, Dog))
+print(isinstance(dog, Animal))
+print(isinstance(dog, Dog))
+print()
+print(issubclass(Animal, Animal))
+print(issubclass(Animal, Dog))
+print(issubclass(Dog, Animal))
+print(issubclass(Dog, Dog))
+#+END_SRC
+
+It also looks like as if a subclass inherits the initializers (and it can be
+overridden). E.g.
+
+#+BEGIN_SRC python :python python3 :results output
+class Animal:
+    def __init__(self):
+        print('Creating Animal')
+
+class Dog(Animal):
+    pass
+
+class Cat(Animal):
+    def __init__(self):
+        print('Creating Cat')
+
+animal = Animal()
+dog = Dog()
+cat = Cat()
+#+END_SRC
+
+*** Multiple Inheritence
+
+You can also have multiple parents in Python
+
+#+BEGIN_SRC python :python python3 :results output
+class Animal:
+    pass
+
+class Quadruped:
+    pass
+
+class Dog(Animal, Quadruped):
+    pass
+
+dog = Dog()
+#+END_SRC
+
+For most purposes, in the simplest cases, you can think of the search for
+attributes inherited from a parent class as depth-first, left-to-right, not
+searching twice in the same class where there is an overlap in the hierarchy.
+Thus, if an attribute is not found in ~Dog~, it is searched for in ~Animal~,
+then (recursively) in the base classes of ~Animal~, and if it was not found
+there, it was searched for in ~Quadruped~, and so on. This is not really the
+truth as the method resolution order changes dynamically to support cooperative
+calls to ~super()~. This is known as /call-next-method/.
+
+** Private Variables
+
+In python there are no private variables. The convention is that if you prefix
+the variable, method or function with an underscore it should be treated as non-
+public (and may change without notice).
+
+To avoid name clashes with subclasses there is something called /name mangling/.
+An identifier which is prefixed with at least two underscores and at most one
+trailing underscore is will be prefixed with ~_classname~. E.g. ~__myvar~ will
+be replaced with ~_MyClass__myvar~ in the class ~MyClass~. This can only be done
+inside classes.
+
+This is helpful for letting subclasses override methods without breaking
+intraclass method calls. Compare the examples below
+
+#+BEGIN_SRC python :python python3 :results output
+class MyClass:
+    def __init__(self, var):
+        self.printGreeting()
+
+    def printGreeting(self):
+        print('Hi')
+
+class MySubclass(MyClass):
+    def printGreeting(self):
+        print('Howdy')
+
+myClass = MyClass(1)
+mySubclass = MySubclass(1)
+#+END_SRC
+
+#+BEGIN_SRC python :python python3 :results output
+class MyClass:
+    def __init__(self, var):
+        self.__printGreeting()
+
+    def printGreeting(self):
+        print('Hi')
+
+    __printGreeting = printGreeting   # private copy of original printGreeting() method
+
+class MySubclass(MyClass):
+    def printGreeting(self):
+        print('Howdy')
+
+myClass = MyClass(1)
+mySubclass = MySubclass(1)
+#+END_SRC
+
+** Struct like classes
+
+You can define an empty class and store data on that object
+
+#+BEGIN_SRC python :python python3 :results output
+class MyClass:
+    pass
+
+a = MyClass()
+a.x = 1
+a.y = 2
+
+b = MyClass()
+b.x = 3
+b.y = 4
+print(a.x)
+print(a.y)
+print(b.x)
+print(b.y)
+#+END_SRC
+
 
 
 * Errors and Exception
@@ -2092,6 +2266,14 @@ for arg in sys.argv:
 - Inner functions
 - ~with~ keyword
 - Formatted string literals
+
+** Methods
+
+- ~super()~
+- ~getattr()~
+- ~setattr()~
+- ~delattr()~
+
 
 * Links
 

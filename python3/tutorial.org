@@ -1271,6 +1271,14 @@ for k, v in filled_dict.items():
     print ("Key:", k, "Value:", v)
 #+END_SRC
 
+If you just call it without ~items()~ it will only loop over the keys
+
+#+BEGIN_SRC python :python python3 :results output
+filled_dict = {"one": 1, "two": 2, "three": 3}
+for k in filled_dict:
+    print ("Key:", k)
+#+END_SRC
+
 Loop over a sequence and keep track of the index for each element
 
 #+BEGIN_SRC python :python python3 :results output
@@ -2216,7 +2224,8 @@ mySubclass = MySubclass(1)
 
 ** Struct like classes
 
-You can define an empty class and store data on that object
+You can define an empty class and store data on that object (similar to C
+structs)
 
 #+BEGIN_SRC python :python python3 :results output
 class MyClass:
@@ -2235,7 +2244,126 @@ print(b.x)
 print(b.y)
 #+END_SRC
 
+** Iterators
 
+Most container classes (collections such as tuples, dictionairies, lists, etc.)
+can be looped over using the ~for~ statement
+
+#+BEGIN_SRC python :python python3 :results output
+for element in [1, 2, 3]:
+    print(element)
+print()
+for element in (1, 2, 3):
+    print(element)
+print()
+for key in {'one':1, 'two':2}:
+    print(key)
+print()
+for char in "123":
+    print(char)
+print()
+for line in open("mymodule.py"):
+    print(line, end='')
+#+END_SRC
+
+To support this the underlying class must provide a method called ~__iter__()~
+which should return an iterator. The iterator should provide a method called
+~__next__()~ which will access each element one at a time. When there are no
+more elements the ~__next__()~ should throw a ~StopIteration~ exception. E.g.
+
+The
+~__next__()~ method can also be called using ~next()~. E.g.
+
+#+BEGIN_SRC python :python python3 :results output
+s = 'abc'
+iterator = s.__iter__()
+print(iterator.__next__())
+print(iterator.__next__())
+print(iterator.__next__())
+#print(iterator.__next__()) #This line will throw a StopIteration exception
+#+END_SRC
+
+You can also call these methods using the built functions ~iter()~ and ~next()~
+
+#+BEGIN_SRC python :python python3 :results output
+s = 'abc'
+iterator = iter(s)
+print(next(iterator))
+print(next(iterator))
+print(next(iterator))
+#print(next(iterator)) #This line will throw a StopIteration exception
+#+END_SRC
+
+In the example below the class provides both ~__iter__()~ and ~__next__()~. Thus
+can the ~__iter__()~ method return itself
+
+#+BEGIN_SRC python :python python3 :results output
+class Reverse:
+    """Iterator for looping over a sequence backwards."""
+    def __init__(self, data):
+        self.data = data
+        self.index = len(data)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.index == 0:
+            raise StopIteration
+        self.index = self.index - 1
+        return self.data[self.index]
+
+for char in Reverse('Spam'):
+   print(char)
+#+END_SRC
+
+** Generators
+
+Generators can be used for creating iterators. You write them like regular
+functions but they use the ~yield~ statement whenever they want to return data.
+Each time ~__next__()~ is called the generator will continue where it left off.
+They will also automatically raise a ~StopIteration~ exception when the
+generator terminates. E.g.
+
+#+BEGIN_SRC python :python python3 :results output
+def reverse(data):
+    for index in range(len(data)-1, -1, -1): # Remember that the endpoint is not generated
+        yield data[index]
+
+for char in reverse('golf'):
+    print(char)
+#+END_SRC
+
+An iterator can be used for everything that a generator can be used for but
+generators will automatically generate ~__next__()~ and ~__iter__()~ methods.
+
+*** Generator expressions
+
+Some simple generators can be coded as expressions using a syntax similar to
+list comprehensions but with parentheses instead of square brackets. Generator
+expressions are more compact but less versatile than full generator definitions
+and tend to be more memory friendly than equivalent list comprehensions.
+
+TODO: Why should we ever use a list comprehension?
+
+#+BEGIN_SRC python :python python3 :results output
+print(sum(i*i for i in range(10)))
+print()
+
+xvec = [10, 20, 30]
+yvec = [7, 5, 3]
+print(sum(x*y for x,y in zip(xvec, yvec)))
+print()
+
+from math import pi, sin
+# Is this really a generator expression?
+sine_table = {x: sin(x*pi/180) for x in range(0, 91)}
+print(sine_table)
+print()
+
+data = 'golf'
+print(list(data[i] for i in range(len(data)-1, -1, -1)))
+#+END_SRC
 
 * Errors and Exception
 

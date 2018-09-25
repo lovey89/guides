@@ -2366,7 +2366,147 @@ print(list(data[i] for i in range(len(data)-1, -1, -1)))
 #+END_SRC
 
 * Errors and Exception
+** Handling exceptions
 
+The example below will throw a ~ValueError~ (as ~x~ is not an interger).
+
+#+BEGIN_SRC python :python python3 :results output
+x = 'x'
+i = int(x)
+print('Done')
+#+END_SRC
+
+We can catch the exception using the ~try~ clause
+
+#+BEGIN_SRC python :python python3 :results output
+x = 'x'
+try:
+    i = int(x)
+except ValueError:
+    print('Exception caught')
+print('Done')
+#+END_SRC
+
+You can use multiple ~except~ clauses
+
+#+BEGIN_SRC python :python python3 :results output
+class A(Exception):
+    pass
+
+class B(Exception):
+    pass
+
+for cls in [A, B]:
+    try:
+        raise cls
+    except A:
+        print('Exception caught: A')
+    except B:
+        print('Exception caught: B')
+#+END_SRC
+
+You can also catch several different exceptions using one ~except~ clause
+
+#+BEGIN_SRC python :python python3 :results output
+class A(Exception):
+    pass
+
+class B(Exception):
+    pass
+
+for cls in [A, B]:
+    try:
+        raise cls
+    except (A, B):
+        print('Exception caught')
+#+END_SRC
+
+You can also assign the caught exception in a variable using
+
+#+BEGIN_SRC python :python python3 :results output
+class A(Exception):
+    pass
+
+class B(Exception):
+    pass
+
+for cls in [A, B]:
+    try:
+        raise cls
+    except (A, B) as e:
+        print('Exception caught:', type(e))
+#+END_SRC
+
+You can also add a wild card ~except~ clause in the end which will catch
+everything which hasn't been caught
+
+#+BEGIN_SRC python :python python3 :results output
+class A(Exception):
+    pass
+
+class B(Exception):
+    pass
+
+class C(Exception):
+    pass
+
+for cls in [A, B, C]:
+    try:
+        raise cls
+    except (A, B) as e:
+        print('Exception caught:', type(e))
+    except:
+        print('Unknown exception caught')
+#+END_SRC
+
+You can also raise the exception again after you have handled it
+
+#+BEGIN_SRC python :python python3 :results output
+try:
+    1/0
+except ZeroDivisionError as e:
+    print('Exception caught')
+    raise # The exception is raised again
+    #raise e # In this case it looks like this line is added to the stack trace
+#+END_SRC
+
+You can also add an ~else~ clause to the ~try.. except~ statement that will only
+be run if everything goes
+
+#+BEGIN_SRC python :python python3 :results output
+try:
+    1/0
+except:
+    print('1: Exception caught')
+else:
+    print('1: Exception not caught')
+
+try:
+    0/1
+except:
+    print('2: Exception caught')
+else:
+    print('2: Exception not caught')
+#+END_SRC
+
+An exception can also have associated attributes. The arguments are stored in a
+data attribute called ~args~. The ~__str__()~ method is defined so you can print
+the arguments directly
+
+#+BEGIN_SRC python :python python3 :results output
+try:
+    raise Exception('spam', 'eggs')
+except Exception as inst:
+    print(type(inst))    # the exception instance
+    print(inst.args)     # arguments stored in .args
+    print(inst)          # __str__ allows args to be printed directly,
+                         # but may be overridden in exception subclasses
+    x, y = inst.args     # unpack args
+    print('x =', x)
+    print('y =', y)
+#+END_SRC
+
+** Tmp
 [[https://docs.python.org/3/library/exceptions.html][Exceptions]]
 
 #+BEGIN_SRC python :python python3 :results output

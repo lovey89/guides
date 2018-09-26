@@ -2506,16 +2506,117 @@ except Exception as inst:
     print('y =', y)
 #+END_SRC
 
-** Tmp
-[[https://docs.python.org/3/library/exceptions.html][Exceptions]]
+** Raising exceptions
+
+You can raise an exception by using the ~raise~ statement. You can call this
+using an instance of an exception type (a class that derives ~Exception~) or by
+passing a exception class itself. If you pass the class it will be implicitly
+instantiated by calling the zero argument constructor
 
 #+BEGIN_SRC python :python python3 :results output
-if True:
-    print('Hej')
-else:
-    asdfasdf(asd)
+raise ValueError
+# is a shorthand for
+raise ValueError()
 #+END_SRC
 
+As mentioned above, if you want to see if an exception was raised but don't
+intend to handle it you can raise it with no argument in the ~except~ clause
+
+#+BEGIN_SRC python :python python3 :results output
+try:
+    raise NameError('HiThere')
+except NameError:
+    print('An exception flew by!')
+    raise
+#+END_SRC
+
+** Define your own exception
+
+You create your own exception by sub-classing the ~Exception~ class (directly
+or indirectly). Exception classes can do anything another class can do but
+should be kept simple. When creating modules which can raise several kinds of
+errors a good practive is to create a base class for the exceptions defined in
+that module. A convention is also to define names that end with /error/
+
+#+BEGIN_SRC python :python python3 :results output
+class Error(Exception):
+    """Base class for exceptions in this module."""
+    pass
+
+class InputError(Error):
+    """Exception raised for errors in the input.
+
+    Attributes:
+        expression -- input expression in which the error occurred
+        message -- explanation of the error
+    """
+
+    def __init__(self, expression, message):
+        self.expression = expression
+        self.message = message
+
+class TransitionError(Error):
+    """Raised when an operation attempts a state transition that's not
+    allowed.
+
+    Attributes:
+        previous -- state at beginning of transition
+        next -- attempted new state
+        message -- explanation of why the specific transition is not allowed
+    """
+
+    def __init__(self, previous, next, message):
+        self.previous = previous
+        self.next = next
+        self.message = message
+#+END_SRC
+
+** Clean up using ~finally~
+
+The ~finally~ clause will always run when leaving the try statement. If there
+was an uncaught exception of the exception was raised in an ~except~ clause or
+the ~else~ clause then the exception will be raised again after the ~finally~
+clause is completed.
+
+#+BEGIN_SRC python :python python3 :results output
+def divide(x, y):
+    try:
+        result = x / y
+    except ZeroDivisionError:
+        print("division by zero!")
+    else:
+        print("result is", result)
+    finally:
+        print("executing finally clause")
+
+divide(2, 1)
+divide(2, 0)
+#divide("2", "1")
+#+END_SRC
+
+** Predefined clean-up actions
+
+The following example will try to open a file and print its content to the
+screen. The problem here is taht the file is not closed:
+
+#+BEGIN_SRC python :python python3 :results output
+for line in open("mymodule.py"):
+    print(line, end="")
+#+END_SRC
+
+You can use the ~with~ statement to objects which provides predefined clean-up
+actions. This ensures that the clean-up is always done even if an exception
+occurs
+
+#+BEGIN_SRC python :python python3 :results output
+with open("mymodule.py") as f:
+    for line in f:
+        print(line, end="")
+#+END_SRC
+
+** Links
+
+[[https://docs.python.org/3/library/exceptions.html][Exceptions]]
 
 * Example programs
 ** Read command line arguments

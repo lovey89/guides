@@ -2327,7 +2327,8 @@ generator terminates. E.g.
 
 #+BEGIN_SRC python :python python3 :results output
 def reverse(data):
-    for index in range(len(data)-1, -1, -1): # Remember that the endpoint is not generated
+    for index in range(len(data)-1, -1, -1): # Remember that the endpoint is not
+                                             # generated (why we use -1)
         yield data[index]
 
 for char in reverse('golf'):
@@ -2594,6 +2595,9 @@ divide(2, 0)
 #divide("2", "1")
 #+END_SRC
 
+The ~finally~ clause will also be executed when the ~statement~ is left via e.g.
+~break~, ~continue~ or ~return~
+
 ** Predefined clean-up actions
 
 The following example will try to open a file and print its content to the
@@ -2618,6 +2622,38 @@ with open("mymodule.py") as f:
 
 [[https://docs.python.org/3/library/exceptions.html][Exceptions]]
 
+* Other
+** Regular expressions
+
+#+BEGIN_SRC python :python python3 :results output
+import re
+
+print(re.findall(r'\bf[a-z]*', 'which foot or hand fell fastest'))
+print(re.sub(r'(\b[a-z]+) \1', r'\1', 'cat in the the hat'))
+#+END_SRC
+
+When simple substitutions are done you can use the ~replace~ method instead
+
+#+BEGIN_SRC python :python python3 :results output
+print('tea for too'.replace('too', 'two'))
+#+END_SRC
+
+** Execute scripts in linux
+
+You can execute python scripts like other shell scripts by putting the line
+
+#+BEGIN_SRC
+#!/usr/bin/env python3
+#+END_SRC
+
+in the header. E.g.
+
+#+BEGIN_SRC python :python python3 :results output
+#!/usr/bin/env python3
+
+print("Hello world!")
+#+END_SRC
+
 * Example programs
 ** Read command line arguments
 
@@ -2628,6 +2664,86 @@ import sys
 print(len(sys.argv))
 for arg in sys.argv:
     print(arg)
+#+END_SRC
+
+#+BEGIN_SRC python :python python3 :results output
+import sys;
+sys.stdout.write('Warning, log file not found starting a new one\n')
+sys.stderr.write('Warning, log file not found starting a new one\n')
+
+#+END_SRC
+
+* ~pip~
+
+You can use ~pip~ to install, upgrade or remove packages. By default ~pip~ will
+install packages from the Python Package Index ([[https://pypi.org]]).
+
+You can run ~pip~ in the Python repl or directly in the terminal by
+
+#+BEGIN_SRC bash :results output
+python3 -m pip search astronomy
+#+END_SRC
+
+You can install the latest version of a package by specifying the package name
+
+#+BEGIN_SRC bash :results output
+python3 -m pip install <package-name>
+# E.g. python3 -m pip install novas
+#+END_SRC
+
+You can also install a specific version of a package by giving the package name
+followed by ~==~ and the version of the package you're interested in
+
+#+BEGIN_SRC bash :results output
+python3 -m pip install <package-name>==<package-version>
+# E.g. python3 -m pip install requests==2.6.0
+#+END_SRC
+
+If you want a different version of an already defined package you can just rerun
+the command above with the other version. If you want to get the latest version
+you can run
+
+#+BEGIN_SRC bash :results output
+python3 -m pip install --upgrade <package-name>
+# E.g. python3 -m pip install --upgrade pip
+#+END_SRC
+
+To remove a package you can use the ~uninstall~ command followed by one or more
+packages you wish to uninstall
+
+#+BEGIN_SRC bash :results output
+python3 -m pip uninstall <package>
+# E.g. python3 -m pip uninstall novas
+#+END_SRC
+
+You can also display information about a package with the show command (must be
+installed?)
+
+#+BEGIN_SRC bash :results output
+python3 -m pip show fros
+#+END_SRC
+
+To list the currently installed package on the machine (or in the current
+[[https://docs.python.org/3/tutorial/venv.html][virtual environment]])
+
+#+BEGIN_SRC bash :results output
+python3 -m pip list
+#+END_SRC
+
+The ~freeze~ command will produce a similar list but the output will be
+formatted the same way as ~pip install~ expects it
+
+#+BEGIN_SRC bash :results output
+python3 -m pip freeze
+#+END_SRC
+
+A common convention is to put the list in a ~requirements.txt~ file which you
+ship your application with. A user can then install all the necessary packages
+with the ~install -r~ command
+
+#+BEGIN_SRC bash :results output
+# Have not tested this code. Can it handle files outside repl?
+python3 -m pip install -r requirements.txt
 #+END_SRC
 
 * Things that maybe isn't included in the tutorial
@@ -2646,4 +2762,9 @@ for arg in sys.argv:
 
 * Links
 
-[[https://docs.python.org/3/library/functions.html][Built-in functions]]
+- [[https://docs.python.org/3/library/index.html][The Python Standard Library]]
+- [[https://docs.python.org/3/][Python documentation]]
+- [[https://docs.python.org/3/reference/index.html#reference-index][The Python Language Reference]]
+- [[https://pypi.org/][Python Package Index]]
+- [[https://www.python.org/]]
+- [[https://docs.python.org/3/library/functions.html][Built-in functions]]

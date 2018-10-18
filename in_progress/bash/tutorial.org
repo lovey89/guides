@@ -10,3 +10,71 @@ echo $2
 echo $1$2
 echo $#
 #+END_SRC
+
+* Examples
+** Script with curl having a json body
+
+#+BEGIN_SRC bash :results output :shebang "#!/bin/bash\nset input1 input2"
+#!/bin/bash
+
+ARG1=$1
+ARG2=$2
+
+PAYLOAD=$(cat << END_HEREDOC
+{
+   "field1": "Fixed value",
+   "field2": "$ARG1",
+   "field3": "$ARG2",
+}
+END_HEREDOC
+)
+
+# The echo should be removed of course
+echo curl -X POST --header 'Content-Type: content-type' -d "$PAYLOAD" 'http://host:port/path/to/call'
+#+END_SRC
+
+** Run script with arguments from a file
+
+#+BEGIN_SRC bash :results output
+while read p; do
+  echo "$p" | sed -r 's/.*/"&"/'
+done < <(echo -n "First
+second
+third")
+#+END_SRC
+
+The example above will not process the last row as there is no ~\n~ on that row.
+To overcome this problem you can use the following code
+
+#+BEGIN_SRC bash :results output
+while read p || [[ -n "$p" ]]; do
+  echo "$p" | sed -r 's/.*/"&"/'
+done < <(echo -n 'First
+second
+  Line with leading and trailing spaces  
+third')
+#+END_SRC
+
+Now we have a problem that leading and trailing whitespaces are removed. This is
+fixed by setting ~IFS~ to an empty string.
+
+#+BEGIN_SRC bash :results output
+while IFS="" read p || [[ -n "$p" ]]; do
+  echo "$p" | sed -r 's/.*/"&"/'
+done < <(echo -n 'First
+second
+  Line with leading \and trailing spaces  
+third')
+#+END_SRC
+
+Now the ~\~ on the third line is escaped. Add the ~-r~ option to ~read~ so
+backslashes doesn't act as escape charactes
+
+#+BEGIN_SRC bash :results output
+while IFS="" read -r p || [[ -n "$p" ]]; do
+  echo "$p" | sed -r 's/.*/"&"/'
+done < <(echo -n 'First
+second
+  Line with leading \and trailing spaces  
+third')
+#+END_SRC

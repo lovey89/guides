@@ -17,8 +17,8 @@ echo $#
 #+BEGIN_SRC bash :results output :shebang "#!/bin/bash\nset input1 input2"
 #!/bin/bash
 
-ARG1=$1
-ARG2=$2
+ARG1="$1"
+ARG2="$2"
 
 PAYLOAD=$(cat << END_HEREDOC
 {

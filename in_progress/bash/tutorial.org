@@ -78,3 +78,18 @@ second
   Line with leading \and trailing spaces  
 third')
 #+END_SRC
+
+** Assigning multiple variables at once
+
+Can be useful when using ~sed~ but here is a minimal example
+
+#+BEGIN_SRC bash :results output
+read VAR1 VAR2 <<< "One Two Three"
+
+echo $VAR1
+echo $VAR2
+#+END_SRC
+
+As you will notice from the example above all the text that doesn't get placed
+in its own variable will be placed in the last variable
+

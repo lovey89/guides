@@ -17,8 +17,8 @@ https://docs.python.org/3/library/functions.html#sorted
   - [[#creating-lists][Creating lists]]
   - [[#add-stuff-to-the-end-of-the-list][Add stuff to the end of the list]]
   - [[#accessing-elements][Accessing elements]]
-  - [[#remove-and-return-from-end-with-pop][Remove (and return) from end with ~pop~]]
-  - [[#slicing-with-listartendstep][Slicing with ~li[start:end(:step)]~]]
+  - [[#remove-and-return-from-end-with-pop-method][Remove (and return) from end with ~pop~ method]]
+  - [[#slicing][Slicing]]
   - [[#make-a-one-layer-deep-copy-using-slices][Make a one layer deep copy using slices]]
   - [[#removing-an-element-del][Removing an element (~del~)]]
   - [[#remove-first-occurence-of-a-value-remove][Remove first occurence of a value (~remove~)]]
@@ -45,11 +45,11 @@ https://docs.python.org/3/library/functions.html#sorted
   - [[#remove-keyvalue-pair-using-key][Remove key/value pair using key]]
 - [[#sets][Sets]]
 - [[#control-flows][Control flows]]
-  - [[#if-statement][~if~ statement]]
-  - [[#for-statement][~for~ statement]]
-  - [[#while-statement][~while~ statement]]
+  - [[#the-if-statement][The ~if~ statement]]
+  - [[#the-for-statement][The ~for~ statement]]
+  - [[#the-while-statement][The ~while~ statement]]
   - [[#the-range-function][The ~range()~ function]]
-  - [[#pass-statement][~pass~ statement]]
+  - [[#the-pass-statement][The ~pass~ statement]]
 - [[#functions][Functions]]
   - [[#variable-number-of-arguments][Variable number of arguments]]
   - [[#lambda-expressions][Lambda Expressions]]
@@ -85,7 +85,7 @@ https://docs.python.org/3/library/functions.html#sorted
   - [[#handling-exceptions][Handling exceptions]]
   - [[#raising-exceptions][Raising exceptions]]
   - [[#define-your-own-exception][Define your own exception]]
-  - [[#clean-up-using-finally][Clean up using ~finally~]]
+  - [[#clean-up-using-finally-clause][Clean up using ~finally~ clause]]
   - [[#predefined-clean-up-actions][Predefined clean-up actions]]
   - [[#links][Links]]
 - [[#other][Other]]
@@ -93,7 +93,7 @@ https://docs.python.org/3/library/functions.html#sorted
   - [[#execute-scripts-in-linux][Execute scripts in linux]]
 - [[#example-programs][Example programs]]
   - [[#read-command-line-arguments][Read command line arguments]]
-- [[#pip][~pip~]]
+- [[#the-pip-command][The ~pip~ command]]
 - [[#things-that-maybe-isnt-included-in-the-tutorial][Things that maybe isn't included in the tutorial]]
   - [[#methods][Methods]]
 - [[#links-1][Links]]
@@ -437,7 +437,7 @@ li[2] = 5
 print("li:       ", li)
 #+END_SRC
 
-** Remove (and return) from end with ~pop~
+** Remove (and return) from end with ~pop~ method
 
 #+BEGIN_SRC python :python python3 :results output
 li = [1, 2, 4, 3]
@@ -449,7 +449,9 @@ li.append(popped_value)
 print("li:", li)
 #+END_SRC
 
-** Slicing with ~li[start:end(:step)]~
+** Slicing
+
+Slicing is performed with ~li[start:end(:step)]~.
 
 We will use a string as an example here. After all, a string is nothing other
 than a tuple of characters. In the table below the dots are not included in the
@@ -843,7 +845,7 @@ print("a ^ b:", a ^ b)
 #+END_SRC
 
 * Control flows
-** ~if~ statement
+** The ~if~ statement
 
 #+BEGIN_SRC python :python python3 :results output :preamble def input(x): return 2
 # In the header of this block we have redefined input as we can't run this interactively
@@ -877,7 +879,7 @@ c = a if cond else b
 print (c)
 #+END_SRC
 
-** ~for~ statement
+** The ~for~ statement
 
 Iterates over any sequence and not only an arithmetic progression
 
@@ -943,7 +945,7 @@ for n in range(2, 10):
         print(n, 'is a prime number')
 #+END_SRC
 
-** ~while~ statement
+** The ~while~ statement
 
 Works as expected
 
@@ -1014,7 +1016,7 @@ print(list(myRange))
 print(tuple(myRange))
 #+END_SRC
 
-** ~pass~ statement
+** The ~pass~ statement
 
 Does nothing but can be used when a statement is needed syntactically
 
@@ -2668,7 +2670,7 @@ class TransitionError(Error):
         self.message = message
 #+END_SRC
 
-** Clean up using ~finally~
+** Clean up using ~finally~ clause
 
 The ~finally~ clause will always run when leaving the try statement. If there
 was an uncaught exception of the exception was raised in an ~except~ clause or
@@ -2769,7 +2771,7 @@ sys.stderr.write('Warning, log file not found starting a new one\n')
 
 #+END_SRC
 
-* ~pip~
+* The ~pip~ command
 
 You can use ~pip~ to install, upgrade or remove packages. By default ~pip~ will
 install packages from the Python Package Index ([[https://pypi.org]]).

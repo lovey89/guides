@@ -12,7 +12,7 @@
   - [[#failglob][failglob]]
   - [[#dotglob][dotglob]]
   - [[#globstar][globstar]]
-  - [[#globignore-variable][~GLOBIGNORE~ variable]]
+  - [[#the-globignore-variable][The ~GLOBIGNORE~ variable]]
   - [[#character-classes][Character classes]]
 - [[#links][Links]]
 #+END_QUOTE
@@ -192,7 +192,7 @@ shopt -s globstar
 With this option you can use ~**~ to match directories in multiple levels
 instead of only one
 
-** ~GLOBIGNORE~ variable
+** The ~GLOBIGNORE~ variable
 
 This variable can be used to set which files glob is not allowed to expand to:
 

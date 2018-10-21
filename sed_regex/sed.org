@@ -35,9 +35,9 @@
   - [[#transform-y][Transform (~y/../../~)]]
   - [[#print-current-pattern-space-l][Print current pattern space (~l~)]]
 - [[#multiple-line-commands][Multiple line commands]]
-  - [[#n][~N~]]
-  - [[#d][~D~]]
-  - [[#p][~P~]]
+  - [[#the-n-command][The ~N~ command]]
+  - [[#the-d-command][The ~D~ command]]
+  - [[#the-p-command][The ~P~ command]]
 - [[#the-hold-buffer][The hold buffer]]
   - [[#replace-x][Replace (~x~)]]
   - [[#hold-h-and-h][Hold (~h~ and ~H~)]]
@@ -793,7 +793,7 @@ Those are ~N~, ~P~ and ~D~ which acts similar to the single line commands ~n~,
 ~p~ and ~d~. When used together they are usually executed in the order: first
 ~N~, then ~P~ and lastly ~D~.
 
-** ~N~
+** The ~N~ command
 
 When executing the ~n~ command the current pattern space is printed (unless the
 ~-n~ option is used), empties the pattern space and reads the next row. The ~N~
@@ -822,7 +822,7 @@ Row 6: ONE
 Row 7: TWO")
 #+END_SRC
 
-** ~D~
+** The ~D~ command
 
 When executing the ~d~ command the pattern space is emptied, the next line is
 read and restarts the execution from the top with the new pattern space. The ~D~
@@ -832,7 +832,8 @@ command]] the execution will jump to the top of the group. If the pattern space
 would be empty a new line is read into the pattern space and the execution is
 started from the top again.
 
-** ~P~
+** The ~P~ command
+
 The ~p~ command prints the whole pattern space. ~P~ will only print until the
 first new line character (~\n~). Neither of these commands will alter the
 pattern space

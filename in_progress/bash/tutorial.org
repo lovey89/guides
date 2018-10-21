@@ -1,3 +1,14 @@
+* Table of Contents :TOC:QUOTE:
+#+BEGIN_QUOTE
+- [[#temp][Temp]]
+- [[#examples][Examples]]
+  - [[#script-with-curl-having-a-json-body][Script with curl having a json body]]
+  - [[#run-script-with-arguments-from-a-file][Run script with arguments from a file]]
+  - [[#assigning-multiple-variables-at-once][Assigning multiple variables at once]]
+#+END_QUOTE
+
+* Temp
+
 https://vaneyckt.io/posts/safer_bash_scripts_with_set_euxo_pipefail/
 
 #+BEGIN_SRC bash :results output :shebang "#!/bin/bash\nset bon jour"

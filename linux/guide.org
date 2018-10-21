@@ -1,4 +1,15 @@
-#+OPTIONS: toc:2
+* Table of Contents :TOC:QUOTE:
+#+BEGIN_QUOTE
+- [[#tar][tar]]
+  - [[#main-operation-modes][Main operation modes]]
+  - [[#examples][Examples]]
+- [[#find][find]]
+  - [[#options][Options]]
+  - [[#use-find-together-with-the-xargs-command][Use ~find~ together with the ~xargs~ command]]
+  - [[#example][Example]]
+- [[#tcpdump][tcpdump]]
+  - [[#example-1][Example]]
+#+END_QUOTE
 
 * tar
 ** Main operation modes
@@ -37,7 +48,7 @@ is extracted.
 tar -xvf file.tar
 #+END_SRC
 
-***  Create a zipped tar (~.tar.gz~)
+*** Create a zipped tar (~.tar.gz~)
 
 As above but also include the ~z~ flag for zipped files or ~j~ for ~.bz2~.
 
@@ -120,7 +131,7 @@ directory but will not look at any files in any found directories:
 find * -type f -print -o -type d -prune
 #+END_SRC
 
-** Use ~find~ together with ~xargs~
+** Use ~find~ together with the ~xargs~ command
 
 ~xargs~ executes it's commands as commands and also accepts arguments from stdin.
 
@@ -149,7 +160,6 @@ If such a directory is found we will end up in the ~prune~ and the content of
 that directory will be ignored.
 
 * tcpdump
-
 ** Example
 
 #+BEGIN_SRC bash

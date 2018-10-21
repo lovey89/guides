@@ -2868,6 +2868,7 @@ python3 -m pip install -r requirements.txt
 - [[https://docs.python.org/3/library/functions.html][Built-in functions]]
 - [[https://www.python.org/dev/peps/pep-0008/][Style guide]]
 - [[https://docs.python.org/3.7/py-modindex.html][Module index]]
+- [[https://www.python-course.eu/python3_course.php]]
 
 * Cheat sheet
 

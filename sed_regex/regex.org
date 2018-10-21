@@ -1,3 +1,22 @@
+* Table of Contents :TOC:QUOTE:
+#+BEGIN_QUOTE
+- [[#grep][Grep]]
+  - [[#force-grep-to-print-the-file-name-as-well][Force ~grep~ to print the file name as well]]
+- [[#bre][BRE]]
+  - [[#more-info-about-brackets][More info about brackets]]
+  - [[#examples][Examples]]
+- [[#ere][ERE]]
+  - [[#examples-1][Examples]]
+- [[#glob][Glob]]
+  - [[#extglob][extglob]]
+  - [[#failglob][failglob]]
+  - [[#dotglob][dotglob]]
+  - [[#globstar][globstar]]
+  - [[#globignore-variable][~GLOBIGNORE~ variable]]
+  - [[#character-classes][Character classes]]
+- [[#links][Links]]
+#+END_QUOTE
+
 * Grep
 
 | Command                  | Description                                                                                   |
@@ -28,7 +47,7 @@ as possible
 | ~^~        | Match expressions in the beginning of a line                                                |
 | ~$~        | Match expressions in the end of a line                                                      |
 | ~\~        | Escape character                                                                            |
-| ~[ ]~      | Match any character enclosed by the brackets (but only once)                                |
+| ~[ ]~      | Match any character enclosed by the brackets (but only once). [[*More info about brackets][More info about brackets]]      |
 | ~[^ ]~     | Inverts the behaviour above                                                                 |
 | ~.~        | Match any character except new line                                                         |
 | ~*~        | Match the preceeding character/expression zero or more times                                |
@@ -40,7 +59,7 @@ as possible
 | ~\<~       | Match expressions in the beginning of a word (where the word starts with the coming string) |
 | ~\>~       | Match expressions in the end of a word (where the word ends with the coming string)         |
 
-** More info about ~[ ]~
+** More info about brackets
 
 Match any character enclosed by the brackets (but only once). E.g ~[aeiouy]~.
 ~-~ can be used to define a range. E.g. ~[0-9]~ or ~[0-9a-zA-Z]~. If you want to

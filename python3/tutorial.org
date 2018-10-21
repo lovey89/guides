@@ -3,6 +3,102 @@ https://docs.python.org/3/library/index.html
 https://docs.python.org/3/reference/index.html#reference-index
 https://docs.python.org/3/library/functions.html#sorted
 
+* Table of Contents :TOC:QUOTE:
+#+BEGIN_QUOTE
+- [[#test-code-to-check-python-versions][Test code to check python versions]]
+- [[#basics][Basics]]
+  - [[#types][Types]]
+  - [[#basic-math][Basic math]]
+  - [[#comparisons][Comparisons]]
+  - [[#strings][Strings]]
+  - [[#the-none-object][The ~None~ object]]
+  - [[#variables][Variables]]
+- [[#lists][Lists]]
+  - [[#creating-lists][Creating lists]]
+  - [[#add-stuff-to-the-end-of-the-list][Add stuff to the end of the list]]
+  - [[#accessing-elements][Accessing elements]]
+  - [[#remove-and-return-from-end-with-pop][Remove (and return) from end with ~pop~]]
+  - [[#slicing-with-listartendstep][Slicing with ~li[start:end(:step)]~]]
+  - [[#make-a-one-layer-deep-copy-using-slices][Make a one layer deep copy using slices]]
+  - [[#removing-an-element-del][Removing an element (~del~)]]
+  - [[#remove-first-occurence-of-a-value-remove][Remove first occurence of a value (~remove~)]]
+  - [[#inserting-an-element-in-list-insert][Inserting an element in list (~insert~)]]
+  - [[#get-index-of-first-occurence-of-a-value-index][Get index of first occurence of a value (~index~)]]
+  - [[#concatenating-lists--and-extend][Concatenating lists (~+~ and ~extend~)]]
+  - [[#check-for-existence-in][Check for existence (~in~)]]
+  - [[#length-of-list-len][Length of list (~len~)]]
+  - [[#multidimensional-lists][Multidimensional lists]]
+  - [[#comparing-sequences][Comparing sequences]]
+  - [[#some-commands-in-actions][Some commands in actions]]
+- [[#tuples][Tuples]]
+  - [[#creating-tuples][Creating tuples]]
+  - [[#accessing-elements-1][Accessing elements]]
+  - [[#list-elements-that-also-works-on-tuples][List elements that also works on tuples]]
+  - [[#unpacking-tuples-also-lists][Unpacking tuples (also lists)]]
+- [[#dictionairies][Dictionairies]]
+  - [[#creating-dictionairies][Creating dictionairies]]
+  - [[#look-for-existence-of-keys][Look for existence of keys]]
+  - [[#look-for-values-using-keys][Look for values (using keys)]]
+  - [[#get-all-keys-and-values][Get all keys and values]]
+  - [[#adding-value-to-dictionairy][Adding value to dictionairy]]
+  - [[#add-value-if-it-is-not-present][Add value if it is not present]]
+  - [[#remove-keyvalue-pair-using-key][Remove key/value pair using key]]
+- [[#sets][Sets]]
+- [[#control-flows][Control flows]]
+  - [[#if-statement][~if~ statement]]
+  - [[#for-statement][~for~ statement]]
+  - [[#while-statement][~while~ statement]]
+  - [[#the-range-function][The ~range()~ function]]
+  - [[#pass-statement][~pass~ statement]]
+- [[#functions][Functions]]
+  - [[#variable-number-of-arguments][Variable number of arguments]]
+  - [[#lambda-expressions][Lambda Expressions]]
+  - [[#documentation-string-doc-string][Documentation string (doc string)]]
+  - [[#function-annotations][Function annotations]]
+- [[#data-structures][Data structures]]
+  - [[#list-comprehensions][List comprehensions]]
+  - [[#nested-list-comprehensions][Nested list comprehensions]]
+  - [[#looping-techniques][Looping techniques]]
+- [[#modules][Modules]]
+  - [[#more-on-modules][More on modules]]
+  - [[#executing-a-module-as-a-script][Executing a module as a script]]
+  - [[#module-search-path][Module search path]]
+  - [[#the-dir-function][The ~dir~ function]]
+  - [[#packages][Packages]]
+- [[#inputoutput][Input/output]]
+  - [[#formatting][Formatting]]
+  - [[#reading-and-writing-files][Reading and writing files]]
+  - [[#input][Input]]
+- [[#scopes][Scopes]]
+- [[#classes][Classes]]
+  - [[#class-object][Class object]]
+  - [[#more-about-attribute-references][More about attribute references]]
+  - [[#method-objects][Method Objects]]
+  - [[#class-and-instance-variables][Class and instance variables]]
+  - [[#random-remarks][Random remarks]]
+  - [[#inheritence][Inheritence]]
+  - [[#private-variables][Private Variables]]
+  - [[#struct-like-classes][Struct like classes]]
+  - [[#iterators][Iterators]]
+  - [[#generators][Generators]]
+- [[#errors-and-exception][Errors and Exception]]
+  - [[#handling-exceptions][Handling exceptions]]
+  - [[#raising-exceptions][Raising exceptions]]
+  - [[#define-your-own-exception][Define your own exception]]
+  - [[#clean-up-using-finally][Clean up using ~finally~]]
+  - [[#predefined-clean-up-actions][Predefined clean-up actions]]
+  - [[#links][Links]]
+- [[#other][Other]]
+  - [[#regular-expressions][Regular expressions]]
+  - [[#execute-scripts-in-linux][Execute scripts in linux]]
+- [[#example-programs][Example programs]]
+  - [[#read-command-line-arguments][Read command line arguments]]
+- [[#pip][~pip~]]
+- [[#things-that-maybe-isnt-included-in-the-tutorial][Things that maybe isn't included in the tutorial]]
+  - [[#methods][Methods]]
+- [[#links-1][Links]]
+- [[#cheat-sheet][Cheat sheet]]
+#+END_QUOTE
 
 * Test code to check python versions
 
@@ -2751,6 +2847,7 @@ python3 -m pip install -r requirements.txt
 - Inner functions
 - ~with~ keyword
 - Formatted string literals
+- ~exec~ method (run strings as commands?)
 
 ** Methods
 
@@ -2758,7 +2855,6 @@ python3 -m pip install -r requirements.txt
 - ~getattr()~
 - ~setattr()~
 - ~delattr()~
-
 
 * Links
 
@@ -2768,3 +2864,23 @@ python3 -m pip install -r requirements.txt
 - [[https://pypi.org/][Python Package Index]]
 - [[https://www.python.org/]]
 - [[https://docs.python.org/3/library/functions.html][Built-in functions]]
+- [[https://www.python.org/dev/peps/pep-0008/][Style guide]]
+- [[https://docs.python.org/3.7/py-modindex.html][Module index]]
+
+* Cheat sheet
+
+#+BEGIN_SRC
+Python indexes and slices for a six-element list.
+Indexes enumerate the elements, slices enumerate the spaces between the elements.
+
+Index from rear:    -6  -5  -4  -3  -2  -1      a=[0,1,2,3,4,5]    a[1:]==[1,2,3,4,5]
+Index from front:    0   1   2   3   4   5      len(a)==6          a[:5]==[0,1,2,3,4]
+                   +---+---+---+---+---+---+    a[0]==0            a[:-2]==[0,1,2,3]
+                   | a | b | c | d | e | f |    a[5]==5            a[1:2]==[1]
+                   +---+---+---+---+---+---+    a[-1]==5           a[1:-1]==[1,2,3,4]
+Slice from front:  :   1   2   3   4   5   :    a[-2]==4
+Slice from rear:   :  -5  -4  -3  -2  -1   :
+                                                b=a[:]
+                                                b==[0,1,2,3,4,5] (shallow copy of a)
+#+END_SRC
+

@@ -95,12 +95,20 @@ third')
 Can be useful when using ~sed~ but here is a minimal example
 
 #+BEGIN_SRC bash :results output
-read VAR1 VAR2 <<< "One Two Three"
+read VAR1 VAR2 <<< "  One   Two    Three  "
 
-echo $VAR1
-echo $VAR2
+echo "$VAR1"
+echo "$VAR2"
 #+END_SRC
 
 As you will notice from the example above all the text that doesn't get placed
 in its own variable will be placed in the last variable
 
+If you want to change the separator you can update the ~IFS~ variable.
+
+#+BEGIN_SRC bash :results output
+IFS=':' read VAR1 VAR2 <<< "  One    Two:   Three   Four"
+
+echo "$VAR1"
+echo "$VAR2"
+#+END_SRC

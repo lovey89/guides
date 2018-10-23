@@ -1,0 +1,5 @@
+[[file:index.html][My testlink]]
+
+[[https://www.google.se][Google]]
+
+[[file:index.html][test]]

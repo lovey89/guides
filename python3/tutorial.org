@@ -287,6 +287,20 @@ print("b is a:", b is a) # => False, a and b do not refer to the same object
 print("b == a:", b == a) # => True, a's and b's objects are equal
 #+END_SRC
 
+*** The ~id~ function
+
+Every instance have an identity (an integer which is unique within the script or
+program). You can get the id by using the ~id~ function
+
+#+BEGIN_SRC python :python python3 :results output
+x = [1, 2, 3, 4]
+y = x
+print(id(x))
+print(id(y))
+y = [1, 2, 3, 4] # Another instance of an equal object
+print(id(y))
+#+END_SRC
+
 ** Strings
 
 Strings are surrounded with ~"~ or ~'~

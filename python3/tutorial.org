@@ -20,6 +20,7 @@ https://docs.python.org/3/library/functions.html#sorted
   - [[#remove-and-return-from-end-with-pop-method][Remove (and return) from end with ~pop~ method]]
   - [[#slicing][Slicing]]
   - [[#make-a-one-layer-deep-copy-using-slices][Make a one layer deep copy using slices]]
+  - [[#make-deep-copies-using-deepcopy-function][Make deep copies using ~deepcopy~ function]]
   - [[#removing-an-element-del][Removing an element (~del~)]]
   - [[#remove-first-occurence-of-a-value-remove][Remove first occurence of a value (~remove~)]]
   - [[#inserting-an-element-in-list-insert][Inserting an element in list (~insert~)]]
@@ -30,6 +31,7 @@ https://docs.python.org/3/library/functions.html#sorted
   - [[#multidimensional-lists][Multidimensional lists]]
   - [[#comparing-sequences][Comparing sequences]]
   - [[#some-commands-in-actions][Some commands in actions]]
+  - [[#repetition-in-lists][Repetition in lists]]
 - [[#tuples][Tuples]]
   - [[#creating-tuples][Creating tuples]]
   - [[#accessing-elements-1][Accessing elements]]
@@ -40,9 +42,15 @@ https://docs.python.org/3/library/functions.html#sorted
   - [[#look-for-existence-of-keys][Look for existence of keys]]
   - [[#look-for-values-using-keys][Look for values (using keys)]]
   - [[#get-all-keys-and-values][Get all keys and values]]
-  - [[#adding-value-to-dictionairy][Adding value to dictionairy]]
+  - [[#addingupdating-value-in-dictionairy][Adding/updating value in dictionairy]]
+  - [[#merging-directories-with-the-update-method][Merging directories with the ~update~ method]]
   - [[#add-value-if-it-is-not-present][Add value if it is not present]]
   - [[#remove-keyvalue-pair-using-key][Remove key/value pair using key]]
+  - [[#the-pop-method][The ~pop()~ method]]
+  - [[#the-popitem-method][The ~popitem()~ method]]
+  - [[#create-a-shallow-copy-using-the-copy-method][Create a shallow copy using the ~copy~ method]]
+  - [[#clearing-directories][Clearing directories]]
+  - [[#creating-a-dictionairy-from-a-list][Creating a dictionairy from a list]]
 - [[#sets][Sets]]
 - [[#control-flows][Control flows]]
   - [[#the-if-statement][The ~if~ statement]]
@@ -98,6 +106,7 @@ https://docs.python.org/3/library/functions.html#sorted
   - [[#methods][Methods]]
 - [[#links-1][Links]]
 - [[#cheat-sheet][Cheat sheet]]
+- [[#code-to-inspect][Code to inspect]]
 #+END_QUOTE
 
 * Test code to check python versions
@@ -463,6 +472,20 @@ li.append(popped_value)
 print("li:", li)
 #+END_SRC
 
+You can also pop a value with an index
+
+#+BEGIN_SRC python :python python3 :results output
+li = [1, 2, 4, 3]
+popped_value = li.pop(2)
+print("popped_value:", popped_value)
+print("li:", li)
+# put it back with li.append
+li.append(popped_value)
+print("li:", li)
+#+END_SRC
+
+So ~pop()~ without an argument is the same as ~pop(-1)~
+
 ** Slicing
 
 Slicing is performed with ~li[start:end(:step)]~.
@@ -515,6 +538,22 @@ print("li == li2:", li == li2) # Check for equality
 print("li is li2:", li is li2) # Check if they are the same object
 #+END_SRC
 
+** Make deep copies using ~deepcopy~ function
+
+If you have nested lists and want to make copies of each layer the following
+code will achieve that
+
+#+BEGIN_SRC python :python python3 :results output
+from copy import deepcopy
+
+lst = ['a','b',['ab','ba']]
+shallowCopyLst = lst[:]
+deepCopyLst = deepcopy(lst)
+print("lst[2] id:           ", id(lst[2]))
+print("shallowCopyLst[2] id:", id(shallowCopyLst[2])) # Same object as original list
+print("deepCopyLst[2] id:   ", id(deepCopyLst[2]))
+#+END_SRC
+
 ** Removing an element (~del~)
 
 Removes an element given an index or slice
@@ -542,6 +581,14 @@ li.remove(2) # Calling this twice would result in a ValueError exception since 2
 print("li:", li)
 #+END_SRC
 
+Only the first occurence would be removed
+
+#+BEGIN_SRC python :python python3 :results output
+li = [1, 2, 4, 2, 3]
+li.remove(2)
+print("li:", li)
+#+END_SRC
+
 ** Inserting an element in list (~insert~)
 
 #+BEGIN_SRC python :python python3 :results output
@@ -555,6 +602,20 @@ print("li:", li)
 #+BEGIN_SRC python :python python3 :results output
 li = [1, 2, 4, 3, 2]
 print("li.index(2):", li.index(2)) # A non existing value would raise an ValueError exception
+#+END_SRC
+
+You can also use a second argument to tell where to start searching from
+
+#+BEGIN_SRC python :python python3 :results output
+li = [1, 2, 4, 3, 2]
+print("li.index(2, 2):", li.index(2, 2))
+#+END_SRC
+
+If you use a third argument this is where the search will stop
+
+#+BEGIN_SRC python :python python3 :results output
+li = [1, 2, 4, 3, 2]
+print("li.index(2, 2, 4):", li.index(2, 2, 4)) # Will rase a ValueError exception
 #+END_SRC
 
 ** Concatenating lists (~+~ and ~extend~)
@@ -579,12 +640,22 @@ print("li: ", li)
 print("li2:", li2)
 #+END_SRC
 
+If you would use ~append~ instead you would end up with a nested list
+
+#+BEGIN_SRC python :python python3 :results output
+li = [1, 2, 4, 3]
+li2 = [11, 12, 14, 13]
+li.append(li2)
+print("li: ", li)
+#+END_SRC
+
 ** Check for existence (~in~)
 
 #+BEGIN_SRC python :python python3 :results output
 li = [1, 2, 4, 3]
 print("1 in li:", 1 in li)
 print("7 in li:", 7 in li)
+print("7 not in li:", 7 not in li)
 #+END_SRC
 
 ** Length of list (~len~)
@@ -638,6 +709,28 @@ print("fruits:                   ", fruits)
 print("fruits.pop():             ", fruits.pop())
 print("fruits:                   ", fruits)
 #+END_SRC
+
+** Repetition in lists
+
+As with strings you can use ~*~ for repetition. E.g.
+
+#+BEGIN_SRC python :python python3 :results output
+print(3 * ["a","b","c"])
+#+END_SRC
+
+But note that it only creates multiple references to the object. See what
+happens if we assign a value to a repeated nested list
+
+#+BEGIN_SRC python :python python3 :results output
+x = ["a","b","c"]
+y = [x] * 4
+print(y)
+y[0][0] = "p"
+print(y)
+#+END_SRC
+
+All letter /a/ was replaced with /p/ since we just have 4 references to the list
+~x~.
 
 * Tuples
 
@@ -786,16 +879,32 @@ print("filled_dict.items():      ", filled_dict.items())
 print("list(filled_dict.items()):", list(filled_dict.items()))
 #+END_SRC
 
-** Adding value to dictionairy
+#+RESULTS:
+: filled_dict.items():       dict_items([('three', 3), ('two', 2), ('one', 1)])
+: list(filled_dict.items()): [('three', 3), ('two', 2), ('one', 1)]
+
+** Adding/updating value in dictionairy
 
 #+BEGIN_SRC python :python python3 :results output
 filled_dict = {"one": 1, "two": 2, "three": 3}
 filled_dict["four"] = 5
 print("filled_dict:", filled_dict)
-# I don't see why I should use this method as the indexing version can both add and update
-returnValue = filled_dict.update({"four":4}) # Always return None (not the previous value)
-print("returnValue:", returnValue)
+filled_dict["one"] = 2
 print("filled_dict:", filled_dict)
+#+END_SRC
+
+** Merging directories with the ~update~ method
+
+The ~update~ method will add all entries from the second dictionairy to the
+first list and overwrite any values if we have conflicting keys
+
+#+BEGIN_SRC python :python python3 :results output
+fst_dict = {"one": 1, "two": 2, "three": 3}
+snd_dict = {"three": 33, "four": 44, "five": 55}
+
+fst_dict.update(snd_dict)
+print("fst_dict:", fst_dict) # Note that the "three" entry now has 33 as value
+print("snd_dict:", snd_dict)
 #+END_SRC
 
 ** Add value if it is not present
@@ -819,6 +928,84 @@ print("filled_dict:", filled_dict)
 del filled_dict["one"]
 print("filled_dict:", filled_dict)
 #+END_SRC
+
+** The ~pop()~ method
+
+When running ~dict.pop(key)~, python will remove the entry with key ~k~ and
+return it
+
+#+BEGIN_SRC python :python python3 :results output
+filled_dict = {"one": 1, "two": 2, "three": 3}
+print("filled_dict:", filled_dict)
+popped = filled_dict.pop("two")
+print("popped:", popped)
+print("filled_dict:", filled_dict)
+#+END_SRC
+
+If the item doesn't exist a ~KeyError~ exception will be raised. We can prevent
+this by also providing a default values as a second argument
+
+#+BEGIN_SRC python :python python3 :results output
+filled_dict = {"one": 1, "two": 2, "three": 3}
+print("filled_dict:", filled_dict)
+popped = filled_dict.pop("four", 4)
+print("popped:", popped)
+print("filled_dict:", filled_dict)
+#+END_SRC
+
+** The ~popitem()~ method
+
+The ~popitem()~ method will return an arbitrary key-value tuple and remove that
+entry from the dictinairy. If the dictionairy is empty a ~KeyError~ exception
+will be raised. The example below may have different results in different runs
+
+#+BEGIN_SRC python :python python3 :results output
+filled_dict = {"one": 1, "two": 2, "three": 3}
+print("filled_dict:", filled_dict)
+popped = filled_dict.popitem()
+print("popped:", popped)
+print("filled_dict:", filled_dict)
+#+END_SRC
+
+** Create a shallow copy using the ~copy~ method
+
+#+BEGIN_SRC python :python python3 :results output
+filled_dict = {"one": 1, "two": 2, "three": 3}
+copy_dict = filled_dict.copy()
+print("filled_dict:", filled_dict, "id:", id(filled_dict))
+print("copy_dict:  ", copy_dict,   "id:", id(copy_dict))
+#+END_SRC
+
+** Clearing directories
+
+#+BEGIN_SRC python :python python3 :results output
+filled_dict = {"one": 1, "two": 2, "three": 3}
+print("filled_dict:", filled_dict)
+filled_dict.clear()
+print("filled_dict:", filled_dict)
+#+END_SRC
+
+** Creating a dictionairy from a list
+
+You can easily create a dictionairy from a list of tuples
+
+#+BEGIN_SRC python :python python3 :results output
+my_list = [('three', 3), ('two', 2), ('one', 1)]
+my_dict = dict(my_list)
+print(my_dict)
+#+END_SRC
+
+You can also create a dictionairy from two lists (one containing the keys and
+the other containing the values)
+
+#+BEGIN_SRC python :python python3 :results output
+key_list = ["one", "two", "three"]
+value_list = [1, 2, 3]
+
+my_dict = dict(zip(key_list, value_list)) # zip is explained later
+print(my_dict)
+#+END_SRC
+
 
 * Sets
 
@@ -903,7 +1090,7 @@ for w in words:
     print(w, len(w))
 #+END_SRC
 
-Note that the variable w will still be set after the loop finishes
+Note that the variable ~w~ will still be set after the loop finishes
 
 #+BEGIN_SRC python :python python3 :results output
 words = ['cat', 'window', 'defenestrate']
@@ -912,6 +1099,17 @@ for w in words:
 
 print("After loop:", w)
 #+END_SRC
+
+When iterating over a dictionairy you will iterate over the keys
+
+#+BEGIN_SRC python :python python3 :results output
+my_dict = {"one": 1, "two": 2, "three": 3}
+for k in my_dict:
+    print(k)
+#+END_SRC
+
+You can of course iterate over values and pair by calling the ~values~ and
+~items~ methods.
 
 Also supports ~else~ when it is exiting the ~for~ loop
 
@@ -1398,7 +1596,7 @@ for i, v in enumerate(['First', 'Second', 'Third']):
     print(i, v, "element")
 #+END_SRC
 
-To loop over multiple sequences at the same time you can use zip
+To loop over multiple sequences at the same time you can use ~zip~
 
 #+BEGIN_SRC python :python python3 :results output
 numbers = [1, 2, 3, 4]
@@ -2901,3 +3099,13 @@ Slice from rear:   :  -5  -4  -3  -2  -1   :
                                                 b==[0,1,2,3,4,5] (shallow copy of a)
 #+END_SRC
 
+* Code to inspect
+
+#+BEGIN_SRC python :python python3 :results output
+s = "Toronto is the largest City in Canada"
+t = "Python courses in Toronto by Bodenseo"
+r = "".join(["".join(x) for x in zip(s,t)])
+print(r)
+print(r[::2])
+print(r[1::2])
+#+END_SRC

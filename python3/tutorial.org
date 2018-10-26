@@ -52,6 +52,13 @@ https://docs.python.org/3/library/functions.html#sorted
   - [[#clearing-directories][Clearing directories]]
   - [[#creating-a-dictionairy-from-a-list][Creating a dictionairy from a list]]
 - [[#sets][Sets]]
+  - [[#set-operations][Set operations]]
+  - [[#add-objects-to-set][Add objects to set]]
+  - [[#remove-elements][Remove elements]]
+  - [[#clear-a-set][Clear a set]]
+  - [[#the-pop-method-1][The ~pop~ method]]
+  - [[#make-a-shallow-copy][Make a shallow copy]]
+  - [[#frozen-sets][Frozen sets]]
 - [[#control-flows][Control flows]]
   - [[#the-if-statement][The ~if~ statement]]
   - [[#the-for-statement][The ~for~ statement]]
@@ -279,6 +286,7 @@ print(bool(""))
 print(bool([])) # Empty list
 print(bool({})) # Empty dictionairy
 print(bool(())) # Empty tuple
+print(bool(None))
 print("Other values evaluate to True (this doesn't mean that they are equal to True as seen earlier)")
 #+END_SRC
 
@@ -380,6 +388,15 @@ Repeating strings
 
 #+BEGIN_SRC python :python python3 :results output
 print("na " * 8 + "BATMAN")
+#+END_SRC
+
+Joining strings in a [[*Lists][list]] with a separator
+
+#+BEGIN_SRC python :python python3 :results output
+my_list = ["This", "is", "a", "test"]
+print(" ".join(my_list))
+print("!".join(my_list))
+print("<separator>".join(my_list))
 #+END_SRC
 
 ** The ~None~ object
@@ -1025,25 +1042,148 @@ print('orange' in basket)
 print('crabgrass' in basket)
 #+END_SRC
 
+Note that all objects in a set needs to be immutable
+
+** Set operations
+
 Set operations. String is an iterable so when giving a string to the ~set~
 constructor it will build a set of the characters
+
+*** Difference
+
+Either use the ~difference~ method or ~-~ operator
 
 #+BEGIN_SRC python :python python3 :results output
 a = set('abracadabra')
 b = set('alacazam')
 
-print("a:    ", a)
-print("b:    ", b)
-print()
-# Difference
-print("a - b:", a - b)
-# Union
-print("a | b:", a | b)
-# Intersection
-print("a & b:", a & b)
-# Symmetric difference
-print("a ^ b:", a ^ b)
+print(a - b)
+print(a.difference(b))
 #+END_SRC
+
+*** Union
+
+Either use the ~union~ method or the ~|~ operator
+
+#+BEGIN_SRC python :python python3 :results output
+a = set('abracadabra')
+b = set('alacazam')
+
+print(a | b)
+print(a.union(b))
+#+END_SRC
+
+*** Intersection
+
+Either use the ~intersection~ method or the ~&~ operator
+
+#+BEGIN_SRC python :python python3 :results output
+a = set('abracadabra')
+b = set('alacazam')
+
+print(a & b)
+print(a.intersection(b))
+#+END_SRC
+
+*** Symmetric difference
+
+That is the opposite of ~intersection~
+
+#+BEGIN_SRC python :python python3 :results output
+a = set('abracadabra')
+b = set('alacazam')
+
+print(a ^ b)
+#+END_SRC
+
+*** Check if disjoint
+
+The ~isdisjoint~ method will return ~True~ if the two lists have no common
+elements
+
+#+BEGIN_SRC python :python python3 :results output
+set0 = {'a', 'b', 'c'}
+set1 = {'c', 'd', 'e'}
+set2 = {'d', 'e', 'f'}
+
+print(set0.isdisjoint(set1))
+print(set0.isdisjoint(set2))
+#+END_SRC
+
+** Add objects to set
+
+#+BEGIN_SRC python :python python3 :results output
+basket = {'apple', 'orange'}
+print(basket)
+basket.add('banana')
+print(basket)
+#+END_SRC
+
+** Remove elements
+
+You can use either the ~discard~ method or the ~remove~ method to remove an
+element. If the element doesn't exist the ~remove~ method will raise a
+~KeyError~ exception while ~discard~ won't do anything
+
+#+BEGIN_SRC python :python python3 :results output
+basket = {'apple', 'pear', 'orange', 'banana'}
+print(basket)
+basket.discard('pear')
+print(basket)
+basket.discard('pear')
+print(basket)
+#+END_SRC
+
+#+BEGIN_SRC python :python python3 :results output
+basket = {'apple', 'pear', 'orange', 'banana'}
+print(basket)
+basket.remove('pear')
+print(basket)
+#basket.remove('pear') # Will fail
+#+END_SRC
+
+** Clear a set
+
+#+BEGIN_SRC python :python python3 :results output
+basket = {'apple', 'orange'}
+print(basket)
+basket.clear()
+print(basket)
+#+END_SRC
+
+** The ~pop~ method
+
+~pop~ removes and returns an arbitrary element from the set. If the set is empty
+a ~KeyError~ exception will be raised
+
+#+BEGIN_SRC python :python python3 :results output
+basket = {'apple', 'pear', 'orange', 'banana'}
+popped = basket.pop()
+print(popped)
+print(basket)
+#+END_SRC
+
+** Make a shallow copy
+
+#+BEGIN_SRC python :python python3 :results output
+basket = {'apple', 'orange'}
+basket_copy = basket.copy()
+basket.clear()
+print(basket)
+print(basket_copy)
+#+END_SRC
+
+** Frozen sets
+
+As you have seen, sets are mutable. If you want an immutable set you can use the
+~frozenset~ instead
+
+#+BEGIN_SRC python :python python3 :results output
+basket = frozenset(['apple', 'orange'])
+print(basket)
+#basket.add('banana') # will fail
+#+END_SRC
+
 
 * Control flows
 ** The ~if~ statement
@@ -1807,7 +1947,6 @@ from ..mysubpackage2 import module21
 Relative import can't be used in the main module of a program!
 
 * Input/output
-
 ** Formatting
 
 Python can convert values to strings in two ways, using ~str()~ (used for human
@@ -2027,9 +2166,21 @@ which are returned from ~tell()~ and ~0~
 
 ** Input
 
+To read input from the keyboard you can use the ~input~ method. It will return
+when the user press the return key
+
 #+BEGIN_SRC python :python python3 :results output
-input("Please enter an integer: ")
+input_string = input()
 #+END_SRC
+
+You can also provide an argument if you want a propmpt
+
+#+BEGIN_SRC python :python python3 :results output
+input_string = input("Please enter an integer: ")
+#+END_SRC
+
+The method will return the string the user entered. If you want to treat it as
+something else you need to cast it to that type
 
 * Scopes
 
@@ -3109,3 +3260,4 @@ print(r)
 print(r[::2])
 print(r[1::2])
 #+END_SRC
+

@@ -1,8 +1,3 @@
-https://docs.python.org/3/
-https://docs.python.org/3/library/index.html
-https://docs.python.org/3/reference/index.html#reference-index
-https://docs.python.org/3/library/functions.html#sorted
-
 * Table of Contents :TOC:QUOTE:
 #+BEGIN_QUOTE
 - [[#test-code-to-check-python-versions][Test code to check python versions]]
@@ -81,6 +76,7 @@ https://docs.python.org/3/library/functions.html#sorted
   - [[#the-dir-function][The ~dir~ function]]
   - [[#packages][Packages]]
 - [[#inputoutput][Input/output]]
+  - [[#the-print-function][The ~print~ function]]
   - [[#formatting][Formatting]]
   - [[#reading-and-writing-files][Reading and writing files]]
   - [[#input][Input]]
@@ -108,12 +104,14 @@ https://docs.python.org/3/library/functions.html#sorted
   - [[#execute-scripts-in-linux][Execute scripts in linux]]
 - [[#example-programs][Example programs]]
   - [[#read-command-line-arguments][Read command line arguments]]
+  - [[#print-to-stderr][Print to stderr]]
 - [[#the-pip-command][The ~pip~ command]]
 - [[#things-that-maybe-isnt-included-in-the-tutorial][Things that maybe isn't included in the tutorial]]
   - [[#methods][Methods]]
 - [[#links-1][Links]]
 - [[#cheat-sheet][Cheat sheet]]
 - [[#code-to-inspect][Code to inspect]]
+- [[#links-to-read][Links to read]]
 #+END_QUOTE
 
 * Test code to check python versions
@@ -1023,7 +1021,6 @@ my_dict = dict(zip(key_list, value_list)) # zip is explained later
 print(my_dict)
 #+END_SRC
 
-
 * Sets
 
 A ~set~ is an unordered collection with no duplicate elements. Supports typical
@@ -1184,7 +1181,6 @@ print(basket)
 #basket.add('banana') # will fail
 #+END_SRC
 
-
 * Control flows
 ** The ~if~ statement
 
@@ -1284,6 +1280,15 @@ else:
     print("exit")
 #+END_SRC
 
+If you need the index of the elements you can use ~len~ in combination with
+[[*The ~range()~ function][the ~range()~ function]]
+
+#+BEGIN_SRC python :python python3 :results output
+words = ['cat', 'window', 'defenestrate']
+for index in range(len(words)):
+    print(index, words[index])
+#+END_SRC
+
 *** An example
 
 #+BEGIN_SRC python :python python3 :results output
@@ -1308,7 +1313,22 @@ while b < 10:
     a, b = b, a+b
 #+END_SRC
 
-Also supports ~else~
+~continue~ and ~break~ works the same as with ~for~ loops
+
+#+BEGIN_SRC python :python python3 :results output
+a = 0
+while a < 10:
+    if a == 3:
+        a += 1
+        continue
+    elif a == 8:
+        break
+    else:
+        print(a)
+    a += 1
+#+END_SRC
+
+Also supports ~else~ which is called when we exit the loop
 
 #+BEGIN_SRC python :python python3 :results output
 a, b = 0, 1
@@ -1319,7 +1339,18 @@ else:
     print("done")
 #+END_SRC
 
-~continue~ and ~break~ works the same as with ~for~ loops
+unless we exit the loop using ~break~
+
+#+BEGIN_SRC python :python python3 :results output
+a, b = 0, 1
+while b < 10:
+    print(b)
+    a, b = b, a+b
+    if b >= 5:
+        break
+else:
+    print("done")
+#+END_SRC
 
 ** The ~range()~ function
 
@@ -1627,7 +1658,7 @@ def between(lo, hi):
     return _between
 
 def f(x: between(3, 10), y: is_int = 1):
-    validate(f, locals()) # locals return a dictionairy for the arguments
+    validate(f, locals()) # locals return a dictionairy of the current scope's local variables
     print(x, y)
 
 
@@ -1947,6 +1978,48 @@ from ..mysubpackage2 import module21
 Relative import can't be used in the main module of a program!
 
 * Input/output
+** The ~print~ function
+
+The arguments to the ~print~ functions are these
+
+#+BEGIN_SRC
+print(value1, ..., sep=' ', end='\n', file=sys.stdout, flush=False)
+#+END_SRC
+
+By default the arguments to print are separated by spaces.
+
+#+BEGIN_SRC python :python python3 :results output
+print('a', 'b', 'c')
+#+END_SRC
+
+To change to another separator you can have to set the ~sep~ argument
+
+#+BEGIN_SRC python :python python3 :results output
+print('a', 'b', 'c', sep=':')
+#+END_SRC
+
+We can also see that each row is appended with a newline
+
+#+BEGIN_SRC python :python python3 :results output
+for i in range(4):
+    print(i)
+#+END_SRC
+
+This can also be changed by updating the ~end~ argument
+
+#+BEGIN_SRC python :python python3 :results output
+for i in range(4):
+    print(i, end=':')
+#+END_SRC
+
+You can also change where the text is printed. By default it is printed to
+~stdout~. We can change it to an open file or e.g. ~stderr~
+
+#+BEGIN_SRC python :python python3 :results output
+import sys
+print('a', 'b', 'c', file=sys.stderr)
+#+END_SRC
+
 ** Formatting
 
 Python can convert values to strings in two ways, using ~str()~ (used for human
@@ -1968,6 +2041,14 @@ for x in range(1, 11):
     print(repr(x).rjust(2), repr(x*x).rjust(3), repr(x*x*x).rjust(4))
 #+END_SRC
 
+These methods also supports a fillchar if you want to use anything other than
+space
+
+#+BEGIN_SRC python :python python3 :results output
+for x in range(1, 11):
+    print(repr(x).ljust(6, '-'), repr(x*x).center(6, '*'), repr(x*x*x).rjust(6, '='))
+#+END_SRC
+
 The ~zfill()~ will pad a numeric string with zeros to the left. It understands
 plus and minus
 
@@ -1976,6 +2057,28 @@ print('12'.zfill(5))
 print('-3.14'.zfill(7))
 print('3.14159265359'.zfill(5))
 #+END_SRC
+
+*** c like formatting using the ~%~ operator
+
+#+BEGIN_SRC python :python python3 :results output
+print("Art: %5d, Price per Unit: %8.2f" % (453, 59.058))
+#+END_SRC
+
+The format for a format placeholder is
+
+#+BEGIN_SRC
+%[flags][width][.precision]type
+#+END_SRC
+
+Note that the ~%~ operator is not part of the ~print~ function. It is formatting
+a string and will return a string
+
+#+BEGIN_SRC python :python python3 :results output
+s = "Art: %5d, Price per Unit: %8.2f" % (453, 59.058)
+print(s)
+#+END_SRC
+
+See more here: [[https://www.python-course.eu/python3_formatted_output.php]]
 
 *** The ~str.format()~ function
 
@@ -2015,6 +2118,8 @@ for name, phone in table.items():
     print('{0:10} ==> {1:10d}'.format(name, phone))
 #+END_SRC
 
+You can read more about [[https://www.python-course.eu/python3_formatted_output.php][here]]
+
 You can also pass a dictionairy
 
 #+BEGIN_SRC python :python python3 :results output
@@ -2036,6 +2141,21 @@ Python also has support for printf style string formatting
 import math
 print('The value of PI is approximately %5.3f.' % math.pi)
 #+END_SRC
+
+*** Formatted string literals
+
+You can also use formatted string literals which are prefixed with a ~f~. The
+formatting syntax is similar to ~str.format()~. These will be evaluated in real
+time when they are created
+
+#+BEGIN_SRC python :python python3.6 :results output
+test_var = 'test'
+my_formatted_string = f'This is a {test_var}'
+print(my_formatted_string)
+test_var = 'robbery'
+print(my_formatted_string) # Note that it won't print robbery here
+#+END_SRC
+
 
 ** Reading and writing files
 
@@ -2173,7 +2293,7 @@ when the user press the return key
 input_string = input()
 #+END_SRC
 
-You can also provide an argument if you want a propmpt
+You can also provide an argument if you want a prompt
 
 #+BEGIN_SRC python :python python3 :results output
 input_string = input("Please enter an integer: ")
@@ -2181,6 +2301,10 @@ input_string = input("Please enter an integer: ")
 
 The method will return the string the user entered. If you want to treat it as
 something else you need to cast it to that type
+
+#+BEGIN_SRC python :python python3 :results output
+input_integer = int(input("Please enter an integer: "))
+#+END_SRC
 
 * Scopes
 
@@ -2732,8 +2856,7 @@ which should return an iterator. The iterator should provide a method called
 ~__next__()~ which will access each element one at a time. When there are no
 more elements the ~__next__()~ should throw a ~StopIteration~ exception. E.g.
 
-The
-~__next__()~ method can also be called using ~next()~. E.g.
+The ~__next__()~ method can also be called using ~next()~. E.g.
 
 #+BEGIN_SRC python :python python3 :results output
 s = 'abc'
@@ -3127,11 +3250,12 @@ for arg in sys.argv:
     print(arg)
 #+END_SRC
 
+** Print to stderr
+
 #+BEGIN_SRC python :python python3 :results output
 import sys;
 sys.stdout.write('Warning, log file not found starting a new one\n')
 sys.stderr.write('Warning, log file not found starting a new one\n')
-
 #+END_SRC
 
 * The ~pip~ command
@@ -3261,3 +3385,14 @@ print(r[::2])
 print(r[1::2])
 #+END_SRC
 
+* Links to read
+
+[[https://www.ast.cam.ac.uk/~rgm/dazle/software/dics/src/opdict.html]]
+[[https://wiki.python.org/moin/HowTo/Sorting]]
+[[https://julien.danjou.info/guide-python-static-class-abstract-methods/]]
+[[https://docs.python.org/3/reference/datamodel.html#special-method-names]]
+
+https://docs.python.org/3/
+https://docs.python.org/3/library/index.html
+https://docs.python.org/3/reference/index.html#reference-index
+https://docs.python.org/3/library/functions.html#sorted

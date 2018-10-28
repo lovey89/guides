@@ -1,6 +1,5 @@
 * Table of Contents :TOC:QUOTE:
 #+BEGIN_QUOTE
-- [[#test-code-to-check-python-versions][Test code to check python versions]]
 - [[#basics][Basics]]
   - [[#types][Types]]
   - [[#basic-math][Basic math]]
@@ -63,6 +62,8 @@
 - [[#functions][Functions]]
   - [[#variable-number-of-arguments][Variable number of arguments]]
   - [[#return-multiple-values][Return multiple values]]
+  - [[#nested-functions][Nested functions]]
+  - [[#functions-returning-functions][Functions returning functions]]
   - [[#lambda-expressions][Lambda Expressions]]
   - [[#documentation-string-doc-string][Documentation string (doc string)]]
   - [[#function-annotations][Function annotations]]
@@ -101,6 +102,8 @@
   - [[#clean-up-using-finally-clause][Clean up using ~finally~ clause]]
   - [[#predefined-clean-up-actions][Predefined clean-up actions]]
   - [[#links][Links]]
+- [[#decorators][Decorators]]
+  - [[#function-decorators][Function decorators]]
 - [[#other][Other]]
   - [[#regular-expressions][Regular expressions]]
   - [[#execute-scripts-in-linux][Execute scripts in linux]]
@@ -115,27 +118,6 @@
 - [[#code-to-inspect][Code to inspect]]
 - [[#links-to-read][Links to read]]
 #+END_QUOTE
-
-* Test code to check python versions
-
-The ~python~ argument in the code block header accepts a path to your python
-executable. I have both =python2= and =python3= in my path so that's why I can
-write only the name of the executable. Evaluate the code by placing the cursor
-inside the code block and press ~C-c C-c~
-
-The following code block evaluates python2 code:
-
-#+BEGIN_SRC python :python python2 :results output
-import sys
-print(sys.version)
-#+END_SRC
-
-And this code block evaluates python3 code:
-
-#+BEGIN_SRC python :python python3 :results output
-import sys
-print(sys.version)
-#+END_SRC
 
 * Basics
 ** Types
@@ -1329,6 +1311,25 @@ for index in range(len(words)):
     print(index, words[index])
 #+END_SRC
 
+Or even better, use ~enumerate~
+
+#+BEGIN_SRC python :python python3 :results output
+words = ['cat', 'window', 'defenestrate']
+
+for counter, value in enumerate(words):
+    print(counter, value)
+#+END_SRC
+
+You can also provide ~enumerate~ with a value of the index it should start
+counting from
+
+#+BEGIN_SRC python :python python3 :results output
+words = ['cat', 'window', 'defenestrate']
+
+for counter, value in enumerate(words, 5):
+    print(counter, value)
+#+END_SRC
+
 *** An example
 
 #+BEGIN_SRC python :python python3 :results output
@@ -1513,6 +1514,20 @@ print(f100)
 ~return~ without arguments will return ~None~. If execution reaches the end of
 the method it will also return ~None~
 
+We can have several references to the same function. Deleting the original one
+won't delete the copies
+
+#+BEGIN_SRC python :python python3 :results output
+def succ(x):
+    return x + 1
+
+successor = succ
+print(succ(10))
+print(successor(10))
+del(succ)
+print(successor(10))
+#+END_SRC
+
 ** Variable number of arguments
 *** Default argument values
 
@@ -1644,6 +1659,40 @@ x = 100
 (lub, sup) = fib_intervall(x)
 print("Largest Fibonacci Number smaller than x: " + str(lub))
 print("Smallest Fibonacci Number larger than x: " + str(sup))
+#+END_SRC
+
+** Nested functions
+
+In python you can define a function inside another function
+
+#+BEGIN_SRC python :python python3 :results output
+def f():
+    def g():
+        print("Hi, it's me 'g'")
+        print("Thanks for calling me")
+
+    print("This is the function 'f'")
+    print("I am calling 'g' now:")
+    g()
+
+f()
+#+END_SRC
+
+** Functions returning functions
+
+A function can return another function
+
+#+BEGIN_SRC python :python python3 :results output
+def f(x):
+    def g(y):
+        return y + x
+    return g
+
+plus_one = f(1)
+plus_three = f(3)
+
+print(plus_one(1))
+print(plus_three(1))
 #+END_SRC
 
 ** Lambda Expressions
@@ -3315,6 +3364,178 @@ with open("mymodule.py") as f:
 ** Links
 
 [[https://docs.python.org/3/library/exceptions.html][Exceptions]]
+
+* Decorators
+** Function decorators
+
+You can decorate a function or class to modify its behaviour. In the case with
+function decorators you will create a function that accepts a function as
+argument and outputs a modified version of that function
+
+#+BEGIN_SRC python :python python3 :results output
+def our_decorator(func):
+    def function_wrapper(x):
+        print("Before calling " + func.__name__)
+        func(x)
+        print("After calling " + func.__name__)
+    return function_wrapper
+
+@our_decorator
+def foo(x):
+    print("Hi, foo has been called with " + str(x))
+
+foo("Hi")
+#+END_SRC
+
+We can also decorate third party functions. We can't use the ~@~ sign but will
+have to call our decorator ourselves
+
+#+BEGIN_SRC python :python python3 :results output
+from math import sin, cos
+
+def our_decorator(func):
+    def function_wrapper(x):
+        print("Before calling " + func.__name__)
+        res = func(x)
+        print(res)
+        print("After calling " + func.__name__)
+    return function_wrapper
+
+sin = our_decorator(sin)
+cos = our_decorator(cos)
+
+for f in [sin, cos]:
+    f(3.1415)
+#+END_SRC
+
+The decorator above only works for functions which accepts exactly one argument.
+Here is a more general function
+
+#+BEGIN_SRC python :python python3 :results output
+from random import random, randint, choice
+
+def our_decorator(func):
+    def function_wrapper(*args, **kwargs):
+        print("Before calling " + func.__name__)
+        res = func(*args, **kwargs)
+        print(res)
+        print("After calling " + func.__name__)
+    return function_wrapper
+
+random = our_decorator(random)
+randint = our_decorator(randint)
+choice = our_decorator(choice)
+
+random()
+randint(3, 8)
+choice([4, 5, 6])
+#+END_SRC
+
+*** Check arguments with decorator
+
+#+BEGIN_SRC python :python python3 :results output
+def argument_test_natural_number(f):
+    def helper(x):
+        if type(x) == int and x > 0:
+            return f(x)
+        else:
+            raise Exception("Argument is not an integer")
+    return helper
+
+@argument_test_natural_number
+def factorial(n):
+    if n == 1:
+        return 1
+    else:
+        return n * factorial(n-1)
+
+for i in range(1,10):
+	print(i, factorial(i))
+
+try:
+    print(factorial(-1))
+except Exception as e:
+    print('Exception caught:', e)
+#+END_SRC
+
+*** Counting the number of calls
+
+#+BEGIN_SRC python :python python3 :results output
+def call_counter(func):
+    def helper(*args, **kwargs):
+        helper.calls += 1
+        return func(*args, **kwargs)
+    helper.calls = 0
+    return helper
+
+@call_counter
+def succ(x):
+    return x + 1
+
+print(succ.calls)
+for i in range(10):
+    succ(i)
+
+print(succ.calls)
+#+END_SRC
+
+*** Decorators with parameters
+
+If you want your decorator function to accept parameters you can define a
+function which returns a decorator function
+
+#+BEGIN_SRC python :python python3 :results output
+def greeting(expr):
+    def greeting_decorator(func):
+        def function_wrapper(x):
+            print(expr + ", " + func.__name__ + " returns:")
+            func(x)
+        return function_wrapper
+    return greeting_decorator
+
+@greeting("Hallå")
+def foo(x):
+    print(42)
+
+@greeting("Hi")
+def bar(x):
+    print(43)
+
+foo(1)
+bar(2)
+#+END_SRC
+
+*** Prevent decorate from overriding ~__name__~, ~__doc__~ and ~__module__~ variables
+
+~__name__~, ~__doc__~ and ~__module__~ will be overridden when using decorators.
+We can solve this problem by write to these variables ourselves
+
+#+BEGIN_SRC python :python python3 :results output
+def greeting(func):
+    def function_wrapper(x):
+        """ function_wrapper of greeting """
+        print("Hi, " + func.__name__ + " returns:")
+        return func(x)
+    function_wrapper.__name__ = func.__name__
+    function_wrapper.__doc__ = func.__doc__
+    function_wrapper.__module__ = func.__module__
+    return function_wrapper
+#+END_SRC
+
+We don't have to do this for every decorator since there is a decorator for this
+called ~wraps~ in the ~functools~ module
+
+#+BEGIN_SRC python :python python3 :results output
+from functools import wraps
+
+def greeting(func):
+    @wraps(func)
+    def function_wrapper(x):
+        """ function_wrapper of greeting """
+        print("Hi, " + func.__name__ + " returns:")
+        return func(x)
+    return function_wrapper
+#+END_SRC
 
 * Other
 ** Regular expressions

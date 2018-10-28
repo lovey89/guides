@@ -62,6 +62,7 @@
   - [[#the-pass-statement][The ~pass~ statement]]
 - [[#functions][Functions]]
   - [[#variable-number-of-arguments][Variable number of arguments]]
+  - [[#return-multiple-values][Return multiple values]]
   - [[#lambda-expressions][Lambda Expressions]]
   - [[#documentation-string-doc-string][Documentation string (doc string)]]
   - [[#function-annotations][Function annotations]]
@@ -81,6 +82,7 @@
   - [[#reading-and-writing-files][Reading and writing files]]
   - [[#input][Input]]
 - [[#scopes][Scopes]]
+  - [[#examples][Examples]]
 - [[#classes][Classes]]
   - [[#class-object][Class object]]
   - [[#more-about-attribute-references][More about attribute references]]
@@ -662,6 +664,44 @@ li = [1, 2, 4, 3]
 li2 = [11, 12, 14, 13]
 li.append(li2)
 print("li: ", li)
+#+END_SRC
+
+Note that ~+=~ behaves more like ~extend~ than ~+~ as it is actually updating
+the list and not creating a new one. See the following two examples
+
+#+BEGIN_SRC python :python python3 :results output
+def no_side_effects(cities):
+    print(cities)
+    cities = cities + ["Birmingham", "Bradford"]
+    print(cities)
+
+locations = ["London", "Leeds", "Glasgow", "Sheffield"]
+no_side_effects(locations)
+print(locations) # Still orignal list
+#+END_SRC
+
+#+BEGIN_SRC python :python python3 :results output
+def side_effects(cities):
+    print(cities)
+    cities += ["Birmingham", "Bradford"]
+    print(cities)
+
+locations = ["London", "Leeds", "Glasgow", "Sheffield"]
+side_effects(locations)
+print(locations) # Original list is updated
+#+END_SRC
+
+We can instead pass a shallow copy of our list
+
+#+BEGIN_SRC python :python python3 :results output
+def side_effects(cities):
+    print(cities)
+    cities += ["Birmingham", "Bradford"]
+    print(cities)
+
+locations = ["London", "Leeds", "Glasgow", "Sheffield"]
+side_effects(locations[:])
+print(locations) # Original list is not updated
 #+END_SRC
 
 ** Check for existence (~in~)
@@ -1504,7 +1544,8 @@ print(f(3))
 
 *** Keyword arguments
 
-All keyword arguments must be placed after all positional arguments
+When you call a function you can provide an argument along with a keyword. All
+keyword arguments must be placed after all positional arguments
 
 #+BEGIN_SRC python :python python3 :results output
 def parrot(voltage, state='a stiff', action='voom', type='Norwegian Blue'):
@@ -1580,6 +1621,29 @@ def parrot(voltage, state='a stiff', action='voom'):
 
 d = {"voltage": "four million", "state": "bleedin' demised", "action": "VOOM"}
 parrot(**d)
+#+END_SRC
+
+** Return multiple values
+
+Python returns exactly one object. If you need to return multiple these can be
+packed into a tuple
+
+#+BEGIN_SRC python :python python3 :results output
+def fib_intervall(x):
+    if x < 0:
+        return -1
+    (old, new, lub) = (0,1,0)
+    while True:
+        if new < x:
+            lub = new
+            (old,new) = (new,old+new)
+        else:
+            return lub, new # Will automatically be packed in a tuple
+
+x = 100
+(lub, sup) = fib_intervall(x)
+print("Largest Fibonacci Number smaller than x: " + str(lub))
+print("Smallest Fibonacci Number larger than x: " + str(sup))
 #+END_SRC
 
 ** Lambda Expressions
@@ -2337,7 +2401,8 @@ to the middle scope containing the module’s global names. To rebind variables
 found outside of the innermost scope, the ~nonlocal~ statement can be used; if
 not declared ~nonlocal~, those variables are read-only (an attempt to write to
 such a variable will simply create a new local variable in the innermost scope,
-leaving the identically named outer variable unchanged).
+leaving the identically named outer variable unchanged). ~nonlocal~ can only
+be used in nested scopes and will not be able to "find" global variables
 
 All operations that introduce new names use the local scope: in particular,
 ~import~ statements and function definitions bind the module or function name
@@ -2370,6 +2435,51 @@ def scope_test():
 
 scope_test()
 print("In global scope:", spam)
+#+END_SRC
+
+** Examples
+
+#+BEGIN_SRC python :python python3 :results output
+def f():
+    print(s)
+s = "Python"
+f()
+#+END_SRC
+
+#+BEGIN_SRC python :python python3 :results output
+def f():
+    s = "Perl"
+    print(s)
+
+s = "Python"
+f()
+print(s)
+#+END_SRC
+
+The following code wont work. Looks like as if we can't mix "implicit" globals
+with local variables
+
+#+BEGIN_SRC python :python python3 :results output
+def f():
+    print(s)
+    s = "Perl"
+    print(s)
+
+s = "Python"
+f()
+print(s)
+#+END_SRC
+
+#+BEGIN_SRC python :python python3 :results output
+def f():
+    global s
+    print(s)
+    s = "dog"
+    print(s)
+
+s = "cat"
+f()
+print(s)
 #+END_SRC
 
 * Classes

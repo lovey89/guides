@@ -2269,7 +2269,6 @@ test_var = 'robbery'
 print(my_formatted_string) # Note that it won't print robbery here
 #+END_SRC
 
-
 ** Reading and writing files
 
 The ~open()~ function returns a file object. It is commonly used with ~filename~
@@ -3477,6 +3476,29 @@ for i in range(10):
     succ(i)
 
 print(succ.calls)
+#+END_SRC
+
+*** Decorator to cache result
+
+#+BEGIN_SRC python :python python3 :results output
+def memoize(f):
+    memo = {}
+    def helper(x):
+        if x not in memo:
+            memo[x] = f(x)
+        return memo[x]
+    return helper
+
+@memoize
+def fib(n):
+    if n == 0:
+        return 0
+    elif n == 1:
+        return 1
+    else:
+        return fib(n-1) + fib(n-2)
+
+print(fib(40))
 #+END_SRC
 
 *** Decorators with parameters

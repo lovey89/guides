@@ -67,6 +67,7 @@
   - [[#lambda-expressions][Lambda Expressions]]
   - [[#documentation-string-doc-string][Documentation string (doc string)]]
   - [[#function-annotations][Function annotations]]
+- [[#the-map-filter-and-reduce-functions][The ~map~, ~filter~ and ~reduce~ functions]]
 - [[#data-structures][Data structures]]
   - [[#list-comprehensions][List comprehensions]]
   - [[#nested-list-comprehensions][Nested list comprehensions]]
@@ -81,6 +82,7 @@
   - [[#the-print-function][The ~print~ function]]
   - [[#formatting][Formatting]]
   - [[#reading-and-writing-files][Reading and writing files]]
+  - [[#reading-from-a-url][Reading from a url]]
   - [[#input][Input]]
 - [[#scopes][Scopes]]
   - [[#examples][Examples]]
@@ -1718,6 +1720,14 @@ pairs.sort(key=lambda pair: pair[1])
 print(pairs)
 #+END_SRC
 
+A lambda can take multiple parameters
+
+#+BEGIN_SRC python :python python3 :results output
+sum = lambda x, y : x + y
+print(sum(3,4))
+#+END_SRC
+
+
 ** Documentation string (doc string)
 
 The first line in the documentation string should be short, concise summary of
@@ -1781,6 +1791,8 @@ f(5, 1)
 
 You can also use them for documentation if you want. E.g. what kind of data you
 expect or the types of the arguments.
+
+* The ~map~, ~filter~ and ~reduce~ functions
 
 * Data structures
 ** List comprehensions
@@ -2422,6 +2434,20 @@ To change the current position you can use ~seek()~ which accepts two arguments
 For text files only ~0~ is allowed. The only exception is to find the very end
 of the file ~f.seek(0, 2)~. For text files the only valid offsets are those
 which are returned from ~tell()~ and ~0~
+
+** Reading from a url
+
+#+BEGIN_SRC python :python python3 :results output
+import re
+from urllib.request import urlopen
+
+with urlopen('https://www.python-course.eu/simpsons_phone_book.txt') as fh:
+    for line in fh:
+        # line is a byte string so we transform it to utf-8:
+        line = line.decode('utf-8').rstrip()
+        if re.search(r"J.*Neu",line):
+            print(line)
+#+END_SRC
 
 ** Input
 

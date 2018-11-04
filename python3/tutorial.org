@@ -75,7 +75,7 @@
   - [[#more-on-modules][More on modules]]
   - [[#executing-a-module-as-a-script][Executing a module as a script]]
   - [[#module-search-path][Module search path]]
-  - [[#the-dir-function][The ~dir~ function]]
+  - [[#see-the-content-of-a-module-with-the-dir-function][See the content of a module with the ~dir~ function]]
   - [[#packages][Packages]]
 - [[#inputoutput][Input/output]]
   - [[#the-print-function][The ~print~ function]]
@@ -1900,19 +1900,21 @@ for i in reversed([1, 2, 3, 4]):
 * Modules
 
 The module name is the file name without the ~.py~ file ending. The module name
-can be fetched from the ~__name__~ variable.
+can be fetched from the ~__name__~ variable. Where it was imported from can be
+fetched from the ~__file__~ variable
 
 I have already created a module called [[file:mymodule.py][mymodule]] in this directory. We can now
 import it to our script with the ~import~ keyword. Now you can access the
 module's functions by refering to the module name
 
 #+BEGIN_SRC python :python python3 :results output
-import mymodule as mymodule
+import mymodule
 
 mymodule.fib(1000)
 myvar = mymodule.fib2(1000)
 print(myvar)
 print(mymodule.__name__)
+print(mymodule.__file__)
 #+END_SRC
 
 You can also assign a function to a variable
@@ -1972,6 +1974,14 @@ from mymodule import fib as fibonacci
 fibonacci(1000)
 #+END_SRC
 
+If you want to import multiple modules you can put them on multiple rows or you
+can put them on the same row
+
+#+BEGIN_SRC python :python python3 :results output
+import math, random
+#+END_SRC
+
+
 ** Executing a module as a script
 
 If the ~__name__~ variable is set to ~__main__~ it means that the current module
@@ -1998,12 +2008,12 @@ the path given by the ~PYTHONPATH~ environment variable and lastly the
 installation-dependent default. The python program can alter the ~sys.path~
 during execution using standard list operations.
 
-** The ~dir~ function
+** See the content of a module with the ~dir~ function
 
 The ~dir~ function is used to find out which names a module defines. It returns
-a sorted list of strings. With no arguments you find the names the names you
-have currently defined. Not the built-in functions and variables. To see those
-you can run ~dir(builtins)~
+a sorted list of strings. With no arguments you find the names you have
+currently defined. Not the built-in functions and variables. To see those you
+can run ~dir(builtins)~
 
 #+BEGIN_SRC python :python python3 :results output
 import mymodule, sys
@@ -2021,16 +2031,16 @@ module names”. Can be used so different authors of multi-module packages won't
 have to worry about colliding module names. Here is a directoy structure
 
 #+BEGIN_SRC
-mypackage/            # The package
-    __init__.py       # Initialize the package
-    mysubpackage1/    # Subpackage
-        __init__.py
-        module11.py
-        module12.py
-    mysubpackage2/
-        __init__.py
-        module21.py
-        module22.py
+mypackage            # The package
+|-- __init__.py      # Initialize the package
+|-- mysubpackage1    # Subpackage
+|   |-- __init__.py
+|   |-- module11.py
+|   `-- module12.py
+`-- mysubpackage2
+    |-- __init__.py
+    |-- module21.py
+    `-- module22.py
 #+END_SRC
 
 The ~__init__.py~ are required so python know that the directory contains
@@ -2062,6 +2072,23 @@ from mypackage.mysubpackage1.module11 import function
 
 function(var)
 #+END_SRC
+
+If you would only import ~mypackage~ it will only run the initialization code
+in the ~__init__.py~ file. If the ~__init__.py~ contains e.g.
+
+#+BEGIN_SRC python :python python3 :results output
+import mypackage.mysubpackage1
+import mypackage.mysubpackage2
+#+END_SRC
+
+You will be able to run
+
+#+BEGIN_SRC python :python python3 :results output
+import mypackage
+
+print(mypackage.mysubpackage1) # prints info about the package
+#+END_SRC
+
 
 *** Import * from a package
 

@@ -68,6 +68,9 @@
   - [[#documentation-string-doc-string][Documentation string (doc string)]]
   - [[#function-annotations][Function annotations]]
 - [[#the-map-filter-and-reduce-functions][The ~map~, ~filter~ and ~reduce~ functions]]
+  - [[#the-map-function][The ~map~ function]]
+  - [[#the-filter-function][The ~filter~ function]]
+  - [[#the-reduce-function][The ~reduce~ function]]
 - [[#data-structures][Data structures]]
   - [[#list-comprehensions][List comprehensions]]
   - [[#nested-list-comprehensions][Nested list comprehensions]]
@@ -1727,7 +1730,6 @@ sum = lambda x, y : x + y
 print(sum(3,4))
 #+END_SRC
 
-
 ** Documentation string (doc string)
 
 The first line in the documentation string should be short, concise summary of
@@ -1794,6 +1796,79 @@ expect or the types of the arguments.
 
 * The ~map~, ~filter~ and ~reduce~ functions
 
+In this section we will use [[*Lambda Expressions][lambda expressions]] together with ~map~, ~filter~ and
+~reduce~ (although you could use regular functions as well)
+
+** The ~map~ function
+
+~map~ accepts two arguments; a function to apply to each element in a sequence,
+and the sequence where the function should be applied. ~map~ returns an iterator
+(in Python 2 it used to return ~list~)
+
+#+BEGIN_SRC python :python python3 :results output
+def fahrenheit(T):
+    return ((float(9)/5)*T + 32)
+
+temperatures = (36.5, 37, 37.5, 38, 39)
+F = map(fahrenheit, temperatures)
+
+print(list(F))
+#+END_SRC
+
+Or with lambdas
+
+#+BEGIN_SRC python :python python3 :results output
+temperatures = (36.5, 37, 37.5, 38, 39)
+F = map(lambda T: ((float(9)/5)*T + 32), temperatures)
+
+print(list(F))
+#+END_SRC
+
+~map~ can be applied to several lists. Then it will first feed the function with
+the 0th index of each list and then the 1st, 2nd, etc.
+
+#+BEGIN_SRC python :python python3 :results output
+a = [1, 2, 3, 4]
+b = [17, 12, 11, 10]
+c = [-1, -4, 5, 9]
+
+m = list(map(lambda x, y, z : x+y+z, a, b, c))
+print(m)
+#+END_SRC
+
+If the lists isn't of the same length ~map~ will stop when the shortest list is
+consumed
+
+** The ~filter~ function
+
+~filter~ accepts two arguments; a function which should return a boolean and a
+sequence. If a the function returns ~True~ for a function it will exist in the
+resulting list, otherwise it will be filtered away
+
+#+BEGIN_SRC python :python python3 :results output
+fibonacci = [0,1,1,2,3,5,8,13,21,34,55]
+odd_numbers = list(filter(lambda x: x % 2, fibonacci))
+print(odd_numbers)
+#+END_SRC
+
+** The ~reduce~ function
+
+~reduce~ accepts two arguments; a function ~op~ and a sequence ~[s1,s2,s3,s4]~
+and will apply ~op~ in like this
+
+#+BEGIN_SRC
+op(op(op(s1,s2),s3),s4)
+#+END_SRC
+
+In order to use ~reduce~ you need to import it from the ~functools~ module
+
+#+BEGIN_SRC python :python python3 :results output
+from functools import reduce
+
+print(reduce(lambda x, y: x + y, [1,2,3,4,5]))
+print(reduce(lambda x, y: x + ' ' + y, ['This', 'is', 'a', 'test']))
+#+END_SRC
+
 * Data structures
 ** List comprehensions
 
@@ -1834,6 +1909,13 @@ myVar = [(x, y) for x in [1,2,3] for y in [3,1,4] if x != y]
 print(myVar)
 #+END_SRC
 
+or to find pythagorean triples
+
+#+BEGIN_SRC python :python python3 :results output
+pt = [(x,y,z) for x in range(1,30) for y in range(x,30) for z in range(y,30) if x**2 + y**2 == z**2]
+print(pt)
+#+END_SRC
+
 You can use the variable multiple times
 
 #+BEGIN_SRC python :python python3 :results output
@@ -1848,6 +1930,33 @@ vec = [[1,2,3], [4,5,6], [7,8,9]]
 myVar = [num for elem in vec for num in elem]
 print(myVar)
 #+END_SRC
+
+*** Set comprehensions
+
+To calculate prime numbers between 1 and 100 you can use sieve of Eratosthenes
+
+#+BEGIN_SRC python :python python3 :results output
+noprimes = [j for i in range(2, 8) for j in range(i*2, 100, i)]
+primes = [x for x in range(2, 100) if x not in noprimes]
+print(primes)
+#+END_SRC
+
+It works but if we look at the ~noprimes~ list you will see that there are a lot
+of duplicates
+
+#+BEGIN_SRC python :python python3 :results output
+noprimes = [j for i in range(2, 8) for j in range(i*2, 100, i)]
+print(noprimes)
+#+END_SRC
+
+We can then use a set comprehension by replacing the wrapping ~[]~ with ~{}~
+
+#+BEGIN_SRC python :python python3 :results output
+noprimes = {j for i in range(2, 8) for j in range(i*2, 100, i)}
+print(noprimes)
+#+END_SRC
+
+*** Dictionairy comprehensions
 
 You can also create a dictionairy with dict comprehension
 
@@ -1992,7 +2101,6 @@ can put them on the same row
 #+BEGIN_SRC python :python python3 :results output
 import math, random
 #+END_SRC
-
 
 ** Executing a module as a script
 
@@ -3089,8 +3197,25 @@ print(next(iterator))
 #print(next(iterator)) #This line will throw a StopIteration exception
 #+END_SRC
 
+We can simulate a ~for~ loop using a ~while~ loop using the ~iter~ and ~next~
+functions
+
+#+BEGIN_SRC python :python python3 :results output
+my_list = [1, 2, 3, 4, 5]
+
+the_iter = iter(my_list)
+while True:
+    try:
+        val = next(the_iter)
+        print(val)
+    except StopIteration:
+        break
+#+END_SRC
+
 In the example below the class provides both ~__iter__()~ and ~__next__()~. Thus
-can the ~__iter__()~ method return itself
+can the ~__iter__()~ method return itself. What's bad with this method is that
+we can only iterate over that instance one time. Even if you would call the
+~iter~ method again
 
 #+BEGIN_SRC python :python python3 :results output
 class Reverse:
@@ -3114,11 +3239,38 @@ for char in Reverse('Spam'):
 
 ** Generators
 
-Generators can be used for creating iterators. You write them like regular
-functions but they use the ~yield~ statement whenever they want to return data.
-Each time ~__next__()~ is called the generator will continue where it left off.
-They will also automatically raise a ~StopIteration~ exception when the
-generator terminates. E.g.
+Generators can be used for creating something that resembles iterators. You
+write them like regular functions but they use the ~yield~ statement whenever
+they want to return data. Each time ~__next__()~ is called the generator will
+continue where it left off until the next ~yield~ statement (there may be
+multiple). Local variables are saved between calls and not reset. They will also
+automatically raise a ~StopIteration~ exception when the generator terminates
+(e.g. by reaching the end of the function or a ~return~ statement). E.g.
+
+#+BEGIN_SRC python :python python3 :results output
+def city_generator():
+    yield("London")
+    yield("Hamburg")
+    yield("Konstanz")
+    yield("Amsterdam")
+    yield("Berlin")
+    yield("Zurich")
+    yield("Schaffhausen")
+    yield("Stuttgart")
+
+city = city_generator()
+print(next(city))
+print(next(city))
+print(next(city))
+print(next(city))
+print(next(city))
+print(next(city))
+print(next(city))
+print(next(city))
+#print(next(city)) # Raises StopIteration exception
+#+END_SRC
+
+or
 
 #+BEGIN_SRC python :python python3 :results output
 def reverse(data):
@@ -3132,6 +3284,161 @@ for char in reverse('golf'):
 
 An iterator can be used for everything that a generator can be used for but
 generators will automatically generate ~__next__()~ and ~__iter__()~ methods.
+
+Generators can't be reset so you should create a new generator instead.
+
+*** Endless generators
+
+We can define a generator which will always return new values
+
+#+BEGIN_SRC python :python python3 :results output
+def fibonacci():
+    """Generates an infinite sequence of Fibonacci numbers on demand"""
+    a, b = 0, 1
+    while True:
+        yield a
+        a, b = b, a + b
+
+f = fibonacci()
+
+counter = 0
+for x in f:
+    print(x, " ", end="")
+    counter += 1
+    if (counter > 10):
+        break
+print()
+#+END_SRC
+
+*** Generators and the ~return~ statement
+
+If you return a value using the ~return~ statement a ~StopIteration~ exception
+will be raised with that value as message
+
+#+BEGIN_SRC python :python python3 :results output
+def city_generator():
+    yield("London")
+    yield("Hamburg")
+    return "End of iteration"
+    yield("Konstanz")
+
+city = city_generator()
+print(next(city))
+print(next(city))
+print(next(city))
+#+END_SRC
+
+You could also raise a ~StopIteration~ exception which would be the same (except
+that the stacktrace would also print out a line for the line in the generator
+where the exception was raised)
+
+*** The ~send~ method
+
+Generators will not only provide values but can also receive values using the
+~send~ method. Note that when using the ~send~ method you will also receive the
+value yielded by the generator.
+
+The generator needs to be "started" before we can send a value to it (it needs
+to reach at least the first ~yield~ statement).
+
+A ~next~ call also sends and receives. It always sends ~None~ and in the example
+below you can see both ~next~ and ~send~ in action
+
+#+BEGIN_SRC python :python python3 :results output
+def infinite_looper(objects):
+    count = 0
+    while True:
+        if count >= len(objects):
+            count = 0
+        message = yield objects[count]
+        if message != None:
+            count = 0 if message < 0 else message
+        else:
+            count += 1
+
+x = infinite_looper("A string with some words")
+#print(x.send(9)) # Won't work as we haven't reached the first yield
+print(next(x)) # Basically the same as x.send(None)
+print(x.send(9))
+print(x.send(10))
+#+END_SRC
+
+*** The ~throw~ method
+
+The ~throw~ method raises an exception at the point where the generator was
+paused, and returns the next value yielded by the generator. The generator has
+to catch the passed-in exception, otherwise the exception will be propagated to
+the caller.
+
+In the following example we define our own exception (you could use any
+exception) and when the exception is received in the generator the current
+count will be printed.
+
+#+BEGIN_SRC python :python python3 :results output
+class StateOfGenerator(Exception):
+     def __init__(self, message=None):
+         self.message = message
+
+def infinite_looper(objects):
+    count = 0
+    while True:
+        if count >= len(objects):
+            count = 0
+        try:
+            message = yield objects[count]
+        except StateOfGenerator:
+            print("index: " + str(count))
+        if message != None:
+            count = 0 if message < 0 else message
+        else:
+            count += 1
+
+looper = infinite_looper("Python")
+print(next(looper))
+print(next(looper))
+print(looper.throw(StateOfGenerator)) # Note that the next value is received here
+print(next(looper))
+#+END_SRC
+
+*** Decorating generators
+
+If we don't want to manually call ~next~ on a generator before we can use ~send~
+to send a value we can write a decorator that will do that for us
+
+#+BEGIN_SRC python :python python3 :results output
+from functools import wraps
+
+def get_ready(gen):
+    """
+    Decorator: gets a generator gen ready
+    by advancing to first yield statement
+    """
+    @wraps(gen)
+    def generator(*args,**kwargs):
+        g = gen(*args,**kwargs)
+        next(g)
+        return g
+    return generator
+
+@get_ready
+def infinite_looper(objects):
+    count = -1
+    message = yield None # This is where we will end up when calling next the first time
+    while True:
+        count += 1
+        if message != None:
+            count = 0 if message < 0 else message
+        if count >= len(objects):
+            count = 0
+        message = yield objects[count]
+
+x = infinite_looper("abcdef")
+print(x.send(4))
+print(next(x))
+print(next(x))
+print(x.send(5))
+print(next(x))
+#+END_SRC
 
 *** Generator expressions
 

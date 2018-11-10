@@ -3462,6 +3462,73 @@ print(x.send(5))
 print(next(x))
 #+END_SRC
 
+*** The ~yield from~ statement
+
+The ~yield from~ statement is used when you are returning objects from another
+iterator (or a generator). The ~yield from~ will return values until the the
+iterator encounters an ~StopIteration exception~. ~gen1~ and ~gen2~ will have
+the same behaviour in the example below
+
+#+BEGIN_SRC python :python python3 :results output
+def gen1():
+    for char in "Python":
+        yield char
+    for i in range(5):
+        yield i
+
+def gen2():
+    yield from "Python"
+    yield from range(5)
+
+g1 = gen1()
+g2 = gen2()
+print("g1: ", end=", ")
+for x in g1:
+    print(x, end=", ")
+print("\ng2: ", end=", ")
+for x in g2:
+    print(x, end=", ")
+#+END_SRC
+
+The subgenerator can also return a value which will be returned by the
+~yield from~ statement when the return has been reached
+
+#+BEGIN_SRC python :python python3 :results output
+def subgenerator():
+    yield 1
+    yield 2
+    return 42
+
+def delegating_generator():
+    x = yield from subgenerator()
+    print(x)
+
+for x in delegating_generator():
+    print(x)
+#+END_SRC
+
+*** A generator of generators
+
+You can for example create a generator to fetch the first n objects from a
+generator which creates an infinite sequence
+
+#+BEGIN_SRC python :python python3 :results output
+def fibonacci():
+    """Ein Fibonacci-Zahlen-Generator"""
+    a, b = 0, 1
+    while True:
+        yield a
+        a, b = b, a + b
+
+def firstn(g, n):
+	for i in range(n):
+		yield next(g)
+
+print(list(firstn(fibonacci(), 10)))
+#+END_SRC
+
+Running only ~list(fibonacci())~ wont work
+
 *** Generator expressions
 
 Some simple generators can be coded as expressions using a syntax similar to
@@ -3469,7 +3536,10 @@ list comprehensions but with parentheses instead of square brackets. Generator
 expressions are more compact but less versatile than full generator definitions
 and tend to be more memory friendly than equivalent list comprehensions.
 
-TODO: Why should we ever use a list comprehension?
+The difference between a generator expression and a list comprehension is that a
+generator expression returns a generator which will return new objects on
+request while the list comprehension will return a list with all objects already
+populated
 
 #+BEGIN_SRC python :python python3 :results output
 print(sum(i*i for i in range(10)))
@@ -3530,7 +3600,8 @@ for cls in [A, B]:
         print('Exception caught: B')
 #+END_SRC
 
-You can also catch several different exceptions using one ~except~ clause
+You can also catch several different exceptions in one ~except~ clause using a
+tuple
 
 #+BEGIN_SRC python :python python3 :results output
 class A(Exception):
@@ -3596,7 +3667,7 @@ except ZeroDivisionError as e:
 #+END_SRC
 
 You can also add an ~else~ clause to the ~try.. except~ statement that will only
-be run if everything goes
+be run if everything runs ok. It needs to be added after all ~except~ clauses
 
 #+BEGIN_SRC python :python python3 :results output
 try:
@@ -3699,7 +3770,7 @@ class TransitionError(Error):
 ** Clean up using ~finally~ clause
 
 The ~finally~ clause will always run when leaving the try statement. If there
-was an uncaught exception of the exception was raised in an ~except~ clause or
+was an uncaught exception or the exception was raised in an ~except~ clause or
 the ~else~ clause then the exception will be raised again after the ~finally~
 clause is completed.
 

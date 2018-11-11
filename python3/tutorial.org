@@ -97,7 +97,7 @@
   - [[#class-and-instance-variables][Class and instance variables]]
   - [[#random-remarks][Random remarks]]
   - [[#inheritence][Inheritence]]
-  - [[#private-variables][Private Variables]]
+  - [[#private-and-protected-variables][Private and protected variables]]
   - [[#struct-like-classes][Struct like classes]]
   - [[#iterators][Iterators]]
   - [[#generators][Generators]]
@@ -3142,11 +3142,11 @@ there, it was searched for in ~Quadruped~, and so on. This is not really the
 truth as the method resolution order changes dynamically to support cooperative
 calls to ~super()~. This is known as /call-next-method/.
 
-** Private Variables
+** Private and protected variables
 
 In python there are no private variables. The convention is that if you prefix
-the variable, method or function with an underscore it should be treated as non-
-public (and may change without notice).
+the variable, method or function with an underscore (~_~) it should be treated
+as protected and two underscores (~__~) is treated as private.
 
 To avoid name clashes with subclasses there is something called /name mangling/.
 An identifier which is prefixed with at least two underscores and at most one
@@ -3159,7 +3159,7 @@ intraclass method calls. Compare the examples below
 
 #+BEGIN_SRC python :python python3 :results output
 class MyClass:
-    def __init__(self, var):
+    def __init__(self):
         self.printGreeting()
 
     def printGreeting(self):
@@ -3169,13 +3169,13 @@ class MySubclass(MyClass):
     def printGreeting(self):
         print('Howdy')
 
-myClass = MyClass(1)
-mySubclass = MySubclass(1)
+myClass = MyClass()
+mySubclass = MySubclass()
 #+END_SRC
 
 #+BEGIN_SRC python :python python3 :results output
 class MyClass:
-    def __init__(self, var):
+    def __init__(self):
         self.__printGreeting()
 
     def printGreeting(self):
@@ -3187,8 +3187,28 @@ class MySubclass(MyClass):
     def printGreeting(self):
         print('Howdy')
 
-myClass = MyClass(1)
-mySubclass = MySubclass(1)
+myClass = MyClass()
+mySubclass = MySubclass()
+#+END_SRC
+
+You can also see that you can't reference the private variables in the following
+example
+
+#+BEGIN_SRC python :python python3 :results output
+class MyClass:
+    def __init__(self):
+        self.__priv = "Private variable"
+        self._prot = "Protected variable"
+        self.pub = "Public variable"
+
+x = MyClass()
+print(x.pub)
+print(x._prot) # It's not a protected variable like other languages but should
+               # be treated as one. Change a protected variables at own risk as
+               # it is probably not meant that you should change it
+#print(x.__priv) # Won't work as this variable is private
+print(x._MyClass__priv) # You can reach a private variable like this but you
+                        # should never do it!
 #+END_SRC
 
 ** Struct like classes
@@ -3617,7 +3637,6 @@ which should create an equal object.
 #+BEGIN_SRC python :python python3 :results output
 o == eval(repr(o))
 #+END_SRC
-
 
 * Errors and Exception
 ** Handling exceptions

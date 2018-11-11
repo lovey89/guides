@@ -101,6 +101,7 @@
   - [[#struct-like-classes][Struct like classes]]
   - [[#iterators][Iterators]]
   - [[#generators][Generators]]
+  - [[#magic-methods][Magic methods]]
 - [[#errors-and-exception][Errors and Exception]]
   - [[#handling-exceptions][Handling exceptions]]
   - [[#raising-exceptions][Raising exceptions]]
@@ -2745,7 +2746,49 @@ print(MyClass.i)
 #+END_SRC
 
 As you can see in the example above you can also assign values to the referenced
-attributes
+attributes.
+
+We define a very simple class and see how it behaves when we are assigning
+values to attributes on an instance vs the class object
+
+#+BEGIN_SRC python :python python3 :results output
+class MyClass:
+    pass
+
+x = MyClass()
+MyClass.a = 'MyClass a var'
+print(x.a)
+x.a = 'x a var'
+print(x.a)
+y = MyClass()
+print(y.a)
+y.a = 'y a var'
+print(y.a)
+print(MyClass.a)
+print()
+newInstance = MyClass()
+print(newInstance.__dict__)
+print(x.__dict__)
+print(MyClass.__dict__)
+#+END_SRC
+
+If you now would try to run ~newInstance.a~ python first checks for ~a~ in
+~newInstance.__dict__~. If it is not there it will look for it in
+~MyClass.__dict__~. If it's not found there it an ~AttributeError~ exception
+will be raised.
+
+Since everything is objects in Python you can also use attributes with functions
+
+#+BEGIN_SRC python :python python3 :results output
+def f(x):
+    f.counter = getattr(f, "counter", 0) + 1
+    return
+
+for i in range(10):
+    f(i)
+
+print(f.counter)
+#+END_SRC
 
 *** Instantiation
 
@@ -3560,10 +3603,26 @@ data = 'golf'
 print(list(data[i] for i in range(len(data)-1, -1, -1)))
 #+END_SRC
 
+** Magic methods
+*** The ~__str__~ method
+
+Called when calling the ~str()~ function. Used when outputting to end user.
+
+*** The ~__repr__~ method
+
+Called when calling the ~repr()~ function. Used for interna representation of an
+object. If possible the result should be parseble by the python interpreter
+which should create an equal object.
+
+#+BEGIN_SRC python :python python3 :results output
+o == eval(repr(o))
+#+END_SRC
+
+
 * Errors and Exception
 ** Handling exceptions
 
-The example below will throw a ~ValueError~ (as ~x~ is not an interger).
+The example below will throw a ~ValueError~ (as ~x~ is not an integer).
 
 #+BEGIN_SRC python :python python3 :results output
 x = 'x'

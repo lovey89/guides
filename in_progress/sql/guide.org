@@ -1,0 +1,34 @@
+#+BEGIN_SRC sql
+INSERT INTO mytable1(col11, col12, col13, col14)
+  SELECT col21, col22, 'default_string', 1
+  FROM mytable2
+  WHERE col23 = 'a_value';
+#+END_SRC
+
+[[http://rachbelaid.com/postgres-full-text-search-is-good-enough/]]
+
+#+BEGIN_SRC sql
+-- Table constraints
+SELECT *
+FROM information_schema.table_constraints;
+
+-- Foreign key constraints
+SELECT *
+FROM information_schema.referential_constraints;
+
+-- Check constraints
+SELECT *
+FROM information_schema.check_constraints;
+#+END_SRC
+
+#+BEGIN_SRC sql
+SELECT
+    name, email, COUNT(*) as ct
+FROM
+    users
+GROUP BY
+    name, email
+HAVING
+    COUNT(*) > 1
+ORDER BY ct DESC;
+#+END_SRC

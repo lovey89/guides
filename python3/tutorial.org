@@ -98,6 +98,8 @@
   - [[#random-remarks][Random remarks]]
   - [[#inheritence][Inheritence]]
   - [[#private-and-protected-variables][Private and protected variables]]
+  - [[#class-and-instance-attributes][Class and instance attributes]]
+  - [[#properties][Properties]]
   - [[#struct-like-classes][Struct like classes]]
   - [[#iterators][Iterators]]
   - [[#generators][Generators]]
@@ -3209,6 +3211,210 @@ print(x._prot) # It's not a protected variable like other languages but should
 #print(x.__priv) # Won't work as this variable is private
 print(x._MyClass__priv) # You can reach a private variable like this but you
                         # should never do it!
+#+END_SRC
+
+** Class and instance attributes
+
+Class attributes are define outside all methods in a class and is "owned" by the
+class itself. They will have the same value for each instance (unless we have
+changed the value for a specific instance which then will have an instance
+variable instead)
+
+#+BEGIN_SRC python :python python3 :results output
+class MyClass:
+    my_var = 'my_var'
+
+x = MyClass()
+y = MyClass()
+print(x.my_var)
+print(y.my_var)
+print(MyClass.my_var)
+x.my_var = 'x.a new value'
+MyClass.my_var = 'MyClass.a new value'
+print(x.my_var)
+print(y.my_var) # This one has also changed
+print(MyClass.my_var)
+#+END_SRC
+
+Class attributes can of course also be private
+
+#+BEGIN_SRC python :python python3 :results output
+class MyClass:
+    __my_var = 'my_var'
+
+print(MyClass.__my_var) # Will fail
+#+END_SRC
+
+*** Static methods
+
+To define a static method we decorate it with ~@staticmethod~ and don't include
+the ~self~ variable to the method (as static methods are not bound to a specific
+instance)
+
+#+BEGIN_SRC python :python python3 :results output
+class Dog:
+    __sound = 'Woof!'
+
+    def __init__(self, name):
+        pass
+
+    @staticmethod
+    def default_animal_noise():
+        return Dog.__sound
+
+dog = Dog('Fido')
+print(Dog.default_animal_noise())
+print(dog.default_animal_noise())
+#+END_SRC
+
+If you would remove the ~@staticmethod~ decorator you wouldn't be able to call
+the method from an instance (only using the class itself)
+
+*** Class methods
+
+Similar to static methods in the sense that they are not bound to instances. But
+class methods receives a reference to the class of the object. These methods can
+be called via instances or the class object itself
+
+#+BEGIN_SRC python :python python3 :results output
+class Dog:
+    __sound = 'Woof!'
+
+    def __init__(self, name):
+        pass
+
+    @classmethod
+    def default_animal_noise(cls):
+        return cls, Dog.__sound
+
+dog = Dog('Fido')
+print(Dog.default_animal_noise())
+print(dog.default_animal_noise())
+#+END_SRC
+
+This is useful e.g. when we call class attributes of inheriting classes
+
+#+BEGIN_SRC python :python python3 :results output
+class Animal:
+    _sound = 'Bang!'
+
+    @staticmethod
+    def static_noise():
+        print('This animal says "{}"'.format(Animal._sound)) # Notice that the class name is hard coded here
+
+    @classmethod
+    def class_noise(cls):
+        print('This animal says "{}"'.format(cls._sound))
+
+class Dog(Animal):
+    _sound = 'Woof!'
+
+class Cat(Animal):
+    _sound = 'Meow!'
+
+a = Animal()
+d = Dog()
+c = Cat()
+print('Static methods:')
+a.static_noise()
+d.static_noise()
+c.static_noise()
+print('Class methods:')
+a.class_noise()
+d.class_noise()
+c.class_noise()
+#+END_SRC
+
+** Properties
+
+In Python you don't use getters and setters as in Java. You just reference a
+global variable directly (as if it was public in Java). If you want that extra
+check you can usually put in the getter or setter you can make use of
+properties.
+
+In the example below we can see that when setting the attribute ~x~ it must be
+at least 0 and at most 1000. When getting the value we will return it as is.
+Note in the ~__init__~ method that we don't use ~self.__x~ as this wouldn't make
+use of the propery functionality. Also note that both the ~getter~ and ~setter~
+have the same method name. If the variable would have been called ~y~ the setter
+decorator would have looked like ~@y.setter~ instead
+
+#+BEGIN_SRC python :python python3 :results output
+class MyClass:
+
+    def __init__(self,x):
+        self.x = x
+
+    @property
+    def x(self):
+        return self.__x
+
+    @x.setter
+    def x(self, x):
+        if x < 0:
+            self.__x = 0
+        elif x > 1000:
+            self.__x = 1000
+        else:
+            self.__x = x
+
+var = MyClass(500)
+print(var.x)
+var.x = 1002
+print(var.x)
+var.x = -4
+print(var.x)
+var.x = 5
+print(var.x)
+#+END_SRC
+
+We could also put the logic on the "getter" instead
+
+#+BEGIN_SRC python :python python3 :results output
+class MyClass:
+
+    def __init__(self,x):
+        self.x = x
+
+    @property
+    def x(self):
+        if self.__x < 0:
+            return 0
+        elif self.__x > 1000:
+            return 1000
+        else:
+            return self.__x
+
+    @x.setter
+    def x(self, x):
+        self.__x = x
+
+var = MyClass(500)
+print(var.x)
+var.x = 1002
+print(var.x)
+var.x = -4
+print(var.x)
+var.x = 5
+print(var.x)
+#+END_SRC
+
+You can also use the property functionality on unrelated attributes
+
+#+BEGIN_SRC python :python python3 :results output
+class MyClass:
+    def __init__(self, x, y):
+        self.__x = x
+        self.__y = y
+
+    @property
+    def the_sum(self):
+        return self.__x + self.__y
+
+var0 = MyClass(5, 12)
+print(var0.the_sum)
+var1 = MyClass(5, -12)
+print(var1.the_sum)
 #+END_SRC
 
 ** Struct like classes

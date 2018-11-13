@@ -3070,7 +3070,7 @@ class method definition it can be done like the last row:
 ~BaseClass.func(subClass_instance)~. ~BaseClass~ needs to be accessible of
 course.
 
-In this case the ~Animal~ class was defined in the same module but if was
+In this case the ~Animal~ class was defined in the same module but if it was
 defined in another module it could be sub classed with
 ~class Dog(modulename.Animal):~.
 
@@ -3117,6 +3117,37 @@ animal = Animal()
 dog = Dog()
 cat = Cat()
 #+END_SRC
+
+If you want to use the parent class ~__init__~ function you can refer to it
+either by calling it like ~BaseClass.__init__(args)~ or ~super().__init__(args)~
+
+#+BEGIN_SRC python :python python3 :results output
+class Person:
+    def __init__(self, first, last):
+        self.firstname = first
+        self.lastname = last
+
+    def __str__(self):
+        return self.firstname + " " + self.lastname
+
+class Employee(Person):
+    def __init__(self, first, last, staffnum):
+        super().__init__(first, last)
+        self.staffnumber = staffnum
+
+    def __str__(self):
+        return super().__str__() + ", " +  self.staffnumber
+
+
+x = Person("x", "y")
+y = Employee("z", "w", "g")
+
+print(x)
+print(y)
+#+END_SRC
+
+Also not that we were able to refer to the ~__str__~ method of the base class
+by using the ~super~ method
 
 *** Multiple Inheritence
 

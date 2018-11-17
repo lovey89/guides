@@ -3981,6 +3981,152 @@ print(list(data[i] for i in range(len(data)-1, -1, -1)))
 #+END_SRC
 
 ** Magic methods
+
+The ones named something like ~__name__~. The duoble underscore is sometime
+called /dunder/ and that's why the magic methods sometimes are called
+/dunder methods/
+
+*** Operator overloading
+
+| Operator   | Method                                   |
+|------------+------------------------------------------|
+| ~+~        | ~object.__add__(self, other)~            |
+| ~-~        | ~object.__sub__(self, other)~            |
+| ~*~        | ~object.__mul__(self, other)~            |
+| ~//~       | ~object.__floordiv__(self, other)~       |
+| ~/~        | ~object.__truediv__(self, other)~        |
+| ~%~        | ~object.__mod__(self, other)~            |
+| ~**~       | ~object.__pow__(self, other[, modulo])~  |
+| ~<<~       | ~object.__lshift__(self, other)~         |
+| ~>>~       | ~object.__rshift__(self, other)~         |
+| ~&~        | ~object.__and__(self, other)~            |
+| ~^~        | ~object.__xor__(self, other)~            |
+| ~¦~ (pipe) | ~object.__or__(self, other)~             |
+| ~+=~       | ~object.__iadd__(self, other)~           |
+| ~-=~       | ~object.__isub__(self, other)~           |
+| ~*=~       | ~object.__imul__(self, other)~           |
+| ~/=~       | ~object.__idiv__(self, other)~           |
+| ~//=~      | ~object.__ifloordiv__(self, other)~      |
+| ~%=~       | ~object.__imod__(self, other)~           |
+| ~**=~      | ~object.__ipow__(self, other[, modulo])~ |
+| ~<<=~      | ~object.__ilshift__(self, other)~        |
+| ~>>=~      | ~object.__irshift__(self, other)~        |
+| ~&=~       | ~object.__iand__(self, other)~           |
+| ~^=~       | ~object.__ixor__(self, other)~           |
+| ~¦=~       | ~object.__ior__(self, other)~            |
+| ~<~        | ~object.__lt__(self, other)~             |
+| ~<=~       | ~object.__le__(self, other)~             |
+| ~==~       | ~object.__eq__(self, other)~             |
+| ~!=~       | ~object.__ne__(self, other)~             |
+| ~>~        | ~object.__ge__(self, other)~             |
+| ~>=~       | ~object.__gt__(self, other)~             |
+
+| Operator    | Method                     |
+|-------------+----------------------------|
+| ~-~         | ~object.__neg__(self)~     |
+| ~+~         | ~object.__pos__(self)~     |
+| ~abs()~     | ~object.__abs__(self)~     |
+| ~           | ~object.__invert__(self)~  |
+| ~complex()~ | ~object.__complex__(self)~ |
+| ~int()~     | ~object.__int__(self)~     |
+| ~long()~    | ~object.__long__(self)~    |
+| ~float()~   | ~object.__float__(self)~   |
+| ~oct()~     | ~object.__oct__(self)~     |
+| ~hex()~     | ~object.__hex__(self)~     |
+
+#+BEGIN_SRC python :python python3 :results output
+class Length:
+
+    __length = {'mm' : 0.001, 'cm' : 0.01, 'm' : 1}
+
+    def __init__(self, value, unit = 'm'):
+        self.value = value
+        self.unit = unit
+
+    def toMeters(self):
+        return self.value * Length.__length[self.unit]
+
+    def __add__(self, other):
+        newLength = self.toMeters() + other.toMeters()
+        return Length(newLength / Length.__length[self.unit], self.unit)
+
+    def __str__(self):
+        return str(self.toMeters()) + ' meters'
+
+print(Length(100, 'mm') + Length(23, 'cm') + Length(2, 'm'))
+#+END_SRC
+
+But if you would like to add an int to a ~Length~ object it wont work. We will
+have to fix that ourselves.
+
+#+BEGIN_SRC python :python python3 :results output
+class Length:
+
+    __length = {'mm' : 0.001, 'cm' : 0.01, 'm' : 1}
+
+    def __init__(self, value, unit = 'm'):
+        self.value = value
+        self.unit = unit
+
+    def toMeters(self):
+        return self.value * Length.__length[self.unit]
+
+    def __add__(self, other):
+        if type(other) == int:
+            newLength = self.toMeters() + other * Length.__length[self.unit]
+        else:
+            newLength = self.toMeters() + other.toMeters()
+        return Length(newLength / Length.__length[self.unit], self.unit)
+
+    def __str__(self):
+        return str(self.toMeters()) + ' meters'
+
+print(Length(100, 'mm') + Length(23, 'cm') + Length(2, 'm'))
+print(Length(100, 'mm') + 8)
+print(Length(100, 'cm') + 8)
+print(Length(100, 'm') + 8)
+#print(8 + Length(100, 'm'))
+#+END_SRC
+
+The last row above wont work as the ~__add__~ method is search fo in the first
+operand. We can solve this by implementing the ~__radd__~. It will first try to
+search for ~__add__~ in the first operand, and if this one raises and exception
+Python will look for ~__radd__~ in the second operand:
+
+#+BEGIN_SRC python :python python3 :results output
+class Length:
+
+    __length = {'mm' : 0.001, 'cm' : 0.01, 'm' : 1}
+
+    def __init__(self, value, unit = 'm'):
+        self.value = value
+        self.unit = unit
+
+    def toMeters(self):
+        return self.value * Length.__length[self.unit]
+
+    def __add__(self, other):
+        if type(other) == int:
+            newLength = self.toMeters() + other * Length.__length[self.unit]
+        else:
+            newLength = self.toMeters() + other.toMeters()
+        return Length(newLength / Length.__length[self.unit], self.unit)
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __str__(self):
+        return str(self.toMeters()) + ' meters'
+
+print(Length(100, 'mm') + Length(23, 'cm') + Length(2, 'm'))
+print(Length(100, 'mm') + 8)
+print(Length(100, 'cm') + 8)
+print(Length(100, 'm') + 8)
+print(8 + Length(100, 'm'))
+#+END_SRC
+
+Corresponding methods for ~__radd__~ also exists.
+
 *** The ~__str__~ method
 
 Called when calling the ~str()~ function. Used when outputting to end user.
@@ -3993,6 +4139,69 @@ which should create an equal object.
 
 #+BEGIN_SRC python :python python3 :results output
 o == eval(repr(o))
+#+END_SRC
+
+*** The ~__call__~ method
+
+To make an instance of a class callable (like a function) you can implement the
+~__call__~ method
+
+#+BEGIN_SRC python :python python3 :results output
+class Fibonacci:
+
+    def __init__(self):
+        self.cache = {}
+
+    def __call__(self, n):
+        if n not in self.cache:
+            if n == 0:
+                self.cache[0] = 0
+            elif n == 1:
+                self.cache[1] = 1
+            else:
+                self.cache[n] = self.__call__(n-1) + self.__call__(n-2)
+        return self.cache[n]
+
+fib = Fibonacci()
+
+for i in range(15):
+    print(fib(i), end=", ")
+#+END_SRC
+
+You can also use the ~__call__~ method when defining [[*Decorators][decorators]].
+
+The following decorator
+
+#+BEGIN_SRC python :python python3 :results output
+def decorator1(f):
+    def helper():
+        print("Decorating", f.__name__)
+        f()
+    return helper
+
+@decorator1
+def foo():
+    print("inside foo()")
+
+foo()
+#+END_SRC
+
+can be written as
+
+#+BEGIN_SRC python :python python3 :results output
+class decorator2:
+    def __init__(self, f):
+        self.f = f
+
+    def __call__(self):
+        print("Decorating", self.f.__name__)
+        self.f()
+
+@decorator2
+def foo():
+    print("inside foo()")
+
+foo()
 #+END_SRC
 
 * Errors and Exception

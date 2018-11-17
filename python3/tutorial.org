@@ -3154,6 +3154,59 @@ by using the ~super~ method
 You can also have multiple parents in Python
 
 #+BEGIN_SRC python :python python3 :results output
+class Car:
+    def __init__(self, brand):
+        self._brand = brand
+
+    def start(self):
+        print('Starting car')
+
+    def drive(self):
+        print('Driving car')
+
+    def __str__(self):
+        return 'A car of brand {}'.format(self._brand)
+
+class Radio:
+    def __init__(self, volume):
+        self._volume = volume
+
+    def start(self):
+        print('Startion radio')
+
+    def play(self):
+        print('Radio is playing')
+
+    def __str__(self):
+        return 'A radio with volume set to {}'.format(self._volume)
+
+class CarWithRadio(Car, Radio):
+    def __init__(self, brand, volume):
+        Car.__init__(self, brand)
+        Radio.__init__(self, volume)
+
+    def start(self): # Try to remove this and you can see that Car.start will be called
+        print('---')
+        Car.start(self)
+        print('and')
+        Radio.start(self)
+        print('---')
+
+    def getCarBrand(self):
+        return self._brand
+
+    def __str__(self):
+        return '{} with {}'.format(Car.__str__(self), Radio.__str__(self))
+
+cr = CarWithRadio('Volvo', 100)
+cr.start()
+cr.play()
+cr.drive()
+print('Brand:',cr.getCarBrand())
+print(cr)
+#+END_SRC
+
+#+BEGIN_SRC python :python python3 :results output
 class Animal:
     pass
 
@@ -3174,6 +3227,73 @@ then (recursively) in the base classes of ~Animal~, and if it was not found
 there, it was searched for in ~Quadruped~, and so on. This is not really the
 truth as the method resolution order changes dynamically to support cooperative
 calls to ~super()~. This is known as /call-next-method/.
+
+Play around with the example below. It looks like as if ~D.m~ calls ~B.m~ which
+in turn calls ~C.m~ which then calls ~A.m~ so maybe the explanation above is
+wrong? Note that the example below is an example of the diamond problem
+
+#+BEGIN_SRC python :python python3 :results output
+class A:
+    def m(self):
+        print("m of A called")
+
+class B(A):
+    def m(self):
+        print("m of B called")
+        super().m()
+
+class C(A):
+    def m(self):
+        print("m of C called")
+        super().m()
+
+class D(B,C):
+    def m(self):
+        print("m of D called")
+        super().m()
+
+x = D()
+x.m()
+print(D.mro()) # Prints te method resolution order which is used when using super()
+#+END_SRC
+
+#+RESULTS:
+: m of D called
+: m of B called
+: m of C called
+: m of A called
+: [<class '__main__.D'>, <class '__main__.B'>, <class '__main__.C'>, <class '__main__.A'>, <class 'object'>]
+
+Also works with the ~__init__~ method
+
+#+BEGIN_SRC python :python python3 :results output
+class A:
+    def __init__(self):
+        print("A.__init__")
+
+class B(A):
+    def __init__(self):
+        print("B.__init__")
+        super().__init__()
+
+class C(A):
+    def __init__(self):
+        print("C.__init__")
+        super().__init__()
+
+class D(B,C):
+    def __init__(self):
+        print("D.__init__")
+        super().__init__()
+
+a = A()
+print()
+b = B()
+print()
+c = C()
+print()
+d = D()
+#+END_SRC
 
 ** Private and protected variables
 

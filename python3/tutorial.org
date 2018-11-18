@@ -63,7 +63,7 @@
 - [[#functions][Functions]]
   - [[#variable-number-of-arguments][Variable number of arguments]]
   - [[#return-multiple-values][Return multiple values]]
-  - [[#nested-functions][Nested functions]]
+  - [[#nested-functions-inner-functins][Nested functions (inner functins)]]
   - [[#functions-returning-functions][Functions returning functions]]
   - [[#lambda-expressions][Lambda Expressions]]
   - [[#documentation-string-doc-string][Documentation string (doc string)]]
@@ -120,8 +120,16 @@
   - [[#read-command-line-arguments][Read command line arguments]]
   - [[#print-to-stderr][Print to stderr]]
 - [[#the-pip-command][The ~pip~ command]]
-- [[#things-that-maybe-isnt-included-in-the-tutorial][Things that maybe isn't included in the tutorial]]
-  - [[#methods][Methods]]
+- [[#saving-memory-using-the-__slots__-variable][Saving memory using the ~__slots__~ variable]]
+- [[#metaclasses][Metaclasses]]
+  - [[#the-__new__-method][The ~__new__~ method]]
+  - [[#the-__prepare__-method][The ~__prepare__~ method]]
+  - [[#the-__call__-method][The ~__call__~ method]]
+  - [[#the-__init__-method][The ~__init__~ method]]
+  - [[#subclasses-will-inherit-the-metaclass][Subclasses will inherit the metaclass]]
+  - [[#putting-it-all-together-in-a-simple-example][Putting it all together in a simple example]]
+  - [[#an-example-to-transform-a-string][An example to transform a string]]
+  - [[#a-count-calls-metaclass][A count calls metaclass]]
 - [[#links-1][Links]]
 - [[#cheat-sheet][Cheat sheet]]
 - [[#code-to-inspect][Code to inspect]]
@@ -1691,7 +1699,7 @@ print("Largest Fibonacci Number smaller than x: " + str(lub))
 print("Smallest Fibonacci Number larger than x: " + str(sup))
 #+END_SRC
 
-** Nested functions
+** Nested functions (inner functins)
 
 In python you can define a function inside another function
 
@@ -4781,19 +4789,337 @@ with the ~install -r~ command
 python3 -m pip install -r requirements.txt
 #+END_SRC
 
-* Things that maybe isn't included in the tutorial
+* Saving memory using the ~__slots__~ variable
 
-- Inner functions
-- ~with~ keyword
-- Formatted string literals
-- ~exec~ method (run strings as commands?)
+Objects usually store its attributes in a dictionairy called ~__dict__~. This
+also let us add new attributes after an object has been defined
 
-** Methods
+#+BEGIN_SRC python :python python3 :results output
+class A:
+    pass
 
-- ~super()~
-- ~getattr()~
-- ~setattr()~
-- ~delattr()~
+a = A()
+print(a.__dict__)
+a.x = 1
+a.y = 'A String'
+print(A.__dict__)
+#+END_SRC
+
+Using a dictionairy can be a waste of space, e.g. if we create many objects
+which only have a few attributes defined. Here we can use the ~__dict__~
+variable instead which provide a static strucuture which prohibits a user from
+define new attributes later.
+
+You just define a list with the name ~__slots__~ which contains all the names of
+all attributes you want to use.
+
+#+BEGIN_SRC python :python python3 :results output
+class A:
+    __slots__ = ['x', 'y']
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+a = A(1,2)
+print(a.x, a.y)
+a.x = 5
+print(a.x, a.y)
+#print(a.__dict__) # Wont work a __dict__ won't be defined
+#a.z = 4 # Wont work as A doesn't have an attribute called z
+#+END_SRC
+
+* Metaclasses
+
+- http://blog.thedigitalcatonline.com/blog/2014/10/14/decorators-and-metaclasses/
+- https://blog.ionelmc.ro/2015/02/09/understanding-python-metaclasses/
+- https://www.python-course.eu/python3_road_to_metaclasses.php
+
+To start with, a class is an object just like any other object and an instance
+of something: a metaclass. The default metaclass is ~type~ (the same ~type~ you
+use when returning the class of an object):
+
+#+BEGIN_SRC python :python python3 :results output
+class A:
+    pass
+
+a = A()
+print(type(A))
+print(type(a))
+print(isinstance(A, type))
+print(isinstance(a, A))
+#+END_SRC
+
+We can actually create a class without using the ~class~ statement:
+
+#+BEGIN_SRC python :python python3 :results output
+MyClass = type('MyClass', (), {}) # Name, base classes and namespace
+print(MyClass)
+#+END_SRC
+
+It is not equivalent as using the ~class~ statement as the ~class~ statement
+also setting varaibles such as ~__doc__~ and other things.
+
+We can create our own metaclass by defining a class which inherits from ~type~.
+To use the metaclass you define it inside the parantheses by writing
+~metaclass=the_meta_class~. Note that you have to put this after all your base
+classes if you have any
+
+#+BEGIN_SRC python :python python3 :results output
+class MyMeta(type):
+    pass
+
+class MyClass(metaclass=MyMeta):
+    pass
+
+print(type(MyClass))
+#+END_SRC
+
+** The ~__new__~ method
+
+The ~__new__~ method is the actual constuctor in Python while ~__init__~ is just
+an initializer (the instance already exists when ~__init__~ is called). The
+~__new__~ method which is created in your new metaclass will be called when a
+a class implementing using this metaclass is created (_not_ when an instance of
+that class is created).
+
+Generally the ~__new__~ method accepts the same arguments as ~__init__~ except
+that ~__new__~'s first argument is ~cls~ while ~__init__~ has ~self~.
+
+It should return a new object
+
+The method signature looks like this:
+
+#+BEGIN_SRC python :python python3 :results output
+def __new__(metacls, name, bases, attrs, **kwargs):
+    return super().__new__(metacls, name, bases, attrs)
+#+END_SRC
+
+** The ~__prepare__~ method
+
+The ~__prepare__~ method is called before the ~class~ body is executed and must
+return dictionairy-like object which will be used a the local namespace for the
+code in the ~class~ body.
+
+The method signature looks like this:
+
+#+BEGIN_SRC python :python python3 :results output
+@classmethod
+def __prepare__(metacls, name, bases, **kwargs):
+    return {} # Not necessarily a dict but should be a dictionairy-like object
+#+END_SRC
+
+** The ~__call__~ method
+
+When creating an instance of a class which is using your metaclass the
+~__call__~ method of the metaclass will be called.
+
+The method signature looks like this:
+
+#+BEGIN_SRC python :python python3 :results output
+def __call__(cls, *args, **kwargs):
+    return super().__call__(*args, **kwargs)
+#+END_SRC
+
+** The ~__init__~ method
+
+The ~__init__~ method is not that commonly used. The class is already
+constructed when ~__init__~ is called. It roughly equates to having a class
+ decorator with the difference that ~__init__~ would get run when making
+subclasses, while class decorators are not called for subclasses.
+
+The method signature looks like this:
+
+#+BEGIN_SRC python :python python3 :results output
+def __init__(cls, name, bases, attrs, **kwargs):
+    return super().__init__(name, bases, attrs)
+#+END_SRC
+
+** Subclasses will inherit the metaclass
+
+The metaclass will be inherited by the subclasses (which doesn't happen with
+class decorators).
+
+If you have a subclass which inherits from multiple classes all the ancestor
+classes must be using the same metaclass.
+
+** Putting it all together in a simple example
+
+#+BEGIN_SRC python :python python3 :results output
+print("Before defining MyMeta\n--------")
+
+class MyMeta(type):
+    @classmethod
+    def __prepare__(metacls, name, bases, **kwargs):
+        print('In MyMeta.__prepare__({},{},{},{})'.format(metacls, name, bases, kwargs))
+        return {}
+
+    def __new__(metacls, name, bases, attrs, **kwargs):
+        print('Enter MyMeta.__new__({},{},{},{},{})'.format(metacls, name, bases, attrs, kwargs))
+        tmp = super().__new__(metacls, name, bases, attrs)
+        print('Exit MyMeta.__new__()')
+        return tmp
+
+    def __init__(cls, name, bases, attrs, **kwargs):
+        print('Enter MyMeta.__init__({},{},{},{},{})'.format(cls, name, bases, attrs, kwargs))
+        tmp = super().__init__(name, bases, attrs)
+        print('Exit MyMeta.__init__()')
+        return tmp
+
+    def __call__(cls, *args, **kwargs):
+        print('Enter MyMeta.__call__({},{},{})'.format(cls, args, kwargs))
+        tmp = super().__call__(*args, **kwargs)
+        print('Exit MyMeta.__call__()')
+
+print("After defining MyMeta and before defining MyClass\n--------")
+
+class MyClass(object, metaclass=MyMeta, extra=1):
+    def __new__(cls, x):
+        print('  Enter MyClass.__new__({},{})'.format(cls, x))
+        tmp = super().__new__(cls)
+        print('  Exit MyClass.__new__()')
+        return tmp
+
+    def __init__(self, x):
+        print('  Enter MyClass.__init__({},{})'.format(self, x))
+        self.x = x
+        tmp = super().__init__()
+        print('  Exit MyClass.__init__()')
+        return tmp
+
+print("--------\nAfter defining MyClass and before creating an instance of MyClass\n--------")
+
+m = MyClass(1)
+#+END_SRC
+
+** An example to transform a string
+
+Note that this could be achieved without a new metaclass
+
+#+BEGIN_SRC python :python python3 :results output
+# strproc.py
+# This file implements the technique explained at
+# http://lgiordani.com/blog/2014/10/14/decorators-and-metaclasses/
+
+import collections
+
+class FilterClass(type):
+
+    """
+    A metaclass that extracts all methods that have
+    a _filter attribute and lists them in order in
+    the _filters attribute of the class.
+    """
+
+    def __prepare__(name, bases, **kwds):
+        # This returns an OrderedDict to host the namespace of the created
+        # class
+        return collections.OrderedDict()
+
+    def __new__(metacls, name, bases, namespace, **kwds):
+        # This method returns an instance of the metaclass
+        # aka the created class.
+
+        # Just call the standard creation method
+        result = type.__new__(metacls, name, bases, dict(namespace))
+
+        # Process all namespace items and extract the marked ones
+        result._filters = [
+            value for value in namespace.values() if hasattr(value, '_filter')]
+        return result
+
+
+def stringfilter(func):
+    # Just sets the _filter attribute in the input callable
+    func._filter = True
+    return func
+
+
+class StringProcessor(metaclass=FilterClass):
+
+    """
+    A callable class that filters strings.
+    It may be given methods decorated with @stringfilter and it will apply
+    them on the input string in definition order.
+    """
+
+    def __call__(self, string):
+        _string = string
+
+        # Loop on filters and apply them on the string
+        for _filter in self._filters:
+            _string = _filter(self, _string)
+
+        return _string
+
+
+class MyStringProcessor(StringProcessor):
+
+    @stringfilter
+    def capitalize(self, string):
+        # This filter just returns the string with the first letter uppercase
+        return string.capitalize()
+
+    @stringfilter
+    def remove_double_spaces(self, string):
+        # This filter replaces double spaces with single ones
+        return string.replace('  ', ' ')
+
+if __name__ == '__main__':
+    msp = MyStringProcessor()
+    input_string = "a test  string"
+    output_string = msp(input_string)
+    print("INPUT STRING:", input_string)
+    print("OUTPUT STRING:", output_string)
+#+END_SRC
+
+** A count calls metaclass
+
+#+BEGIN_SRC python :python python3 :results output
+class FuncCallCounter(type):
+    """ A Metaclass which decorates all the methods of the
+        subclass using call_counter as the decorator
+    """
+
+    @staticmethod
+    def call_counter(func):
+        """ Decorator for counting the number of function
+            or method calls to the function or method func
+        """
+        def helper(*args, **kwargs):
+            helper.calls += 1
+            return func(*args, **kwargs)
+        helper.calls = 0
+        helper.__name__= func.__name__
+
+        return helper
+
+    def __new__(cls, clsname, superclasses, attributedict):
+        """ Every method gets decorated with the decorator call_counter,
+            which will do the actual call counting
+        """
+        for attr in attributedict:
+            if callable(attributedict[attr]) and not attr.startswith("__"):
+                attributedict[attr] = cls.call_counter(attributedict[attr])
+
+        return type.__new__(cls, clsname, superclasses, attributedict)
+
+class A(metaclass=FuncCallCounter):
+    def foo(self):
+        pass
+
+    def bar(self):
+        pass
+
+if __name__ == "__main__":
+    x = A()
+    print(x.foo.calls, x.bar.calls)
+    x.foo()
+    print(x.foo.calls, x.bar.calls)
+    x.foo()
+    x.bar()
+    print(x.foo.calls, x.bar.calls)
+#+END_SRC
 
 * Links
 

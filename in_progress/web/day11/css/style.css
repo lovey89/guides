@@ -1,0 +1,22 @@
+a {
+  color: red;
+  text-decoration: none;
+}
+
+h1 {
+  font-family: sans-serif;
+}
+
+img {
+  width: 450px;
+}
+
+/*p, h1, img {*/
+div {
+  /* margin-left: 50px; */
+  width: 500px;
+  margin: auto;
+  background: green;
+  text-align: center;
+}
+

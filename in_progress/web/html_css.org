@@ -1,0 +1,28 @@
+[[file:index.html][My testlink]]
+
+[[https://www.google.se][Google]]
+
+[[file:index.html][test]]
+
+* Structure
+
+Create a structure for each project which contains the following
+
+- ~css~ (for style sheets)
+- ~img~ (for images)
+- ~js~ (for java script files)
+- other files to keep a nice strucure if it's a big project
+
+If it's a smaller project you can keep all ~html~ files in the root directory.
+The ~index.html~ file should be in the root directory since this is the file
+which will automatically be opened when navigating to that directory on a web
+hosting service
+
+* id vs classes
+
+ids should uniquely identify an object while a class can be applied to many
+objects
+
+* Pseudo classes
+
+E.g. ~a:hover~, ~li:nth-child(3)~ or ~ul:first-of-type~

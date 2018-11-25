@@ -1,0 +1,35 @@
+.wrap {
+  /*width: 600px;*/
+  min-width: 600px;
+  width: 80%;
+  margin: auto;
+  background: green;
+  overflow: hidden; /* Or use the footer solution below */
+}
+
+.content, aside {
+  height: 600px;
+}
+
+.content {
+  background: red;
+  float: left;
+  /*width: 450px;*/
+  width: 80%
+}
+
+aside {
+  background: brown;
+  float: left;
+  width: 20%;
+}
+
+aside ul {
+  padding-left: 0px;
+  list-style: none;
+}
+/*
+footer {
+  clear: both
+}
+*/

@@ -1,0 +1,29 @@
+body {
+  margin: 0;
+}
+
+.wrap {
+  width: 800px;
+  height: 1000px;
+  margin: auto;
+  background: #e3e3e3;
+  position: relative; /* Try removing this one*/
+}
+
+.box {
+  width: 400px;
+  height: 400px;
+  background: red;
+
+  margin: auto;
+
+  /*
+  position: relative;
+  left: 400px;
+  top: 200px;
+   */
+
+  position: absolute; /*absolute positioning in relation to it nearest _positioned_ parent*/
+  left: 40px;
+  top: 20px;
+}

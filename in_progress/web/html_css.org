@@ -20,9 +20,87 @@ hosting service
 
 * id vs classes
 
-ids should uniquely identify an object while a class can be applied to many
-objects
+ids ~#~ should uniquely identify an object while a class ~.~ can be applied to
+many objects
 
 * Pseudo classes
 
 E.g. ~a:hover~, ~li:nth-child(3)~ or ~ul:first-of-type~
+
+* Emmet
+
+** ~div~
+
+#+BEGIN_SRC html
+<div></div>
+#+END_SRC
+
+** ~div#myId~
+
+Eller bara ~#myId~ (då används ~div~ automatiskt)
+
+#+BEGIN_SRC html
+<div id="myId"></div>
+#+END_SRC
+
+** ~div.myClass~
+
+Eller bara ~.myClass~ (då används ~div~ automatiskt)
+
+#+BEGIN_SRC html
+<div class="myClass"></div>
+#+END_SRC
+
+** ~div>p~
+
+#+BEGIN_SRC html
+<div>
+  <p></p>
+</div>
+#+END_SRC
+
+** ~ul>li*4~
+
+#+BEGIN_SRC html
+<ul>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+</ul>
+#+END_SRC
+
+** ~ul>li{hello}~
+
+#+BEGIN_SRC html
+<ul>
+  <li>hello</li>
+</ul>
+#+END_SRC
+
+** ~.content+.main+.footer~
+
+#+BEGIN_SRC html
+<div class="content"></div>
+<div class="main"></div>
+<div class="footer"></div>
+#+END_SRC
+
+** ~.wrap>header>h1{My Website}+nav>ul>li*4>a[href=#]~
+
+#+BEGIN_SRC html
+<div class="wrap">
+  <header>
+    <h1>My Website</h1>
+    <nav>
+      <ul>
+        <li><a href="#"></a></li>
+        <li><a href="#"></a></li>
+        <li><a href="#"></a></li>
+        <li><a href="#"></a></li>
+      </ul>
+    </nav>
+  </header>
+</div>
+#+END_SRC
+

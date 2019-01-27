@@ -1,3 +1,5 @@
+* Insert data from another table with default values
+
 #+BEGIN_SRC sql
 INSERT INTO mytable1(col11, col12, col13, col14)
   SELECT col21, col22, 'default_string', 1
@@ -5,7 +7,7 @@ INSERT INTO mytable1(col11, col12, col13, col14)
   WHERE col23 = 'a_value';
 #+END_SRC
 
-[[http://rachbelaid.com/postgres-full-text-search-is-good-enough/]]
+* Get constraints from Postgrespl
 
 #+BEGIN_SRC sql
 -- Table constraints
@@ -21,6 +23,8 @@ SELECT *
 FROM information_schema.check_constraints;
 #+END_SRC
 
+* Find duplicates (multiple columns)
+
 #+BEGIN_SRC sql
 SELECT
     name, email, COUNT(*) as ct
@@ -32,3 +36,34 @@ HAVING
     COUNT(*) > 1
 ORDER BY ct DESC;
 #+END_SRC
+
+* Doing a ~WHERE IN~ on multiple columns in Postgresql
+
+#+BEGIN_SRC sql
+SELECT *
+FROM tbl
+WHERE (col0, col1) IN ((val01, val02), (val11, val12), (val21, val22))
+#+END_SRC
+
+* Getting the total number of elements when using pagenation
+
+#+BEGIN_SRC sql
+SELECT *, count(*) OVER() AS full_count
+FROM tbl
+WHERE condition
+ORDER BY col1
+LIMIT 25
+OFFSET 50
+#+END_SRC
+
+The ~full_count~ column will now contiain the total number of elements (before
+applying ~LIMIT~ and ~OFFSET~). Note that the database will have to find all
+values when using this and it may affect performance. Postgrespl's documentation
+contains more information about [[https://www.postgresql.org/docs/current/tutorial-window.html][window functions]].
+
+* Interesting links
+
+[[http://rachbelaid.com/postgres-full-text-search-is-good-enough/]]
+https://niallburkley.com/blog/index-columns-for-like-in-postgres/
+http://www.sql-join.com/sql-join-types/
+https://www.sitepoint.com/simply-sql-the-from-clause/

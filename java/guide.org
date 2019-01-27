@@ -1,0 +1,24 @@
+* Java
+** Take thread dumps from a JVM
+
+[[https://helpx.adobe.com/experience-manager/kb/TakeThreadDump.html]]
+
+*** Get the PID of your Java process
+
+Investigate the command ~jsp~. Or just use ~ps aux | grep java~
+
+*** Get the thread dump from JVM
+
+Use ~jstack~ by running ~jstack -l <pid>~. You can then analyze the stack trace
+by pasting the result in the text box at [[http://spotify.github.io/threaddump-analyzer/]]
+
+* Maven
+** Deactive ~org.apache.maven.plugins.enforcer.RequirePluginVersions~
+
+Sometimes maven complains that you are using forbidden versions numbers (such as
+~LATEST~ or ~0-SNAPSHOT~). To temporarily deactivate this plugin you can use run
+maven with the option ~-Denforcer.skip=true~. E.g.
+
+#+BEGIN_SRC bash
+mvn clean install -Denforcer.skip=true
+#+END_SRC

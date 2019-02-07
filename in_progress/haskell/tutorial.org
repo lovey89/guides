@@ -1,0 +1,36 @@
+* Table of Contents :TOC:QUOTE:
+#+BEGIN_QUOTE
+- [[#work-around-to-execute-haskell-programs-in-org-mode][Work around to execute haskell programs in org mode]]
+#+END_QUOTE
+
+* Work around to execute haskell programs in org mode
+
+Executable code but syntax highlighting is set to python
+
+#+BEGIN_SRC  python :python runghc :results output
+main = do
+  putStrLn "------------------------------------------------"
+  putStrLn "VALID HASKELL PROGRAM"
+  putStrLn "------------------------------------------------"
+#+END_SRC
+
+Correct syntax highlighting but not executable
+
+#+BEGIN_SRC  haskell
+main = do
+  putStrLn "------------------------------------------------"
+  putStrLn "VALID HASKELL PROGRAM"
+  putStrLn "------------------------------------------------"
+#+END_SRC
+
+To toggle between these two modes you can run the ~toggleedit~ script. Note that
+the two code blocks above have an extra space before the language name so that
+they will not be affected by the script. The code block below will be affected
+though
+
+#+BEGIN_SRC haskell
+main = do
+  putStrLn "------------------------------------------------"
+  putStrLn "VALID HASKELL PROGRAM"
+  putStrLn "------------------------------------------------"
+#+END_SRC

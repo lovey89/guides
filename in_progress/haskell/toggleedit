@@ -1,0 +1,11 @@
+#!/bin/bash
+
+grep -q '#+BEGIN_SRC python :python runghc :results output' tutorial.org
+
+if [ $? = 0 ]; then
+  sed -i.bak 's/#+BEGIN_SRC python :python runghc :results output/#+BEGIN_SRC haskell/' tutorial.org
+  echo "Ready for commit"
+else
+  sed -i.bak 's/#+BEGIN_SRC haskell/#+BEGIN_SRC python :python runghc :results output/' tutorial.org
+  echo "Ready for edit"
+fi

@@ -1,6 +1,12 @@
 * Table of Contents :TOC:QUOTE:
 #+BEGIN_QUOTE
 - [[#work-around-to-execute-haskell-programs-in-org-mode][Work around to execute haskell programs in org mode]]
+- [[#basics][Basics]]
+  - [[#basic-arithmetic][Basic arithmetic]]
+  - [[#basic-logic-operators][Basic logic operators]]
+  - [[#calling-functions][Calling functions]]
+  - [[#defining-functions][Defining functions]]
+  - [[#the-if-statement][The ~if~ statement]]
 #+END_QUOTE
 
 * Work around to execute haskell programs in org mode
@@ -34,3 +40,168 @@ main = do
   putStrLn "VALID HASKELL PROGRAM"
   putStrLn "------------------------------------------------"
 #+END_SRC
+
+* Basics
+** Basic arithmetic
+
+#+BEGIN_SRC haskell
+main = do
+  -- Addition
+  print (2 + 2)
+  -- Subtraction
+  print (5 - 2)
+  -- Multiplication
+  print (5 * 5)
+  -- Division (not integer division)
+  print (5 / 2)
+  -- Integer division
+  print (div 5 2)
+  -- Change precedence with parentheses
+  print (2 + 2 * 2)
+  print ((2 + 2) * 2)
+#+END_SRC
+
+When working with negative number, always enclose them in parentheses. The
+example below won't work
+
+#+BEGIN_SRC haskell
+main = do
+  print (5 * -3)
+#+END_SRC
+
+While the following will
+
+#+BEGIN_SRC haskell
+main = do
+  print (5 * (-3))
+#+END_SRC
+
+** Basic logic operators
+
+#+BEGIN_SRC haskell
+main = do
+  -- And
+  print (True && True)
+  print (True && False)
+  -- Or
+  print (True || False)
+  print (False || False)
+  -- Not
+  print (not (True && False))
+  print (not True)
+#+END_SRC
+
+Testing equality
+
+#+BEGIN_SRC haskell
+main = do
+  -- Equality
+  print (9 == 9)
+  print (8 == 9)
+  print ("hello" == "hello")
+  -- Inequality
+  print (9 /= 9)
+  print (8 /= 9)
+#+END_SRC
+
+~==~ and ~/=~ will only work if the two elements can be compared. The following
+will now work
+
+#+BEGIN_SRC haskell
+main = do
+  print (4 /= "hello")
+#+END_SRC
+
+But sometimes objects of different types can be compared. E.g. integers and
+floats. In the following example the integer will be converted to a float
+
+#+BEGIN_SRC haskell
+main = do
+  print (4.0 == 4)
+#+END_SRC
+
+** Calling functions
+
+In haskell no parantheses should be used when providing the arguments to a
+function. You just separate all arguments with a space. In the following
+examples we still use parantheses for the ~print~ function. Otherwise ~succ 8~
+would be treated a two arguments to the ~print~ function instead of a function
+call itself
+
+#+BEGIN_SRC haskell
+main = do
+  print (succ 8)
+#+END_SRC
+
+Multiple arguments
+
+#+BEGIN_SRC haskell
+main = do
+  print (min 8 15)
+  print (max 6.4 2)
+#+END_SRC
+
+A function call has the highest precedence so you don't need to put parantheses
+around it
+
+#+BEGIN_SRC haskell
+main = do
+  print (succ 9 + max 5 4 + 1)
+  print ((succ 9) + (max 5 4) + 1)
+  print (succ 8 * 2)
+  print (succ (8 * 2))
+#+END_SRC
+
+You can make a function /infix/ by putting backticks around the function name
+
+#+BEGIN_SRC haskell
+main = do
+  print (div 11 3)
+  print (11 `div` 3)
+#+END_SRC
+
+** Defining functions
+
+The following code defines a function that will double the input value
+
+#+BEGIN_SRC haskell
+doubleMe x = x + x
+
+main = do
+  print (doubleMe 5)
+#+END_SRC
+
+The order the functions are defined doesn't matter
+
+#+BEGIN_SRC haskell
+main = do
+  print (doubleMe 5)
+
+doubleMe x = x + x
+#+END_SRC
+
+Note that the ~doubleMe~ function doesn't specify a type so any type where the
+~+~ operator can be applied can be used
+
+#+BEGIN_SRC haskell
+doubleMe x = x + x
+
+main = do
+  print (doubleMe 5)
+  print (doubleMe 8.3)
+#+END_SRC
+
+Let us define 2 functions that double 2 input values and sums them together
+
+#+BEGIN_SRC haskell
+doubleMe x = x + x
+
+doubleUs x y = 2 * x  + 2 * y
+doubleUs2 x y = doubleMe x  + doubleMe y
+
+main = do
+  print (doubleUs 3 4)
+  print (doubleUs2 3 4)
+#+END_SRC
+
+** The ~if~ statement

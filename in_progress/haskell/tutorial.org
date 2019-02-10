@@ -7,6 +7,8 @@
   - [[#calling-functions][Calling functions]]
   - [[#defining-functions][Defining functions]]
   - [[#the-if-statement][The ~if~ statement]]
+  - [[#lists][Lists]]
+- [[#links][Links]]
 #+END_QUOTE
 
 * Work around to execute haskell programs in org mode
@@ -56,6 +58,9 @@ main = do
   print (5 / 2)
   -- Integer division
   print (div 5 2)
+  -- Modulo
+  print (mod 2 (-3))
+  print (rem 2 (-3))
   -- Change precedence with parentheses
   print (2 + 2 * 2)
   print ((2 + 2) * 2)
@@ -204,4 +209,119 @@ main = do
   print (doubleUs2 3 4)
 #+END_SRC
 
+And let us define a function with no arguments
+
+#+BEGIN_SRC haskell
+numberOne = 1
+
+main = do
+  print (numberOne)
+#+END_SRC
+
+*** Naming
+
+A function can't start with a capital letter and ~'~ is a valid character to
+use. It is often used to denote a strict version of a function (one that isn't
+lazy) or a slightly modified version of a function or a variable
+
 ** The ~if~ statement
+
+Unlike other languages the ~else~ part is mandatory in Haskell. The ~if~
+statement is an expression in Haskell as it has a return value. Below we are
+writing the ~if~ statement on multiple lines but we can write it all on the same
+line if we wanted to
+
+#+BEGIN_SRC haskell
+doubleOddNumber x = if x `mod` 2 == 0
+                      then x
+                      else x * 2
+
+main = do
+  print (doubleOddNumber 6)
+  print (doubleOddNumber 5)
+  print (doubleOddNumber (-4))
+  print (doubleOddNumber (-7))
+#+END_SRC
+
+Since the ~if~ statement have a return value we can easily add 1 to the result
+
+#+BEGIN_SRC haskell
+doubleOddNumberAndAddOne x = (if x `mod` 2 == 0
+                                then x
+                                else x * 2) + 1
+
+main = do
+  print (doubleOddNumberAndAddOne 6)
+  print (doubleOddNumberAndAddOne 5)
+  print (doubleOddNumberAndAddOne (-4))
+  print (doubleOddNumberAndAddOne (-7))
+#+END_SRC
+
+** Lists
+
+In Haskell lists stores data of the same type so we can't have a list which both
+store integers and characters. The ~let~ keyword is used in Haskell to define a
+name
+
+#+BEGIN_SRC haskell
+main = do
+  let myNumberList = [1,2,4,8,16,32]
+  print myNumberList
+  let myCharList = ['C','h','a','r','s']
+  print myCharList
+  let myStringList = ["My","String", "List"]
+  print myStringList
+#+END_SRC
+
+As you see from the output of ~myCharList~ above, a string is a list of chars
+
+#+BEGIN_SRC haskell
+main = do
+  print ("Chars" == ['C','h','a','r','s'])
+#+END_SRC
+
+Since strings are list we can use list functions on them
+
+*** Concatenate lists
+
+Concatenation is done with the ~++~ operator. Note that it can also be used on
+strings which are nothing but a list of characters
+
+#+BEGIN_SRC haskell
+main = do
+  print ([1,2,3,4] ++ [5,6,7,8])
+  print ("Hello" ++ " " ++ "World")
+  print (['H','a','s'] ++ ['k','e','l','l'])
+#+END_SRC
+
+Note that when you concatenate two lists, Haskell will internally walk through
+all elements on the left hand side of the ~++~. This may affect performance for
+big left hand side lists. Note that putting something at the beginning of a list
+using the cons operator (~:~) is instantaneous
+
+#+BEGIN_SRC haskell
+main = do
+  print (1:[2,3,4])
+  print ('H':"ello World")
+#+END_SRC
+
+Note that ~++~ accepts two lists as arguments while ~:~ accepts an element and a
+list. ~[1,2,3]~ is actually just syntactic sugar for ~1:2:3:[]~ (~[]~ is the
+empty list).
+
+*** Get an element in a list
+
+To get an element at a specific index in the list we use the ~!!~ operator. The
+index starts at 0.
+
+#+BEGIN_SRC haskell
+main = do
+  let myIntegerList = [1,2,4,8,16,32]
+  print (myIntegerList !! 1)
+  print (myIntegerList !! 4)
+#+END_SRC
+
+* Links
+
+- [[https://hackage.haskell.org/package/CheatSheet-1.11/src/CheatSheet.pdf]]
+- [[http://learnyouahaskell.com/chapters]]

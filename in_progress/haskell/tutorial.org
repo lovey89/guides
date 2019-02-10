@@ -125,6 +125,20 @@ main = do
   print (4.0 == 4)
 #+END_SRC
 
+Comparing number
+
+#+BEGIN_SRC haskell
+main = do
+  print (4 < 5)
+  print (5 < 4)
+  print (4 > 5)
+  print (5 > 4)
+  print (4 <= 5)
+  print (5 <= 5)
+  print (4 >= 5)
+  print (5 >= 5)
+#+END_SRC
+
 ** Calling functions
 
 In haskell no parantheses should be used when providing the arguments to a
@@ -319,6 +333,136 @@ main = do
   let myIntegerList = [1,2,4,8,16,32]
   print (myIntegerList !! 1)
   print (myIntegerList !! 4)
+#+END_SRC
+
+*** Lists of lists
+
+A list can contain of other lists. As before each element in a list needs to be
+of the same type which means that all lists in a list of lists needs to contain
+the same type of element, e.g. integers. The lists can be of different lengths.
+
+#+BEGIN_SRC haskell
+main = do
+  let b = [[1,2,3,4],[5,3,3,3],[1,2,2,3,4],[1,2,3]]
+  print b
+  print (b ++ [[3,2,1]])
+  print ([3,2,1]:b)
+  print (b !! 1)
+#+END_SRC
+
+*** Comparing lists
+
+Lists can be compared with ~<~, ~<=~, ~>~ and ~>=~ if the elements the list
+contains can be compared with these operators. The elements in the lists are
+compared in order and if the elements on a index is equal the next pairs will
+be compared
+
+#+BEGIN_SRC haskell
+main = do
+  print ([3,2,1] > [2,1,0])
+  print ([3,2,1] > [2,10,100])
+  print ([3,4,2] > [3,4]) -- [3,4,2] is considered bigger as it has an extra element
+  print ([3,4] > [3,4,2])
+  print ([3,4,2] > [2,4])
+  print ([3,4,2] == [3,4,2])
+#+END_SRC
+
+*** Other functions
+
+~head~ returns the first element in a list
+
+#+BEGIN_SRC haskell
+main = do
+  print (head [3,2,1])
+#+END_SRC
+
+~tail~ returns everything but the head
+
+#+BEGIN_SRC haskell
+main = do
+  print (tail [4,3,2,1,0])
+#+END_SRC
+
+~last~ returns the last element in a list
+
+#+BEGIN_SRC haskell
+main = do
+  print (last [4,3,2,1,0])
+#+END_SRC
+
+~init~ returns everything but the last element
+
+#+BEGIN_SRC haskell
+main = do
+  print (init [4,3,2,1,0])
+#+END_SRC
+
+~length~ returns the length of a list
+
+#+BEGIN_SRC haskell
+main = do
+  print (length [4,3,2,1,0])
+#+END_SRC
+
+~null~ checks if a list is empty. Returns ~True~ if empty. To be used instead of
+checking for equality with ~[]~
+
+#+BEGIN_SRC haskell
+main = do
+  print (null [4,3,2,1,0])
+  print (null [])
+#+END_SRC
+
+~reverse~ reverses a list
+
+#+BEGIN_SRC haskell
+main = do
+  print (reverse [4,3,2,1,0])
+#+END_SRC
+
+~take~ returns the first ~x~ elements from a list. Can be used on infinite
+sequences
+
+#+BEGIN_SRC haskell
+main = do
+  print (take 3 [4,3,2,1,0])
+  print (take 8 [4,3,2,1,0])
+  print (take 0 [4,3,2,1,0])
+#+END_SRC
+
+~drop~ is the opposite of ~take~. We return everything but the first ~x~
+elements
+
+#+BEGIN_SRC haskell
+main = do
+  print (drop 3 [4,3,2,1,0])
+  print (drop 8 [4,3,2,1,0])
+  print (drop 0 [4,3,2,1,0])
+#+END_SRC
+
+~maximum~ and ~minimum~ returns the largest or smallest element if the elements
+can be compared
+
+#+BEGIN_SRC haskell
+main = do
+  print (maximum [4,3,20,-4,1,0])
+  print (minimum [4,3,20,-4,1,0])
+#+END_SRC
+
+~sum~ and ~product~ returns the sum or product of a list of numbers
+
+#+BEGIN_SRC haskell
+main = do
+  print (sum [1,2,3,4])
+  print (product [1,2,3,4])
+#+END_SRC
+
+~elem~ checks if an element is present in a list
+
+#+BEGIN_SRC haskell
+main = do
+  print (2 `elem` [1,2,3,4])
+  print (5 `elem` [1,2,3,4])
 #+END_SRC
 
 * Links

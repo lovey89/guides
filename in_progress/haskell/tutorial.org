@@ -8,6 +8,7 @@
   - [[#defining-functions][Defining functions]]
   - [[#the-if-statement][The ~if~ statement]]
   - [[#lists][Lists]]
+  - [[#tuples][Tuples]]
 - [[#links][Links]]
 #+END_QUOTE
 
@@ -464,6 +465,139 @@ main = do
   print (2 `elem` [1,2,3,4])
   print (5 `elem` [1,2,3,4])
 #+END_SRC
+
+*** Texas ranges
+
+If you want to create a list with all numbers ranging from 1 to 50 you can
+create the list and provide each number individually. Or you can just write
+~[1..50]~. You can do something similar with characters
+
+#+BEGIN_SRC haskell
+main = do
+  print ([1..50])
+  print (['a'..'z'])
+  print (['A'..'Z'])
+  print (['A'..'z'])
+#+END_SRC
+
+You can also define a step. The difference between the first and second element
+in the range will be the step size
+
+#+BEGIN_SRC haskell
+main = do
+  print ([1,4..50])
+  print ([10,20..100])
+#+END_SRC
+
+You can also have a negative step size
+
+#+BEGIN_SRC haskell
+main = do
+  print ([20,19..4])
+  print ([100,90..0])
+#+END_SRC
+
+Because the way floats are handled in the computer it's bad idea to use floats
+with ranges
+
+#+BEGIN_SRC haskell
+main = do
+  print ([0.1, 0.3 .. 1])
+#+END_SRC
+
+You don't have to specify an upper limit. This will create an infinite lists but
+since Haskell is lazy it will only generate as much as is needed
+
+#+BEGIN_SRC haskell
+main = do
+  print (take 24 [13,26..])
+#+END_SRC
+
+To repeat a list an infinite amount of times you can use the ~cycle~ function
+
+#+BEGIN_SRC haskell
+main = do
+  print (take 24 (cycle [1,2,3,4]))
+  print (take 24 (cycle "Batman"))
+#+END_SRC
+
+To repeat an element an infinite numbers of time you can use the ~repeat~
+function
+
+#+BEGIN_SRC haskell
+main = do
+  print (take 24 (repeat 'A'))
+  -- Or just use replicate for the same results
+  print (replicate 24 'A')
+#+END_SRC
+
+*** List comprehensions
+
+With list comprehensions we can transform every value in a list by applying a
+function to it. Below we will multiply every value in a list with itself
+
+#+BEGIN_SRC haskell
+main = do
+  print ([x*x | x <- [1..10]])
+#+END_SRC
+
+We can also filter the result. Say that we are only interested in the power if
+two greater than 50
+
+#+BEGIN_SRC haskell
+main = do
+  print ([x*x | x <- [1..10], x*x > 50])
+#+END_SRC
+
+We can include multiple predicates for the filtering and the element will only
+be included in the resulting list if all of them evaluates to true. Let's add
+the predicate that the result should be smaller than 90
+
+#+BEGIN_SRC haskell
+main = do
+  print ([x*x | x <- [1..10], x*x > 50, x*x < 90])
+#+END_SRC
+
+We can also draw values from multiple lists where all combinations from the
+input lists will be created. Below we will create tuples for each result
+
+#+BEGIN_SRC haskell
+main = do
+  print ([(x,y) | x <- [1..4], y <- [3..5]])
+#+END_SRC
+
+We can also use predicates when drawing values from multiple lists. Below we
+will only output the pairs whos sum is even
+
+#+BEGIN_SRC haskell
+main = do
+  print ([(x,y) | x <- [1..4], y <- [3..5], even (x + y)])
+#+END_SRC
+
+We can now define our own version of ~length~
+
+#+BEGIN_SRC haskell
+length' xs = sum [1 | _ <- xs]
+
+main = do
+  print (length' [1..10])
+#+END_SRC
+
+The ~_~ in the code block above means that we don't care about the value that
+would be put in that variable if we gave it a name
+
+We can also nest list comprehensions. The code block below let us remove all odd
+values from the containing lists without flattening it
+
+#+BEGIN_SRC haskell
+main = do
+  let xxs = [[1,3,5,2,3,1,2,4,5],[1,2,3,4,5,6,7,8,9],[1,2,4,2,1,6,3,1,3,2,3,6]]
+  print ([[ x | x <- xs, even x ] | xs <- xxs])
+#+END_SRC
+
+** Tuples
+
+
 
 * Links
 

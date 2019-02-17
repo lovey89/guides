@@ -9,6 +9,10 @@
   - [[#the-if-statement][The ~if~ statement]]
   - [[#lists][Lists]]
   - [[#tuples][Tuples]]
+- [[#types][Types]]
+  - [[#type-keywords][Type keywords]]
+  - [[#type-variables][Type variables]]
+  - [[#type-classes][Type classes]]
 - [[#links][Links]]
 #+END_QUOTE
 
@@ -178,6 +182,16 @@ You can make a function /infix/ by putting backticks around the function name
 main = do
   print (div 11 3)
   print (11 `div` 3)
+#+END_SRC
+
+If a function is comprised only of special characters, it's considered an infix
+function by default. If we want to pass it to another function or call it as a
+prefix function, we have to surround it in parentheses.
+
+#+BEGIN_SRC haskell
+main = do
+  print ((==) 11 3)
+  print ((==) 3 3)
 #+END_SRC
 
 ** Defining functions
@@ -664,7 +678,336 @@ main = do
   print (rightTriangles)
 #+END_SRC
 
+* Types
+
+Haskell has a static type system but unlike Java Haskell has type inference. If
+we write a number, we don't have to tell Haskell it's a number. It can infer
+that on its own, so we don't have to explicitly write out the types of our
+functions and expressions to get things done.
+
+#+BEGIN_SRC haskell
+import Data.Typeable
+
+main = do
+  print (typeOf 'a')
+  print (typeOf True)
+  print (typeOf "Hello")
+  print (typeOf (True, 'a'))
+  print (typeOf (4 == 5))
+#+END_SRC
+
+Functions also have types and we can choose to give them an explicit type
+declaration. This is considered good practice except when writing short
+functions.
+
+#+BEGIN_SRC haskell
+import Data.Typeable
+
+removeNonUppercase :: [Char] -> [Char]
+removeNonUppercase st = [ c | c <- st, c `elem` ['A'..'Z']]
+
+main = do
+  print (typeOf removeNonUppercase)
+#+END_SRC
+
+The type above means that it accepts a strings as parameter and returns a
+string. We can use the ~String~ keyword as well instead of ~[Char]~.
+
+#+BEGIN_SRC haskell
+import Data.Typeable
+
+-- Try removing the type declaration and you will see that the compiler can infer the type anyway
+removeNonUppercase :: String -> String
+removeNonUppercase st = [ c | c <- st, c `elem` ['A'..'Z']]
+
+main = do
+  print (typeOf removeNonUppercase)
+#+END_SRC
+
+If we have a method accepting three argumente you can write like this:
+
+#+BEGIN_SRC haskell
+import Data.Typeable
+
+addThree :: Int -> Int -> Int -> Int
+addThree x y z = x + y + z
+
+main = do
+  print (typeOf addThree)
+  --let addTwoTo4 = addThree 4
+  --print (addTwoTo4 2 4)
+#+END_SRC
+
+** Type keywords
+
+| Type      | Description                                                                                      |
+|-----------+--------------------------------------------------------------------------------------------------|
+| ~Int~     | Integer. ~Int~ is bounded. Check ~minBound :: Int~ and ~maxBound :: Int~ for boundaries          |
+| ~Integer~ | Also integer but is not bounded and can represent very big numbers. Not as efficient as ~Int~    |
+| ~Float~   | Single precision float                                                                           |
+| ~Double~  | Double precision float                                                                           |
+| ~Bool~    | Boolean and only has two values: ~True~ and ~False~                                              |
+| ~Char~    | Character. Represented by a character in single quotes (e.g. ~'g'~). A list of chars is a string |
+| ~(a,b,c)~ | Tuple. Note that there also is an empty tuple ~()~                                               |
+| ~[a]~     | List                                                                                             |
+
+** Type variables
+
+Functions that have type variables are polymorphic functions, i.e. a function
+may accept variables of different types and/or return variables of different
+types. Type variables resembles generics in other languages. The ~head~ function
+is an example of a function which have type variables
+
+#+BEGIN_SRC  haskell
+-- The following code is run in ghci instead of ghc
+-- The following code results in:  head :: [a] -> a
+:t head
+#+END_SRC
+
+From the result of the above code block you can see that ~head~ accepts a list
+of any type and results in an element of the type the list contained
+
+A function can also contain multiple type variable, e.g. ~fst~ and ~snd~
+
+#+BEGIN_SRC  haskell
+-- The following code is run in ghci instead of ghc
+-- The following code results in:  fst :: (a, b) -> a
+:t fst
+#+END_SRC
+
+#+BEGIN_SRC  haskell
+-- The following code is run in ghci instead of ghc
+-- The following code results in:  snd :: (a, b) -> b
+:t snd
+#+END_SRC
+
+Just because ~a~ and ~b~ are different type variables doesn't mean that they
+must be of different types. But all occurences of e.g. ~a~ in a type will be the
+same type.
+
+** Type classes
+
+If a type is part of a type class it means that it supports the behaviour that
+the type class describes. You can think of them as interfaces in Java. We can
+look at the type signature of the ~==~ function
+
+#+BEGIN_SRC  haskell
+-- The following code is run in ghci instead of ghc
+-- The following code results in:  (==) :: Eq a => a -> a -> Bool
+:t (==)
+#+END_SRC
+
+Everything before the ~=>~ is called a class contstraint. The type signature
+above translates to ~==~ takes two values of the same type which must be a
+member of the ~Eq~ class and returns a ~Bool~.
+
+Some basic type classes:
+
+*** The ~Eq~ type class
+
+For equality testing. The members of this type class must implement ~==~ and
+~/=~
+
+*** The ~Ord~ type class
+
+For types that have an ordering. The members of this type class must implement
+~<~, ~>~, ~<=~, ~>=~. They must also be members of the ~Eq~ type class
+
+#+BEGIN_SRC  haskell
+-- The following code is run in ghci instead of ghc
+-- The following code results in:  (>) :: Ord a => a -> a -> Bool
+:t (>)
+#+END_SRC
+
+*** The ~Show~ type class
+
+Can be presented as strings. The most used function that deals with the ~Show~
+typeclass is the function ~show~
+
+#+BEGIN_SRC  haskell
+-- The following code is run in ghci instead of ghc
+-- The following code results in:  show :: Show a => a -> String
+:t show
+#+END_SRC
+
+*** The ~Read~ type class
+
+Can be created from a string using the ~read~ function.
+
+#+BEGIN_SRC  haskell
+-- The following code is run in ghci instead of ghc
+-- The following code results in:  read :: Read a => String -> a
+:t read
+#+END_SRC
+
+Examples:
+
+#+BEGIN_SRC haskell
+main = do
+  print (read "True" || False)
+  print (read "8.2" + 3.8)
+  print (read "5" - 2)
+  print (read "[1,2,3,4]" ++ [3])
+#+END_SRC
+
+But what happens if we just run:
+
+#+BEGIN_SRC haskell
+main = do
+  let readValue = read "4"
+  print readValue
+#+END_SRC
+
+The compiler can't infer what kind of result we wanted from the ~read~ function
+anylonger. If we used the variable as a ~Bool~ then the compiler would assume
+that the variable is a ~Bool~ and if we use it as an ~Int~ the compiler would
+assume that the variable is an ~Int~. See what happens when we add an ~Int~ to
+the result
+
+#+BEGIN_SRC haskell
+main = do
+  let readValue = read "4"
+  print (readValue + 4)
+#+END_SRC
+
+To overcome this problem we can use *type annotations*. Type annotations are a
+way of explicitly saying what the type of an expression should be. We do that by
+adding ~::~~ at the end of the expression and then specifying a type
+
+#+BEGIN_SRC haskell
+main = do
+  let readValue = read "4" :: Int
+  print readValue
+#+END_SRC
+
+Can also be used on other classes
+
+#+BEGIN_SRC haskell
+main = do
+  print (read "5" :: Int)
+  print (read "5" :: Float)
+  print ((read "5" :: Float) * 4)
+  print (read "[1,2,3,4]" :: [Int])
+  print (read "(3, 'a')" :: (Int, Char))
+#+END_SRC
+
+Most expressions are such that the compiler can infer what their type is by
+itself. To see what the type is, Haskell would have to actually evaluate the
+result of the ~read~ function but since Haskell is a statically typed language,
+it has to know all the types before the code is compiled
+
+*** The ~Enum~ type class
+
+Are sequentially ordered types. They can be used in list ranges and have defined
+successors and predecesors, which you can get with the ~succ~ and ~pred~
+functions.
+
+#+BEGIN_SRC haskell
+main = do
+  print (['a'..'e'])
+  print (succ 'B')
+  print (pred 'B')
+#+END_SRC
+
+*** The ~Bounded~ type class
+
+Have an upper and lower bound and should provide the ~minBound~ and ~maxBound~
+functions. By investigating the type signatures of these methods you can see
+that they act like polymorphic constants.
+
+#+BEGIN_SRC  haskell
+-- The following code is run in ghci instead of ghc
+-- The following code results in:  minBound :: Bounded a => a
+:t minBound
+#+END_SRC
+
+Examples:
+
+#+BEGIN_SRC haskell
+main = do
+  print (minBound :: Int)
+  print (maxBound :: Int)
+  print (minBound :: Char)
+  print (maxBound :: Char)
+#+END_SRC
+
+Tuples which only contains ~Bounded~ classes are also part of the ~Bounded~ type
+class
+
+*** The ~Num~ type class
+
+Is a numeric type class. All members can act like numbers
+
+#+BEGIN_SRC  haskell
+-- The following code is run in ghci instead of ghc
+-- The following code results in:  20 :: Num a => a
+:t 20
+#+END_SRC
+
+So ~20~ is part of ~Num~ and may act like any type that's a member of ~Num~.
+
+#+BEGIN_SRC haskell
+main = do
+  print (20 :: Int)
+  print (20 :: Integer)
+  print (20 :: Float)
+  print (20 :: Double)
+#+END_SRC
+
+If we inspect the type signature of ~*~
+
+#+BEGIN_SRC  haskell
+-- The following code is run in ghci instead of ghc
+-- The following code results in:  (*) :: Num a => a -> a -> a
+:t (*)
+#+END_SRC
+
+we see that the ~*~ function accepts two arguments of the same type which
+explains why the following code won't work (~Int~ and ~Integer~ are not the same
+class!)
+
+#+BEGIN_SRC haskell
+main = do
+  print ((5 :: Int) * (6 :: Integer))
+#+END_SRC
+
+while the following will (~5~ is a ~Num~ and may be represented by an ~Integer~)
+
+#+BEGIN_SRC haskell
+main = do
+  print (5 * (6 :: Integer))
+#+END_SRC
+
+To be a member of ~Num~ the type also needs to be a member of ~Eq~ and ~Show~
+
+*** The ~Floating~ type class
+
+Includes only floating point numbers. ~Float~ and ~Double~ are members of this
+type class
+
+*** The ~Integral~ type class
+
+Includes only integral (whole) numbers. ~Int~ and ~Integer~ are members of this
+type class.
+
+A useful function to deal with numbers are ~fromIntegral~
+
+#+BEGIN_SRC  haskell
+-- The following code is run in ghci instead of ghc
+-- The following code results in:  fromIntegral :: (Integral a, Num b) => a -> b
+:t fromIntegral
+#+END_SRC
+
+This function accepts an ~Integral~ and returns a ~Num~. It's useful when you
+have an ~Integral~ and want it to also work with floats point types. The
+~length~ function returns an ~Int~ which makes it hard to add a ~Float~ to it
+afterwards. Then it's nice to convert the ~Int~ to a ~Num~ first.
+
+Also note that ~fromIntegral~ have several class constraints which is a valid
+thing to do.
+
 * Links
 
 - [[https://hackage.haskell.org/package/CheatSheet-1.11/src/CheatSheet.pdf]]
-- [[http://learnyouahaskell.com/chapters]]
+- [[http:/dodo/learnyouahaskell.com/chapters]]
+- [[https://www.haskell.org/hoogle/]]

@@ -597,7 +597,72 @@ main = do
 
 ** Tuples
 
+Tuples are like lists of fixed length and may mix types. If you change the
+length or containing types the type of the tuple will change. Tuples are wrapped
+with parantheses.
 
+The following code will run fine. You have a list of integer pairs:
+
+#+BEGIN_SRC haskell
+main = do
+  print ([(1,2),(8,11),(4,5)])
+#+END_SRC
+
+But the following wont work as we have mixed integer pairs with an integer
+triple:
+
+#+BEGIN_SRC haskell
+main = do
+  print ([(1,2),(8,5,11),(4,5)])
+#+END_SRC
+
+If we would have replaced the lists of tuples with lists of lists both examples
+above would have worked.
+
+We have two functions that can be used to operate on pairs: ~fst~ and ~snd~
+which are used to get the first and second value respectively
+
+#+BEGIN_SRC haskell
+main = do
+  print (fst (1, "one"))
+  print (snd (1, "one"))
+#+END_SRC
+
+Those functions only work on pairs. The following code won't work
+
+#+BEGIN_SRC haskell
+main = do
+  print (fst (1, "one", "ett"))
+  print (snd (1, "one", "ett"))
+#+END_SRC
+
+Haskell also has a function called ~zip~ which takes two lists and zips them
+together by joining the matching elements together until the shortest list is
+depleted. The result will be a list of tuples.
+
+#+BEGIN_SRC haskell
+main = do
+  print (zip [1,2,3,4,5] [5,5,5,5,5])
+  print (zip [1..] ["apple", "orange", "cherry", "mango"])
+#+END_SRC
+
+To reverse the effect you can call the ~unzip~ function
+
+#+BEGIN_SRC haskell
+main = do
+  print (unzip [(1,"apple"),(2,"orange"),(3,"cherry"),(4,"mango")])
+#+END_SRC
+
+An example how tuples can be used is shown below. The function calculates all
+right triangles with sides less than or equal to 10 and a perimeter exactly
+equal to 24
+
+#+BEGIN_SRC haskell
+rightTriangles = [(a,b,c) | c <- [1..10], b <- [1..c], a <- [1..b], a^2 + b^2 == c^2, a+b+c == 24]
+
+main = do
+  print (rightTriangles)
+#+END_SRC
 
 * Links
 

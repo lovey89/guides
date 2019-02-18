@@ -13,6 +13,12 @@
   - [[#type-keywords][Type keywords]]
   - [[#type-variables][Type variables]]
   - [[#type-classes][Type classes]]
+- [[#syntax-in-functions][Syntax in functions]]
+  - [[#pattern-matching][Pattern matching]]
+  - [[#guards][Guards]]
+  - [[#the-where-keyword][The ~where~ keyword]]
+  - [[#the-let-keyword][The ~let~ keyword]]
+  - [[#case-expressions][Case expressions]]
 - [[#links][Links]]
 #+END_QUOTE
 
@@ -1006,8 +1012,24 @@ afterwards. Then it's nice to convert the ~Int~ to a ~Num~ first.
 Also note that ~fromIntegral~ have several class constraints which is a valid
 thing to do.
 
+* Syntax in functions
+
+** Pattern matching
+
+
+** Guards
+
+
+** The ~where~ keyword
+
+
+** The ~let~ keyword
+
+
+** Case expressions
+
 * Links
 
 - [[https://hackage.haskell.org/package/CheatSheet-1.11/src/CheatSheet.pdf]]
-- [[http:/dodo/learnyouahaskell.com/chapters]]
+- [[http://learnyouahaskell.com/chapters]]
 - [[https://www.haskell.org/hoogle/]]

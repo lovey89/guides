@@ -1013,15 +1013,247 @@ Also note that ~fromIntegral~ have several class constraints which is a valid
 thing to do.
 
 * Syntax in functions
-
 ** Pattern matching
 
+Te patterns are checked from top to bottom. Whenever a match is found the
+corresponding function body will be executed. The type signature is not needed
+but I include it for clarity
+
+#+BEGIN_SRC haskell
+hiddenNumber :: (Integral a) => a -> String
+hiddenNumber 2 = "Close"
+hiddenNumber 3 = "Found number 3!"
+hiddenNumber x = "Try again!"
+
+main = do
+  print (hiddenNumber 2)
+  print (hiddenNumber 1)
+  print (hiddenNumber 3)
+#+END_SRC
+
+A pattern doesn't have to be exhaustive or include a "catch-all" pattern. The
+code snippet below will complain about a non-exhaustive pattern as there is no
+behaviour defined for the ~d~ input
+
+#+BEGIN_SRC haskell
+badUpperCase :: Char -> Char
+badUpperCase 'a' = 'A'
+badUpperCase 'b' = 'B'
+badUpperCase 'c' = 'C'
+
+main = do
+  print (badUpperCase 'a')
+  print (badUpperCase 'c')
+  print (badUpperCase 'd')
+#+END_SRC
+
+Another example that uses both pattern matching and recursion
+
+#+BEGIN_SRC haskell
+factorial :: (Integral a) => a -> a
+factorial 0 = 1
+factorial n = n * factorial (n - 1)
+
+main = do
+  print (factorial 0)
+  print (factorial 1)
+  print (factorial 2)
+  print (factorial 3)
+  print (factorial 4)
+  print (factorial 20)
+#+END_SRC
+
+Pattern matching can also be used to unpack tuples
+
+#+BEGIN_SRC haskell
+-- Without unpacking
+addVectors1 :: (Num a) => (a, a) -> (a, a) -> (a, a)
+addVectors1 a b = (fst a + fst b, snd a + snd b)
+
+-- With unpacking
+addVectors2 :: (Num a) => (a, a) -> (a, a) -> (a, a)
+addVectors2 (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
+
+main = do
+  print (addVectors1 (1,2) (3,4))
+  print (addVectors2 (1,2) (3,4))
+#+END_SRC
+
+If there are variables in the pattern that we are not interested in we can use
+~_~. Below we have defined own implementations of ~fst~ and ~snd~.
+
+#+BEGIN_SRC haskell
+fst' :: (a, b) -> a
+fst' (x, _) = x
+
+snd' :: (a, b) -> b
+snd' (_, x) = x
+
+main = do
+  print (fst' (10, 20))
+  print (snd' (10, 20))
+#+END_SRC
+
+Pattern matching can also be used in list comprehensions
+
+#+BEGIN_SRC haskell
+main = do
+  let xs = [(1,3), (4,3), (2,4), (5,3), (5,6), (3,1)]
+  print [a+b | (a,b) <- xs]
+#+END_SRC
+
+We can also match with different lengths on lists
+
+#+BEGIN_SRC haskell
+listStatus :: (Show a) => [a] -> String
+listStatus [] = "The list is empty"
+listStatus (x:[]) = "The list has one element: " ++ show x
+listStatus (x:y:[]) = "The list has two elements: " ++ show x ++ " and " ++ show y
+listStatus (x:y:_) = "This list is long. The first two elements are: " ++ show x ++ " and " ++ show y
+
+main = do
+  print (listStatus "Ab") -- Strings are lists
+  print (listStatus [1,2,3,4,5])
+#+END_SRC
+
+Recursion with lists
+
+#+BEGIN_SRC haskell
+sum' :: (Num a) => [a] -> a
+sum' [] = 0
+sum' (x:xs) = x + sum' xs
+
+main = do
+  print (sum' [1..100])
+#+END_SRC
+
+Sometimes we want to refer to whole match pattern. We could write
+
+#+BEGIN_SRC haskell
+firstLetter :: String -> String
+firstLetter "" = error "The string cannot be empty"
+firstLetter (x:xs) = "The first letter of " ++ x:xs ++ " is " ++ [x]
+
+main = do
+  print (firstLetter "hello")
+#+END_SRC
+
+But we can use something called /patterns/ if we want to refer to the whole
+matched pattern. You do that by giving the whole pattern a name followed by ~@~
+and then the pattern as usual
+
+#+BEGIN_SRC haskell
+firstLetter :: String -> String
+firstLetter "" = error "The string cannot be empty"
+firstLetter all@(x:xs) = "The first letter of " ++ all ++ " is " ++ [x]
+
+main = do
+  print (firstLetter "hello")
+#+END_SRC
 
 ** Guards
 
+Instead of matching on fixed patterns we can use guards to match on conditions
+
+#+BEGIN_SRC haskell
+bmiString :: (RealFloat a) => a -> String
+bmiString bmi
+    | bmi <= 18.5 = "Underweight"
+    | bmi <= 25.0 = "Normal"
+    | bmi <= 30.0 = "Overweight"
+    | otherwise   = "Obese"
+
+main = do
+  print (bmiString 15)
+  print (bmiString 32)
+  print (bmiString 20)
+  print (bmiString 27.5)
+#+END_SRC
+
+Haskell will evaluate the first guard that evaluates to ~True~. The ~otherwise~
+keyword is used for catch-all and evaluates always to ~True~. If all the guards
+of a function evaluate to ~False~ (and we haven't provided an ~otherwise~
+catch-all guard), evaluation falls through to the next pattern.
+
+All guards can also be defined on the same line but the readability is not as
+nice then
+
+#+BEGIN_SRC haskell
+max1' :: (Ord a) => a -> a -> a
+max1' a b | a > b = a | otherwise = b
+
+max2' :: (Ord a) => a -> a -> a
+max2' a b
+    | a > b     = a
+    | otherwise = b
+
+main = do
+  print (max1' 1 2)
+  print (max2' 1 2)
+#+END_SRC
 
 ** The ~where~ keyword
 
+We can change our example from the [[*Guards][guards]] section above to accept wight and
+height instead
+
+#+BEGIN_SRC haskell
+bmiString :: (RealFloat a) => a -> a -> String
+bmiString weight height
+    | weight / height ^ 2 <= 18.5 = "Underweight"
+    | weight / height ^ 2 <= 25.0 = "Normal"
+    | weight / height ^ 2 <= 30.0 = "Overweight"
+    | otherwise                   = "Obese"
+
+main = do
+  print (bmiString 90 1.87)
+#+END_SRC
+
+We have a lot of repeated code (which is also executed for every guard we
+test!). We can redefine the code above with the ~where~ clause
+
+#+BEGIN_SRC haskell
+bmiString :: (RealFloat a) => a -> a -> String
+bmiString weight height
+    | bmi <= 18.5 = "Underweight"
+    | bmi <= 25.0 = "Normal"
+    | bmi <= 30.0 = "Overweight"
+    | otherwise   = "Obese"
+    where bmi = weight / height ^ 2
+
+main = do
+  print (bmiString 90 1.87)
+#+END_SRC
+
+Now the ~bmi~ variable is only calculated once and the code looks much better
+
+We can also use pattern matching in the ~where~ clause. Below is a silly example
+
+#+BEGIN_SRC haskell
+initials :: String -> String -> String
+initials firstname lastname = [f] ++ ". " ++ [l] ++ "."
+    where (f:_) = firstname
+          (l:_) = lastname
+
+main = do
+  print (initials "John" "Smith")
+#+END_SRC
+
+Functions can also be defined in the ~where~ clause. Say we want to calculate
+the bmi for a list of weigth-height tuples
+
+#+BEGIN_SRC haskell
+calcBmis :: (RealFloat a) => [(a, a)] -> [a]
+calcBmis xs = [bmi w h | (w, h) <- xs]
+    where bmi weight height = weight / height ^ 2
+
+main = do
+  print (calcBmis [(90, 1.87), (65, 1.72), (100, 1.90)])
+#+END_SRC
+
+~where~ bindings can also be nested. It's a common idiom to make a function and
+define some helper function in its ~where~ clause and then to give those
+functions helper functions as well, each with its own ~where~ clause.
 
 ** The ~let~ keyword
 

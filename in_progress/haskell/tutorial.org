@@ -1257,8 +1257,133 @@ functions helper functions as well, each with its own ~where~ clause.
 
 ** The ~let~ keyword
 
+The ~let~ keyword can be used to define very local variables and has the form
+~let <bindings> in <expression>~. E.g.
+
+#+BEGIN_SRC haskell
+cylinder :: (RealFloat a) => a -> a -> a
+cylinder r h =
+    let sideArea = 2 * pi * r * h
+        topArea = pi * r ^2
+    in  sideArea + 2 * topArea
+
+main = do
+  print (cylinder 5 10)
+#+END_SRC
+
+The expression above could have been replaced with a ~where~ binding. The
+difference is that ~let~ bindings are expression (and returns a value) while
+the ~where~ binding is not. Just like the ~if~ statement we can use it almost
+anywhere
+
+#+BEGIN_SRC haskell
+main = do
+  print [if 5 > 3 then "Woo" else "Boo", if 'a' > 'b' then "Foo" else "Bar"]
+  print (4 * (if 10 > 5 then 10 else 0) + 2)
+  print (4 * (let a = 9 in a + 1) + 2)
+  print [let square x = x * x in (square 5, square 3, square 2)]
+#+END_SRC
+
+If we want to bind multiple variables inline we can separate them with
+semicolons (it's optional to put a semicolon after the last binding)
+
+#+BEGIN_SRC haskell
+main = do
+  print (let a = 100; b = 200; c = 300 in a*b*c, let foo="Hey "; bar = "there!" in foo ++ bar)
+#+END_SRC
+
+You can pattern match with ~let~ bindings
+
+#+BEGIN_SRC haskell
+main = do
+  print ((let (a,b,c) = (1,2,3) in a+b+c) * 100)
+#+END_SRC
+
+You can also use ~let~ bindings inside list comprehensions (here it looks like
+the ~in~ keyword is omitted). We include a ~let~ inside a list comprehension
+much like we would a predicate, only it doesn't filter the list, it only binds
+to names. The names defined in a ~let~ inside a list comprehension are visible
+to the output function and all predicates and sections that come after of the
+binding. The following code block will only output the BMI of people with a BMI
+over 25
+
+#+BEGIN_SRC haskell
+calcBmis :: (RealFloat a) => [(a, a)] -> [a]
+calcBmis xs = [bmi | (w, h) <- xs, let bmi = w / h ^ 2, bmi >= 25.0]
+
+main = do
+  print (calcBmis [(90, 1.87), (65, 1.72), (100, 1.90)])
+#+END_SRC
+
+The ~in~ keyword is omitted in list comprehensions becuase the visibility scope
+is already defined here. However, we could use a ~let in binding~ in a predicate
+and the names defined would only be visible to that predicate.
+
+~let~ bindings can't be used across guards and that's why the ~where~ binding is
+handy sometime (which can be used across guards)
 
 ** Case expressions
+
+Pattern matching on parameters is function definitions is just syntictic sugar
+for case expressions. With case expressions we can pattern match almost
+anywhere. Case expressions are as the name implies, expressions.
+
+Compare the two interchangable functions below
+
+#+BEGIN_SRC haskell
+head0 :: [a] -> a
+head0 [] = error "No head for empty lists!"
+head0 (x:_) = x
+
+head1 :: [a] -> a
+head1 xs = case xs of [] -> error "No head for empty lists!"
+                      (x:_) -> x
+
+main = do
+  print (head0 "Hi")
+  print (head1 "Hi")
+  print (head0 [5,3,1])
+  print (head1 [5,3,1])
+#+END_SRC
+
+The syntax for case expressions looks like this
+
+#+BEGIN_SRC  haskell
+case expression of pattern -> result
+                   pattern -> result
+                   pattern -> result
+                   ...
+#+END_SRC
+
+The patterns doesn't have to be exhaustive. If it falls through the whole case
+expression and no suitable pattern is found, a runtime error occurs.
+
+Another example
+
+#+BEGIN_SRC haskell
+describeList :: [a] -> String
+describeList xs = "The list is " ++ case xs of [] -> "empty."
+                                               [x] -> "a singleton list."
+                                               xs -> "a longer list."
+
+main = do
+  print (describeList [3])
+  print (describeList [])
+#+END_SRC
+
+Which could also be written as
+
+#+BEGIN_SRC haskell
+describeList :: [a] -> String
+describeList xs = "The list is " ++ what xs
+    where what [] = "empty."
+          what [x] = "a singleton list."
+          what xs = "a longer list."
+
+main = do
+  print (describeList [3])
+  print (describeList [])
+#+END_SRC
 
 * Links
 

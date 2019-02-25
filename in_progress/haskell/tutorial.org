@@ -19,6 +19,15 @@
   - [[#the-where-keyword][The ~where~ keyword]]
   - [[#the-let-keyword][The ~let~ keyword]]
   - [[#case-expressions][Case expressions]]
+- [[#some-recursion-examples][Some recursion examples]]
+  - [[#maximum][Maximum]]
+  - [[#replicate][Replicate]]
+  - [[#take][Take]]
+  - [[#reverse][Reverse]]
+  - [[#repeat][Repeat]]
+  - [[#zip][Zip]]
+  - [[#elem][Elem]]
+  - [[#quick-sort][Quick sort]]
 - [[#links][Links]]
 #+END_QUOTE
 
@@ -1383,6 +1392,115 @@ describeList xs = "The list is " ++ what xs
 main = do
   print (describeList [3])
   print (describeList [])
+#+END_SRC
+
+* Some recursion examples
+
+Recursion is important to Haskell because unlike imperative languages, you do
+computations in Haskell by declaring what something is instead of declaring how
+you get it. That's why there are no while loops or for loops in Haskell and
+instead we many times have to use recursion to declare what something is.
+
+** Maximum
+
+#+BEGIN_SRC haskell
+maximum' :: (Ord a) => [a] -> a
+maximum' [] = error "maximum of empty list"
+maximum' [x] = x
+maximum' (x:xs)
+    | x > maxTail = x
+    | otherwise = maxTail
+    where maxTail = maximum' xs
+
+main = do
+  print (maximum' [4,5,1,8,2])
+#+END_SRC
+
+** Replicate
+
+#+BEGIN_SRC haskell
+replicate' :: (Num i, Ord i) => i -> a -> [a]
+replicate' n x
+    | n <= 0    = []
+    | otherwise = x:replicate' (n-1) x
+
+main = do
+  print (replicate' 5 'F')
+#+END_SRC
+
+** Take
+
+#+BEGIN_SRC haskell
+take' :: (Num i, Ord i) => i -> [a] -> [a]
+take' n _
+    | n <= 0   = []
+take' _ []     = []
+take' n (x:xs) = x : take' (n-1) xs
+
+main = do
+  print (take 5 (repeat 'F'))
+#+END_SRC
+
+** Reverse
+
+#+BEGIN_SRC haskell
+reverse' :: [a] -> [a]
+reverse' [] = []
+reverse' (x:xs) = reverse' xs ++ [x]
+
+main = do
+  print (reverse' "Hello World")
+#+END_SRC
+
+** Repeat
+
+#+BEGIN_SRC haskell
+repeat' :: a -> [a]
+repeat' x = x:repeat' x
+
+main = do
+  print (take 24 (repeat 'F'))
+#+END_SRC
+
+** Zip
+
+#+BEGIN_SRC haskell
+zip' :: [a] -> [b] -> [(a,b)]
+zip' _ [] = []
+zip' [] _ = []
+zip' (x:xs) (y:ys) = (x,y):zip' xs ys
+
+main = do
+  print (zip' [1,2,3] [4,5])
+#+END_SRC
+
+** Elem
+
+#+BEGIN_SRC haskell
+elem' :: (Eq a) => a -> [a] -> Bool
+elem' a [] = False
+elem' a (x:xs)
+    | a == x    = True
+    | otherwise = a `elem'` xs
+
+main = do
+  print (5 `elem` [1,2,3,4])
+  print (2 `elem` [1,2,3,4])
+#+END_SRC
+
+** Quick sort
+
+#+BEGIN_SRC haskell
+quicksort :: (Ord a) => [a] -> [a]
+quicksort [] = []
+quicksort (x:xs) =
+    let smallerSorted = quicksort [a | a <- xs, a <= x]
+        biggerSorted = quicksort [a | a <- xs, a > x]
+    in  smallerSorted ++ [x] ++ biggerSorted
+
+main = do
+  print (quicksort [10,2,5,3,1,6,7,4,2,3,4,8,9])
+  print (quicksort "the quick brown fox jumps over the lazy dog")
 #+END_SRC
 
 * Links

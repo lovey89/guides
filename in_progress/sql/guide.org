@@ -23,6 +23,20 @@ SELECT *
 FROM information_schema.check_constraints;
 #+END_SRC
 
+* Find duplicates
+
+#+BEGIN_SRC sql
+SELECT
+    name, COUNT(*) as ct
+FROM
+    users
+GROUP BY
+    name
+HAVING
+    COUNT(*) > 1
+ORDER BY ct DESC;
+#+END_SRC
+
 * Find duplicates (multiple columns)
 
 #+BEGIN_SRC sql
@@ -60,6 +74,22 @@ The ~full_count~ column will now contiain the total number of elements (before
 applying ~LIMIT~ and ~OFFSET~). Note that the database will have to find all
 values when using this and it may affect performance. Postgrespl's documentation
 contains more information about [[https://www.postgresql.org/docs/current/tutorial-window.html][window functions]].
+
+* Recursive calls in postgresql
+
+#+BEGIN_SRC sql
+with RECURSIVE parent (source_node, target_node, data1, data2) AS (
+  SELECT source_node, target_node, data1, data2
+  FROM graph_edges
+  WHERE source_node = 'aaa'
+UNION
+  SELECT c.source_node, c.target_node, c.data1, c.data2
+  FROM parent p join graph_edges c ON p.target_node = c.source_node
+)
+
+SELECT *
+FROM parent;
+#+END_SRC
 
 * Interesting links
 

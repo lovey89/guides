@@ -28,6 +28,9 @@
   - [[#zip][Zip]]
   - [[#elem][Elem]]
   - [[#quick-sort][Quick sort]]
+- [[#higher-order-functions][Higher order functions]]
+  - [[#partially-applied-functions][Partially applied functions]]
+  - [[#functions-as-parameters][Functions as parameters]]
 - [[#links][Links]]
 #+END_QUOTE
 
@@ -1502,6 +1505,97 @@ main = do
   print (quicksort [10,2,5,3,1,6,7,4,2,3,4,8,9])
   print (quicksort "the quick brown fox jumps over the lazy dog")
 #+END_SRC
+
+* Higher order functions
+
+Haskell functions can take functions as parameters and return functions as
+return values. A function that does either of those is called a higher order
+function.
+
+** Partially applied functions
+
+Funtions in Haskell actually only accepts one parameter. Whenever a function
+accepts more than one parameter it is because Haskell first applies the first
+parameter which in turn returns a new function that may accept a new parameter.
+
+The type of max can be written as
+
+#+BEGIN_SRC  haskell
+max :: (Ord a) => a -> a -> a
+-- or
+max :: (Ord a) => a -> (a -> a)
+#+END_SRC
+
+As you can see, ~->~ is right-associative. So we can call the ~max~ function
+like this (we first apply the first parameter which returns a new function where
+we apply the second parameter)
+
+#+BEGIN_SRC haskell
+main = do
+  print ((max 5) 4)
+  print ((max 8) 9)
+#+END_SRC
+
+We can also use partially applied functions to define new functions
+
+#+BEGIN_SRC  haskell
+let max3 = max 3
+:t max
+#+END_SRC
+
+or in a program (note that the ~Num~ class constraint is added to the function
+signature because 3 is a ~Num~)
+
+#+BEGIN_SRC haskell
+max3 :: (Num a, Ord a) => a -> a
+max3 = max 3
+
+main = do
+  print (max3 5)
+  print (max3 2)
+#+END_SRC
+
+We can also have partially applied infix functions by surrounding it with
+parameters and just writing one of the parameters
+
+#+BEGIN_SRC haskell
+divideByTen :: (Floating a) => a -> a
+divideByTen = (/10)
+
+divideTenWith :: (Floating a) => a -> a
+divideTenWith = (10/)
+
+main = do
+  print (divideByTen 100)
+  print (divideTenWith 100)
+#+END_SRC
+
+or
+
+#+BEGIN_SRC haskell
+isUpperAlphanum :: Char -> Bool
+isUpperAlphanum = (`elem` ['A'..'Z'])
+
+main = do
+  print (isUpperAlphanum '2')
+  print (isUpperAlphanum 'a')
+  print (isUpperAlphanum 'G')
+#+END_SRC
+
+** Functions as parameters
+
+The previous section showed how functions can return functions. In this section
+we can see that functions also can be arguments to other functions. To show that
+a parameter is a function we will have to surround it's type signature with
+parentheses. The following function will apply a given function two times to
+another given parameter
+
+#+BEGIN_SRC haskell
+applyTwice :: (a -> a) -> a -> a
+applyTwice f x = f (f x)
+#+END_SRC
+
+
 
 * Links
 

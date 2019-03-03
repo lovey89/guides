@@ -31,6 +31,7 @@
 - [[#higher-order-functions][Higher order functions]]
   - [[#partially-applied-functions][Partially applied functions]]
   - [[#functions-as-parameters][Functions as parameters]]
+  - [[#the-map-and-filter-funtions][The ~map~ and ~filter~ funtions]]
 - [[#links][Links]]
 #+END_QUOTE
 
@@ -1601,7 +1602,126 @@ main = do
   print (applyTwice (3:) [1])
 #+END_SRC
 
+Some standard functions redefined
 
+#+BEGIN_SRC haskell
+zipWith' :: (a -> b -> c) -> [a] -> [b] -> [c]
+zipWith' _ [] _ = []
+zipWith' _ _ [] = []
+zipWith' f (x:xs) (y:ys) = f x y : zipWith' f xs ys
+
+main = do
+  print (zipWith' (+) [4,2,5,6] [2,6,2,3])
+  print (zipWith' max [6,3,2,1] [7,3,1,5])
+  print (zipWith' (++) ["foo ", "bar ", "baz "] ["fighters", "hoppers", "aldrin"])
+  print (zipWith' (*) (replicate 5 2) [1..])
+  print (zipWith' (zipWith' (*)) [[1,2,3],[3,5,6],[2,3,4]] [[3,2,2],[3,4,5],[5,4,3]])
+#+END_SRC
+
+The ~flip~ function can be defined as below
+
+#+BEGIN_SRC haskell
+flip' :: (a -> b -> c) -> (b -> a -> c)
+flip' f = g
+    where g x y = f y x
+
+main = do
+  print (flip' zip [1,2,3,4,5] "hello")
+  print (zipWith (flip' div) [2,2..] [10,8,6,4,2])
+#+END_SRC
+
+But because the way currying (with partial application) we can simplify it as
+below
+
+#+BEGIN_SRC haskell
+flip' :: (a -> b -> c) -> b -> a -> c
+flip' f y x = f x y
+
+main = do
+  print (flip' zip [1,2,3,4,5] "hello")
+  print (zipWith (flip' div) [2,2..] [10,8,6,4,2])
+#+END_SRC
+
+** The ~map~ and ~filter~ funtions
+
+~map~ is defined as
+
+#+BEGIN_SRC haskell
+map' :: (a -> b) -> [a] -> [b]
+map' _ [] = []
+map' f (x:xs) = f x : map f xs
+
+main = do
+  print (map (+3) [1,5,3,1,6])
+  print (map (++ "!") ["BIFF", "BANG", "POW"])
+  print (map (replicate 3) [3..6])
+  print (map (map (^2)) [[1,2],[3,4,5,6],[7,8]])
+  print (map fst [(1,2),(3,5),(6,3),(2,6),(2,5)])
+#+END_SRC
+
+~filter~ is defined as
+
+#+BEGIN_SRC haskell
+filter' :: (a -> Bool) -> [a] -> [a]
+filter' _ [] = []
+filter' p (x:xs)
+    | p x       = x : filter p xs
+    | otherwise = filter p xs
+
+main = do
+  print (filter (>3) [1,5,3,2,1,6,4,3,2,1])
+  print (filter (==3) [1,2,3,4,5])
+  print (filter even [1..10])
+  print (let notNull x = not (null x) in filter notNull [[1,2,3],[],[3,4,5],[2,2],[],[],[]])
+  print (filter (`elem` ['a'..'z']) "u LaUgH aT mE BeCaUsE I aM diFfeRent")
+  print (filter (`elem` ['A'..'Z']) "i lauGh At You BecAuse u r aLL the Same")
+#+END_SRC
+
+Both ~map~ and ~filter~ can be replaced with list comprehensions and it all
+depends on readability in each case which one to use. The [[*Quick sort][quicksort function]]
+we defined earlier can now be written in a more readable way.
+
+#+BEGIN_SRC haskell
+quicksort :: (Ord a) => [a] -> [a]
+quicksort [] = []
+quicksort (x:xs) =
+    let smallerSorted = quicksort (filter (<=x) xs)
+        biggerSorted = quicksort (filter (>x) xs)
+    in  smallerSorted ++ [x] ++ biggerSorted
+
+main = do
+  print (quicksort [10,2,5,3,1,6,7,4,2,3,4,8,9])
+  print (quicksort "the quick brown fox jumps over the lazy dog")
+#+END_SRC
+
+Some examples where we use ~filter~ and ~map~. To find the largest number under
+100000 that's divisible by 3829
+
+#+BEGIN_SRC haskell
+main = print (head (filter p [100000,99999..]))
+    where p x = x `mod` 3829 == 0
+#+END_SRC
+
+Find the sum of all odd squares that are smaller than 10000
+
+#+BEGIN_SRC haskell
+main = print (sum (takeWhile (<10000) (filter odd (map (^2) [1..]))))
+#+END_SRC
+
+We could define the exact same thing using list comprehensions (if we want to,
+it's about preference)
+
+#+BEGIN_SRC haskell
+main = print (sum (takeWhile (<10000) [n^2 | n <- [1..], odd (n^2)]))
+#+END_SRC
+
+We can also use ~map~ to create a list of partially applied functions. Below we
+use map to create a list which looks like ~[(0*),(1*),(2*),(3*),(4*),(5*)...~
+
+#+BEGIN_SRC haskell
+main = do
+  print (let listOfFuns = map (*) [0..] in (listOfFuns !! 4) 5)
+#+END_SRC
 
 * Links
 

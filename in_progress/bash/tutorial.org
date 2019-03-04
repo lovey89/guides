@@ -90,6 +90,33 @@ second
 third')
 #+END_SRC
 
+Below is an example where we read 3 lines at a time and put each row in the
+array variable ~ary~. I also added a helper function just so we can see what
+each argument looks like. The newline character is not part of the variable
+and all leading and trailing whitespaces are where they are supposed to be.
+Also no characters are escaped. It will also read as many lines as possible
+even if there is not enough to fill the wanted numbers of lines
+
+#+BEGIN_SRC bash :results output
+myfunc () {
+  echo $#
+  for var in "$@"
+  do
+    echo -n "\"$var\","
+  done
+  echo
+}
+
+while mapfile -t -n 3 ary && ((${#ary[@]})); do
+  myfunc "${ary[@]}"
+  printf '%s\n' "${ary[@]}"
+  printf -- '--- SNIP ---\n'
+done < <(echo -n 'First
+second
+  Line with leading \and trailing spaces  
+third')
+#+END_SRC
+
 ** Assigning multiple variables at once
 
 Can be useful when using ~sed~ but here is a minimal example
@@ -112,3 +139,4 @@ IFS=':' read VAR1 VAR2 <<< "  One    Two:   Three   Four"
 echo "$VAR1"
 echo "$VAR2"
 #+END_SRC
+

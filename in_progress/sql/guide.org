@@ -91,6 +91,18 @@ SELECT *
 FROM parent;
 #+END_SRC
 
+* Update values in one table given values in another table (postgresql)
+
+#+BEGIN_SRC sql
+UPDATE totable t
+SET column1 = f.column1,
+  column2 = f.column2,
+  column3 = f.column3
+FROM fromtable f
+WHERE f.id = t.id
+AND t.id = 1 -- Optional if you only want it to happen on some rows
+#+END_SRC
+
 * Interesting links
 
 [[http://rachbelaid.com/postgres-full-text-search-is-good-enough/]]

@@ -1,6 +1,7 @@
 * Table of Contents :TOC:QUOTE:
 #+BEGIN_QUOTE
 - [[#temp][Temp]]
+- [[#special-constructs][Special constructs]]
 - [[#the-if-statement][The ~if~ statement]]
   - [[#different-tests][Different tests]]
 - [[#the-for-loop][The ~for~ loop]]
@@ -28,6 +29,25 @@ echo $2
 echo $1$2
 echo $#
 #+END_SRC
+
+* Special constructs
+
+| Construct                   | Description                                                                                                                                                                                                                                                                      |
+|-----------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ~$VAR~ or ~${VAR}~          | Substitutes the variable ~VAR~ with its value                                                                                                                                                                                                                                    |
+| ~'text'~                    | All characters surrounded with the ~'~ will remain as they are. No variable substitution or escaping of characters                                                                                                                                                               |
+| ~$'text'~                   | Like the one above but it is allowed to escape characters                                                                                                                                                                                                                        |
+| ~”text”~                    | Everything surrouned in ~"~ will not be targeted for word splitting (will be kept as one argument). Variable substitution, arithmetic expansion and command substitutions is allowed. Globs are not allowed                                                                      |
+| ~$(command)~ or ~`command`~ | Command substitution. Execute the command. Quotes within the parantheses are independent on parantheses which surrounds the commadn execution expression. So nesting is possible                                                                                                 |
+| ~#comment~                  | A comment                                                                                                                                                                                                                                                                        |
+| ~;~                         | Command separator if you want multiple commands on same line                                                                                                                                                                                                                     |
+| ~\~                         | Escape character                                                                                                                                                                                                                                                                 |
+| ~~~                         | Used for you home directory. Can also be used as ~~user~ for the home directory of the user ~user~                                                                                                                                                                               |
+| ~{ commands; }~             | Group commands. Usefull if bash expects a command and you don't want to define a function. The last ~;~ seems important (unless you split up all commands on separate lines). Will be run in the same shell. A file redirect will affect all commands in the group. ~{..} >file~ |
+| ~(command)~                 | Subshell execution. Run the command in new bash shell. If the command has any side effects (changed directory, changed variables), they won't affect the current shell. Commands can be separated with ~;~                                                                       |
+| ~(( expression ))~          | Arithmetic command. Operators such as ~+~, ~-~, ~*~ and ~/~ are allowed. E.g. ~(( a=b+7 ))~ or ~if (( a < b ))~                                                                                                                                                                  |
+| ~$(( expression ))~         | Arithmetic substitution. Like the previous but the whole expression will be replaced with the result. E.g. ~echo ”The average is $(( (a+b)/2 ))”~                                                                                                                                |
+| ~command &~                 | The command will be executed in the background                                                                                                                                                                                                                                   |
 
 * The ~if~ statement
 
@@ -241,7 +261,77 @@ loop but which negates the test result
 
 * The ~case~ expression
 
+An example
+
+#+BEGIN_SRC bash :results output
+#!/bin/bash
+
+echo $LANG
+
+case $LANG in
+  en*) echo 'Hello!' ;;
+  fr*) echo 'Salut!' ;;
+  de*) echo 'Guten Tag!' ;;
+  nl*) echo 'Hallo!' ;;
+  it*) echo 'Ciao!' ;;
+  es*) echo 'Hola!' ;;
+  C|POSIX) echo 'hello world' ;;
+  *)   echo 'I do not speak your language.' ;;
+esac
+#+END_SRC
+
+Each choice consists of a pattern (or a ~|~ separated list of patterns), a
+closing parenthesis, the code that is to be executed and two semicolons that
+denotes the ~break~. The code and ~;;~ can be written on multiple lines. It
+looks like the ~;;~ needs to be there for each line and that bash doesn't
+support fall through.
+
+The example above on multiple lines (removed some options to shorten the code):
+
+#+BEGIN_SRC bash :results output
+#!/bin/bash
+
+echo $LANG
+
+case $LANG in
+  en*)
+    echo 'Hello!'
+    ;;
+  fr*)
+    echo 'Salut!'
+    ;;
+  C|POSIX)
+    echo 'hello world'
+    ;;
+  *)
+    echo 'I do not speak your language.'
+    ;;
+esac
+#+END_SRC
+
 * The ~select~ expression
+
+An example (needs to be run as a script as it depends on input from the user)
+
+#+BEGIN_SRC bash
+#/bin/bash
+
+echo "Which of these does not belong in the group?"
+select choice in Apples Pears Crisps Lemons Kiwis
+do
+  if [[ $choice = Crisps ]]
+  then
+    echo "Correct!  Crisps are not fruit."
+    break
+  fi
+  echo "Errr... no.  Try again."
+done
+#+END_SRC
+
+The program above wil present the user with a list of all the alternatives
+associated with a number. The variable (in this case ~choice~) will be set to
+the value the user picked (or empty if the answer was not valid). The menu will
+be deplayed until ~break~ is called
 
 * Examples
 ** Script with curl having a json body

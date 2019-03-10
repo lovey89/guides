@@ -1,7 +1,14 @@
 * Table of Contents :TOC:QUOTE:
 #+BEGIN_QUOTE
 - [[#temp][Temp]]
-- [[#examples][Examples]]
+- [[#the-if-statement][The ~if~ statement]]
+  - [[#different-tests][Different tests]]
+- [[#the-for-loop][The ~for~ loop]]
+  - [[#examples][Examples]]
+- [[#the-while-loop][The ~while~ loop]]
+- [[#the-case-expression][The ~case~ expression]]
+- [[#the-select-expression][The ~select~ expression]]
+- [[#examples-1][Examples]]
   - [[#script-with-curl-having-a-json-body][Script with curl having a json body]]
   - [[#run-script-with-arguments-from-a-file][Run script with arguments from a file]]
   - [[#assigning-multiple-variables-at-once][Assigning multiple variables at once]]
@@ -21,6 +28,220 @@ echo $2
 echo $1$2
 echo $#
 #+END_SRC
+
+* The ~if~ statement
+
+The basic form
+
+#+BEGIN_SRC bash :results output
+if test # Or a command
+then
+  # Code here
+fi
+#+END_SRC
+
+or with ~else~ statements. E.g.
+
+#+BEGIN_SRC bash :results output
+if test # Or a command
+then
+  # Code here
+elif test2
+then
+  # Code here
+else
+  # Code here
+fi
+#+END_SRC
+
+** Different tests
+
+See ~man test~ for more information. The spaces between the brackets and the
+command is important since ~[~ is the ~test~ command
+
+*** Files tests
+
+| Expression            | Description                                |
+|-----------------------+--------------------------------------------|
+| ~[ -e file ]~         | True if ~file~ exists                      |
+| ~[ -f file ]~         | True if ~file~ is a file (not a directory) |
+| ~[ -d file ]~         | True if ~file~ is a directory              |
+| ~[ -h file ]~         | True if ~file~ is a symbolic link          |
+| ~[ -s file ]~         | True if ~file~ exists and is not empty     |
+| ~[ -r file ]~         | True if ~file~ is readable                 |
+| ~[ -w file ]~         | True if ~file~ is writable                 |
+| ~[ -x file ]~         | True if ~file~ is executable               |
+| ~[ -O file ]~         | True if ~file~ is owned by you             |
+| ~[ -G file ]~         | True if ~file~ is owned by your group      |
+| ~[ file1 -nt file2 ]~ | True if ~file1~ is newer than ~file2~      |
+| ~[ file1 -ot file2 ]~ | True if ~file1~ is older than ~file2~      |
+
+*** Numerical tests
+
+| Expression      | Description                                |
+|-----------------+--------------------------------------------|
+| ~[ n1 -eq n2 ]~ | True if ~n1~ is equal to ~n2~              |
+| ~[ n1 -ne n2 ]~ | True if ~n1~ is not equal to ~n2~          |
+| ~[ n1 -lt n2 ]~ | True if ~n1~ less than ~n2~                |
+| ~[ n1 -gt n2 ]~ | True if ~n1~ greater than ~n2~             |
+| ~[ n1 -le n2 ]~ | True if ~n1~ less than or equal to ~n2~    |
+| ~[ n1 -ge n2 ]~ | True if ~n1~ greater than or equal to ~n2~ |
+
+*** String test
+
+| Expression         | Description                               |
+|--------------------+-------------------------------------------|
+| ~[ str ]~          | True if ~str~ is not empty                |
+| ~[ str1 = str2 ]~  | True if ~str1~ is equal to ~str2~         |
+| ~[ str1 != str2 ]~ | True if ~str1~ is not equal to ~str2~     |
+| ~[ -n str ]~       | True if ~str~ is longer than 0 characters |
+| ~[ -z str ]~       | True if ~str~ is 0 characters long        |
+| ~str1 < str2~      | String comparision                        |
+| ~str1 > str2~      | String comparision                        |
+
+When using ~[[~ instead of ~[~ you can use ~=~ or ~==~ to compare word with a
+glob expression (the glob expression need to be on the right hand side).
+Remember that if you surround the glob expression with quotes it can't be
+treated like a glob. You can also compare a string with a regex with the ~=~~
+operator like
+
+#+BEGIN_SRC bash :results output
+STRING =~ REGEX
+#+END_SRC
+
+#+BEGIN_SRC bash :results output
+#!/bin/bash
+
+filename="somefile.jpg"
+if [[ $filename = *.jpg ]]; then
+  echo "$filename is a jpeg"
+else
+  echo "$filename is not a jpeg"
+fi
+#+END_SRC
+
+*** Boolean tests
+
+| Expression                   | Description                                                                                                               |
+|------------------------------+---------------------------------------------------------------------------------------------------------------------------|
+| ~! EXPRESSION~               | True if ~EXPRESSION~ is false                                                                                             |
+| ~EXPRESSION1 -o EXPRESSION2~ | Logical /or/. Both ~EXPRESSION1~ and ~EXPRESSION2~ will always be evaluated (no lazy evaluation)                          |
+| ~EXPRESSION1 -a EXPRESSION2~ | Logical /and/. Both ~EXPRESSION1~ and ~EXPRESSION2~ will always be evaluated (no lazy evaluation). Has priority over ~-o~ |
+
+The following will only work when we surround a test expression with ~[[~
+instead of ~[~
+
+| Expression                   | Description                                                                                                   |
+|------------------------------+---------------------------------------------------------------------------------------------------------------|
+| ~EXPRESSION1 ¦¦ EXPRESSION2~ | Like ~-o~ but ~EXPRESSION2~ will not be evaluated if ~EXPRESSION1~ evaluates to true                          |
+| ~EXPRESSION1 && EXPRESSION2~ | Like ~-a~ but ~EXPRESSION2~ will not be evaluated if ~EXPRESSION1~ evaluates to false. Has priority over ~¦¦~ |
+| ~( EXPRESSION )~             | To change priority. The spaces around the parantheses are important                                          |
+
+*** Examples
+
+#+BEGIN_SRC bash :results output
+#!/bin/bash
+
+test -e /etc/X11/xorg.conf && echo 'Your Xorg is configured!'
+test -n "$HOME" && echo 'Your homedir is set!'
+[[ boar != bear ]] && echo "Boars aren't bears."
+[[ boar != b?ar ]] && echo "Boars don't look like bears."
+[[ $DISPLAY ]] && echo "Your DISPLAY variable is not empty, you probably have Xorg running."
+# The line below is commented out since the final result of that one is failing which gives problems for org mode
+#[[ ! $DISPLAY ]] && echo "Your DISPLAY variable is not not empty, you probably don't have Xorg running."
+#+END_SRC
+
+* The ~for~ loop
+
+Comes in two forms. Like a for each loop:
+
+#+BEGIN_SRC bash :results output
+for variable in argument_list
+do
+  commands
+done
+#+END_SRC
+
+And a more ~c~ like for loop with a start expression, test expression and next
+step expression
+
+#+BEGIN_SRC bash :results output
+for ((expression1, expression2, expression3)) #Som i c
+do
+  commands
+done
+#+END_SRC
+
+** Examples
+
+#+BEGIN_SRC bash :results output
+#!/bin/bash
+
+echo "Linux distributions:"
+for distro in mandrake redhat suse debian caldera
+do
+  echo "$distro"
+done
+echo "**** Finished *****"
+#+END_SRC
+
+#+BEGIN_SRC bash :results output
+#!/bin/bash
+for filename in `ls` # A glob or brace expression would fit better here
+do
+  if [ -d "$filename" ]
+  then
+    echo "Directory: $filename"
+  fi
+done
+#+END_SRC
+
+#+BEGIN_SRC bash :results output
+for (( i=10; i > 0; i-- ))
+do
+  echo "$i empty cans of beer."
+done
+#+END_SRC
+
+Which could be written as
+
+#+BEGIN_SRC bash :results output
+for i in {10..1}
+do
+  echo "$i empty cans of beer."
+done
+#+END_SRC
+
+We can also read from a file
+
+#+BEGIN_SRC bash :results output
+for var in {a..c}; do
+  read -r "$var"
+done < <(echo -n 'cat
+mouse
+dog')
+echo "$b"
+echo "$c"
+#+END_SRC
+
+* The ~while~ loop
+
+The basic form
+
+#+BEGIN_SRC bash :results output
+while test # Or a command
+do
+  # code here
+done
+#+END_SRC
+
+The keywords ~continue~ and ~break~ both exist for both the ~for~ loop and the
+~while~ loop. There is also an ~until~ loop which works exactly like the ~while~
+loop but which negates the test result
+
+* The ~case~ expression
+
+* The ~select~ expression
 
 * Examples
 ** Script with curl having a json body

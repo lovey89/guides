@@ -1,3 +1,9 @@
+* Joins
+
+[[./img/sql_joins.jpg][Visual representation of different joins]]
+
+Image found [[https://www.codeproject.com/Articles/33052/Visual-Representation-of-SQL-Joins][here]]
+
 * Insert data from another table with default values
 
 #+BEGIN_SRC sql

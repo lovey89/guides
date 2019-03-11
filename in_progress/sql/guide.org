@@ -1,6 +1,6 @@
 * Joins
 
-[[./img/sql_joins.jpg][Visual representation of different joins]]
+[[./img/sql_joins.jpg]]
 
 Image found [[https://www.codeproject.com/Articles/33052/Visual-Representation-of-SQL-Joins][here]]
 

@@ -2,6 +2,7 @@
 #+BEGIN_QUOTE
 - [[#temp][Temp]]
 - [[#special-constructs][Special constructs]]
+- [[#parameter-expansion][Parameter expansion]]
 - [[#the-if-statement][The ~if~ statement]]
   - [[#different-tests][Different tests]]
 - [[#the-for-loop][The ~for~ loop]]
@@ -48,6 +49,42 @@ echo $#
 | ~(( expression ))~          | Arithmetic command. Operators such as ~+~, ~-~, ~*~ and ~/~ are allowed. E.g. ~(( a=b+7 ))~ or ~if (( a < b ))~                                                                                                                                                                  |
 | ~$(( expression ))~         | Arithmetic substitution. Like the previous but the whole expression will be replaced with the result. E.g. ~echo ”The average is $(( (a+b)/2 ))”~                                                                                                                                |
 | ~command &~                 | The command will be executed in the background                                                                                                                                                                                                                                   |
+
+* Parameter expansion
+
+| Syntax                   | Description                                                                                                                                                                                           |
+|--------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ~${var:-word}~           | If ~var~ is unset or null this will expand to ~word~. Else to the value of ~var~                                                                                                                      |
+| ~${var-word}~            | If ~var~ is unset this will expand to ~word~. Else to the value of ~var~                                                                                                                              |
+| ~${var:=word}~           | If ~var~ is unset or null ~var~ will get the value ~word~. Then expand to the value of ~var~                                                                                                          |
+| ~${var=word}~            | If ~var~ is unset ~var~ will get the value ~word~. Then expand to the value of ~var~                                                                                                                  |
+| ~${var:+word}~           | If ~var~ is unset or null this will expand to null, else ~word~                                                                                                                                       |
+| ~${var+word}~            | If ~var~ is unset this will expand to null, else ~word~                                                                                                                                               |
+| ~${var:?word}~           | If ~var~ is unset or null, the expansion of ~word~ will be printer on stderr (or another message if ~word~ is absent) and the shell with exit with non zero exit code. Otherwise the value of ~var~   |
+| ~${var?word}~            | If ~var~ is unset, the expansion of ~word~ will be printer on stderr (or another message if ~word~ is absent) and the shell with exit with non zero exit code. Otherwise the value of ~var~           |
+| ~${var:offset:length}~   | Expand up to ~length~ characters of the value starting with ~offset~ (0 indexed). If ~length~ is absent, take everything until the end. If ~offset~ is negative (use parentheses), count from the end |
+| ~${#var}~                | Expands to the number of characters of the value of ~var~                                                                                                                                             |
+| ~${var#pattern}~         | ~pattern~ (glob) will match from the beginning of ~var~. Will expand to the value of ~var~ with the shortest match removed                                                                            |
+| ~${var##pattern}~        | ~pattern~ (glob) will match from the beginning of ~var~. Will expand to the value of ~var~ with the longest match removed                                                                             |
+| ~${var%pattern}~         | ~pattern~ (glob) will match from the end of ~var~. Will expand to the value of ~var~ with the shortest match removed                                                                                  |
+| ~${var%%pattern}~        | ~pattern~ (glob) will match from the end of ~var~. Will expand to the value of ~var~ with the longest match removed                                                                                   |
+| ~${var/pattern/string}~  | The first occurence of ~pattern~ (glob) in the value of ~var~ will be replaced with string                                                                                                            |
+| ~${var//pattern/string}~ | All occurences of ~pattern~ (glob) in the value of ~var~ will be replaced with string                                                                                                                 |
+
+#+BEGIN_SRC bash :results output
+#!/bin/bash
+
+var="a/b/c/d"
+echo "${#var}"
+echo "${var#*/}"
+echo "${var##*/}"
+echo "${var%/*}"
+echo "${var%%/*}"
+echo "${var/\//|}"
+echo "${var//\//|}"
+
+echo "${var2:-${var#*/}}" # Looks like we can nest
+#+END_SRC
 
 * The ~if~ statement
 

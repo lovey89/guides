@@ -9,6 +9,12 @@
   - [[#example][Example]]
 - [[#tcpdump][tcpdump]]
   - [[#example-1][Example]]
+- [[#ssh][ssh]]
+  - [[#attach-to-tmux-on-connect][Attach to ~tmux~ on connect]]
+  - [[#port-forwarding][Port forwarding]]
+  - [[#reverse-port-forwarding][Reverse port forwarding]]
+  - [[#setting-up-a-socks-proxy][Setting up a socks proxy]]
+  - [[#handling-keys][Handling keys]]
 #+END_QUOTE
 
 * tar
@@ -165,3 +171,23 @@ that directory will be ignored.
 #+BEGIN_SRC bash
 tcpdump -c 2000 -s 0 -i eth0 -A -w dump.pcap
 #+END_SRC
+
+* ssh
+
+** Attach to ~tmux~ on connect
+
+The following command will when connecting to ~host~ attach to an existing tmux
+session. If it doesn't exist it will create a new session and if that doesn't
+work it will run bash
+
+#+BEGIN_SRC
+ssh user@host -t 'tmux a || tmux || /bin/bash'
+#+END_SRC
+
+** Port forwarding
+
+** Reverse port forwarding
+
+** Setting up a socks proxy
+
+** Handling keys

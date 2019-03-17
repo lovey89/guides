@@ -10,6 +10,7 @@
 - [[#the-while-loop][The ~while~ loop]]
 - [[#the-case-expression][The ~case~ expression]]
 - [[#the-select-expression][The ~select~ expression]]
+- [[#colors][Colors]]
 - [[#examples-1][Examples]]
   - [[#script-with-curl-having-a-json-body][Script with curl having a json body]]
   - [[#run-script-with-arguments-from-a-file][Run script with arguments from a file]]
@@ -369,6 +370,16 @@ The program above wil present the user with a list of all the alternatives
 associated with a number. The variable (in this case ~choice~) will be set to
 the value the user picked (or empty if the answer was not valid). The menu will
 be deplayed until ~break~ is called
+
+* Colors
+
+#+BEGIN_SRC bash :results output
+#!/bin/bash
+
+for i in {0..255} ; do
+    printf "\x1b[38;5;${i}mcolour${i}\n"
+done
+#+END_SRC
 
 * Examples
 ** Script with curl having a json body

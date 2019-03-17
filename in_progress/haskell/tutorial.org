@@ -32,6 +32,8 @@
   - [[#partially-applied-functions][Partially applied functions]]
   - [[#functions-as-parameters][Functions as parameters]]
   - [[#the-map-and-filter-funtions][The ~map~ and ~filter~ funtions]]
+  - [[#lambdas][Lambdas]]
+  - [[#folds][Folds]]
 - [[#links][Links]]
 #+END_QUOTE
 
@@ -60,7 +62,7 @@ the two code blocks above have an extra space before the language name so that
 they will not be affected by the script. The code block below will be affected
 though
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   putStrLn "------------------------------------------------"
   putStrLn "VALID HASKELL PROGRAM"
@@ -70,7 +72,7 @@ main = do
 * Basics
 ** Basic arithmetic
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   -- Addition
   print (2 + 2)
@@ -93,21 +95,21 @@ main = do
 When working with negative number, always enclose them in parentheses. The
 example below won't work
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (5 * -3)
 #+END_SRC
 
 While the following will
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (5 * (-3))
 #+END_SRC
 
 ** Basic logic operators
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   -- And
   print (True && True)
@@ -122,7 +124,7 @@ main = do
 
 Testing equality
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   -- Equality
   print (9 == 9)
@@ -136,7 +138,7 @@ main = do
 ~==~ and ~/=~ will only work if the two elements can be compared. The following
 will now work
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (4 /= "hello")
 #+END_SRC
@@ -144,14 +146,14 @@ main = do
 But sometimes objects of different types can be compared. E.g. integers and
 floats. In the following example the integer will be converted to a float
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (4.0 == 4)
 #+END_SRC
 
 Comparing number
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (4 < 5)
   print (5 < 4)
@@ -171,14 +173,14 @@ examples we still use parantheses for the ~print~ function. Otherwise ~succ 8~
 would be treated a two arguments to the ~print~ function instead of a function
 call itself
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (succ 8)
 #+END_SRC
 
 Multiple arguments
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (min 8 15)
   print (max 6.4 2)
@@ -187,7 +189,7 @@ main = do
 A function call has the highest precedence so you don't need to put parantheses
 around it
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (succ 9 + max 5 4 + 1)
   print ((succ 9) + (max 5 4) + 1)
@@ -197,7 +199,7 @@ main = do
 
 You can make a function /infix/ by putting backticks around the function name
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (div 11 3)
   print (11 `div` 3)
@@ -207,7 +209,7 @@ If a function is comprised only of special characters, it's considered an infix
 function by default. If we want to pass it to another function or call it as a
 prefix function, we have to surround it in parentheses.
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print ((==) 11 3)
   print ((==) 3 3)
@@ -217,7 +219,7 @@ main = do
 
 The following code defines a function that will double the input value
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 doubleMe x = x + x
 
 main = do
@@ -226,7 +228,7 @@ main = do
 
 The order the functions are defined doesn't matter
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (doubleMe 5)
 
@@ -236,7 +238,7 @@ doubleMe x = x + x
 Note that the ~doubleMe~ function doesn't specify a type so any type where the
 ~+~ operator can be applied can be used
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 doubleMe x = x + x
 
 main = do
@@ -246,7 +248,7 @@ main = do
 
 Let us define 2 functions that double 2 input values and sums them together
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 doubleMe x = x + x
 
 doubleUs x y = 2 * x  + 2 * y
@@ -259,7 +261,7 @@ main = do
 
 And let us define a function with no arguments
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 numberOne = 1
 
 main = do
@@ -279,7 +281,7 @@ statement is an expression in Haskell as it has a return value. Below we are
 writing the ~if~ statement on multiple lines but we can write it all on the same
 line if we wanted to
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 doubleOddNumber x = if x `mod` 2 == 0
                       then x
                       else x * 2
@@ -293,7 +295,7 @@ main = do
 
 Since the ~if~ statement have a return value we can easily add 1 to the result
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 doubleOddNumberAndAddOne x = (if x `mod` 2 == 0
                                 then x
                                 else x * 2) + 1
@@ -311,7 +313,7 @@ In Haskell lists stores data of the same type so we can't have a list which both
 store integers and characters. The ~let~ keyword is used in Haskell to define a
 name
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   let myNumberList = [1,2,4,8,16,32]
   print myNumberList
@@ -323,7 +325,7 @@ main = do
 
 As you see from the output of ~myCharList~ above, a string is a list of chars
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print ("Chars" == ['C','h','a','r','s'])
 #+END_SRC
@@ -335,7 +337,7 @@ Since strings are list we can use list functions on them
 Concatenation is done with the ~++~ operator. Note that it can also be used on
 strings which are nothing but a list of characters
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print ([1,2,3,4] ++ [5,6,7,8])
   print ("Hello" ++ " " ++ "World")
@@ -347,7 +349,7 @@ all elements on the left hand side of the ~++~. This may affect performance for
 big left hand side lists. Note that putting something at the beginning of a list
 using the cons operator (~:~) is instantaneous
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (1:[2,3,4])
   print ('H':"ello World")
@@ -362,7 +364,7 @@ empty list).
 To get an element at a specific index in the list we use the ~!!~ operator. The
 index starts at 0.
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   let myIntegerList = [1,2,4,8,16,32]
   print (myIntegerList !! 1)
@@ -375,7 +377,7 @@ A list can contain of other lists. As before each element in a list needs to be
 of the same type which means that all lists in a list of lists needs to contain
 the same type of element, e.g. integers. The lists can be of different lengths.
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   let b = [[1,2,3,4],[5,3,3,3],[1,2,2,3,4],[1,2,3]]
   print b
@@ -391,7 +393,7 @@ contains can be compared with these operators. The elements in the lists are
 compared in order and if the elements on a index is equal the next pairs will
 be compared
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print ([3,2,1] > [2,1,0])
   print ([3,2,1] > [2,10,100])
@@ -405,35 +407,35 @@ main = do
 
 ~head~ returns the first element in a list
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (head [3,2,1])
 #+END_SRC
 
 ~tail~ returns everything but the head
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (tail [4,3,2,1,0])
 #+END_SRC
 
 ~last~ returns the last element in a list
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (last [4,3,2,1,0])
 #+END_SRC
 
 ~init~ returns everything but the last element
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (init [4,3,2,1,0])
 #+END_SRC
 
 ~length~ returns the length of a list
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (length [4,3,2,1,0])
 #+END_SRC
@@ -441,7 +443,7 @@ main = do
 ~null~ checks if a list is empty. Returns ~True~ if empty. To be used instead of
 checking for equality with ~[]~
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (null [4,3,2,1,0])
   print (null [])
@@ -449,7 +451,7 @@ main = do
 
 ~reverse~ reverses a list
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (reverse [4,3,2,1,0])
 #+END_SRC
@@ -457,7 +459,7 @@ main = do
 ~take~ returns the first ~x~ elements from a list. Can be used on infinite
 sequences
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (take 3 [4,3,2,1,0])
   print (take 8 [4,3,2,1,0])
@@ -467,7 +469,7 @@ main = do
 ~drop~ is the opposite of ~take~. We return everything but the first ~x~
 elements
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (drop 3 [4,3,2,1,0])
   print (drop 8 [4,3,2,1,0])
@@ -477,7 +479,7 @@ main = do
 ~maximum~ and ~minimum~ returns the largest or smallest element if the elements
 can be compared
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (maximum [4,3,20,-4,1,0])
   print (minimum [4,3,20,-4,1,0])
@@ -485,7 +487,7 @@ main = do
 
 ~sum~ and ~product~ returns the sum or product of a list of numbers
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (sum [1,2,3,4])
   print (product [1,2,3,4])
@@ -493,7 +495,7 @@ main = do
 
 ~elem~ checks if an element is present in a list
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (2 `elem` [1,2,3,4])
   print (5 `elem` [1,2,3,4])
@@ -505,7 +507,7 @@ If you want to create a list with all numbers ranging from 1 to 50 you can
 create the list and provide each number individually. Or you can just write
 ~[1..50]~. You can do something similar with characters
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print ([1..50])
   print (['a'..'z'])
@@ -516,7 +518,7 @@ main = do
 You can also define a step. The difference between the first and second element
 in the range will be the step size
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print ([1,4..50])
   print ([10,20..100])
@@ -524,7 +526,7 @@ main = do
 
 You can also have a negative step size
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print ([20,19..4])
   print ([100,90..0])
@@ -533,7 +535,7 @@ main = do
 Because the way floats are handled in the computer it's bad idea to use floats
 with ranges
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print ([0.1, 0.3 .. 1])
 #+END_SRC
@@ -541,14 +543,14 @@ main = do
 You don't have to specify an upper limit. This will create an infinite lists but
 since Haskell is lazy it will only generate as much as is needed
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (take 24 [13,26..])
 #+END_SRC
 
 To repeat a list an infinite amount of times you can use the ~cycle~ function
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (take 24 (cycle [1,2,3,4]))
   print (take 24 (cycle "Batman"))
@@ -557,7 +559,7 @@ main = do
 To repeat an element an infinite numbers of time you can use the ~repeat~
 function
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (take 24 (repeat 'A'))
   -- Or just use replicate for the same results
@@ -569,7 +571,7 @@ main = do
 With list comprehensions we can transform every value in a list by applying a
 function to it. Below we will multiply every value in a list with itself
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print ([x*x | x <- [1..10]])
 #+END_SRC
@@ -577,7 +579,7 @@ main = do
 We can also filter the result. Say that we are only interested in the power if
 two greater than 50
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print ([x*x | x <- [1..10], x*x > 50])
 #+END_SRC
@@ -586,7 +588,7 @@ We can include multiple predicates for the filtering and the element will only
 be included in the resulting list if all of them evaluates to true. Let's add
 the predicate that the result should be smaller than 90
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print ([x*x | x <- [1..10], x*x > 50, x*x < 90])
 #+END_SRC
@@ -594,7 +596,7 @@ main = do
 We can also draw values from multiple lists where all combinations from the
 input lists will be created. Below we will create tuples for each result
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print ([(x,y) | x <- [1..4], y <- [3..5]])
 #+END_SRC
@@ -602,14 +604,14 @@ main = do
 We can also use predicates when drawing values from multiple lists. Below we
 will only output the pairs whos sum is even
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print ([(x,y) | x <- [1..4], y <- [3..5], even (x + y)])
 #+END_SRC
 
 We can now define our own version of ~length~
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 length' xs = sum [1 | _ <- xs]
 
 main = do
@@ -622,7 +624,7 @@ would be put in that variable if we gave it a name
 We can also nest list comprehensions. The code block below let us remove all odd
 values from the containing lists without flattening it
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   let xxs = [[1,3,5,2,3,1,2,4,5],[1,2,3,4,5,6,7,8,9],[1,2,4,2,1,6,3,1,3,2,3,6]]
   print ([[ x | x <- xs, even x ] | xs <- xxs])
@@ -636,7 +638,7 @@ with parantheses.
 
 The following code will run fine. You have a list of integer pairs:
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print ([(1,2),(8,11),(4,5)])
 #+END_SRC
@@ -644,7 +646,7 @@ main = do
 But the following wont work as we have mixed integer pairs with an integer
 triple:
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print ([(1,2),(8,5,11),(4,5)])
 #+END_SRC
@@ -655,7 +657,7 @@ above would have worked.
 We have two functions that can be used to operate on pairs: ~fst~ and ~snd~
 which are used to get the first and second value respectively
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (fst (1, "one"))
   print (snd (1, "one"))
@@ -663,7 +665,7 @@ main = do
 
 Those functions only work on pairs. The following code won't work
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (fst (1, "one", "ett"))
   print (snd (1, "one", "ett"))
@@ -673,7 +675,7 @@ Haskell also has a function called ~zip~ which takes two lists and zips them
 together by joining the matching elements together until the shortest list is
 depleted. The result will be a list of tuples.
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (zip [1,2,3,4,5] [5,5,5,5,5])
   print (zip [1..] ["apple", "orange", "cherry", "mango"])
@@ -681,7 +683,7 @@ main = do
 
 To reverse the effect you can call the ~unzip~ function
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (unzip [(1,"apple"),(2,"orange"),(3,"cherry"),(4,"mango")])
 #+END_SRC
@@ -690,7 +692,7 @@ An example how tuples can be used is shown below. The function calculates all
 right triangles with sides less than or equal to 10 and a perimeter exactly
 equal to 24
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 rightTriangles = [(a,b,c) | c <- [1..10], b <- [1..c], a <- [1..b], a^2 + b^2 == c^2, a+b+c == 24]
 
 main = do
@@ -704,7 +706,7 @@ we write a number, we don't have to tell Haskell it's a number. It can infer
 that on its own, so we don't have to explicitly write out the types of our
 functions and expressions to get things done.
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 import Data.Typeable
 
 main = do
@@ -719,7 +721,7 @@ Functions also have types and we can choose to give them an explicit type
 declaration. This is considered good practice except when writing short
 functions.
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 import Data.Typeable
 
 removeNonUppercase :: [Char] -> [Char]
@@ -732,7 +734,7 @@ main = do
 The type above means that it accepts a strings as parameter and returns a
 string. We can use the ~String~ keyword as well instead of ~[Char]~.
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 import Data.Typeable
 
 -- Try removing the type declaration and you will see that the compiler can infer the type anyway
@@ -745,7 +747,7 @@ main = do
 
 If we have a method accepting three argumente you can write like this:
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 import Data.Typeable
 
 addThree :: Int -> Int -> Int -> Int
@@ -861,7 +863,7 @@ Can be created from a string using the ~read~ function.
 
 Examples:
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (read "True" || False)
   print (read "8.2" + 3.8)
@@ -871,7 +873,7 @@ main = do
 
 But what happens if we just run:
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   let readValue = read "4"
   print readValue
@@ -883,7 +885,7 @@ that the variable is a ~Bool~ and if we use it as an ~Int~ the compiler would
 assume that the variable is an ~Int~. See what happens when we add an ~Int~ to
 the result
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   let readValue = read "4"
   print (readValue + 4)
@@ -893,7 +895,7 @@ To overcome this problem we can use *type annotations*. Type annotations are a
 way of explicitly saying what the type of an expression should be. We do that by
 adding ~::~~ at the end of the expression and then specifying a type
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   let readValue = read "4" :: Int
   print readValue
@@ -901,7 +903,7 @@ main = do
 
 Can also be used on other classes
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (read "5" :: Int)
   print (read "5" :: Float)
@@ -921,7 +923,7 @@ Are sequentially ordered types. They can be used in list ranges and have defined
 successors and predecesors, which you can get with the ~succ~ and ~pred~
 functions.
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (['a'..'e'])
   print (succ 'B')
@@ -942,7 +944,7 @@ that they act like polymorphic constants.
 
 Examples:
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (minBound :: Int)
   print (maxBound :: Int)
@@ -965,7 +967,7 @@ Is a numeric type class. All members can act like numbers
 
 So ~20~ is part of ~Num~ and may act like any type that's a member of ~Num~.
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (20 :: Int)
   print (20 :: Integer)
@@ -985,14 +987,14 @@ we see that the ~*~ function accepts two arguments of the same type which
 explains why the following code won't work (~Int~ and ~Integer~ are not the same
 class!)
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print ((5 :: Int) * (6 :: Integer))
 #+END_SRC
 
 while the following will (~5~ is a ~Num~ and may be represented by an ~Integer~)
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (5 * (6 :: Integer))
 #+END_SRC
@@ -1032,7 +1034,7 @@ Te patterns are checked from top to bottom. Whenever a match is found the
 corresponding function body will be executed. The type signature is not needed
 but I include it for clarity
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 hiddenNumber :: (Integral a) => a -> String
 hiddenNumber 2 = "Close"
 hiddenNumber 3 = "Found number 3!"
@@ -1048,7 +1050,7 @@ A pattern doesn't have to be exhaustive or include a "catch-all" pattern. The
 code snippet below will complain about a non-exhaustive pattern as there is no
 behaviour defined for the ~d~ input
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 badUpperCase :: Char -> Char
 badUpperCase 'a' = 'A'
 badUpperCase 'b' = 'B'
@@ -1062,7 +1064,7 @@ main = do
 
 Another example that uses both pattern matching and recursion
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 factorial :: (Integral a) => a -> a
 factorial 0 = 1
 factorial n = n * factorial (n - 1)
@@ -1078,7 +1080,7 @@ main = do
 
 Pattern matching can also be used to unpack tuples
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 -- Without unpacking
 addVectors1 :: (Num a) => (a, a) -> (a, a) -> (a, a)
 addVectors1 a b = (fst a + fst b, snd a + snd b)
@@ -1095,7 +1097,7 @@ main = do
 If there are variables in the pattern that we are not interested in we can use
 ~_~. Below we have defined own implementations of ~fst~ and ~snd~.
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 fst' :: (a, b) -> a
 fst' (x, _) = x
 
@@ -1109,7 +1111,7 @@ main = do
 
 Pattern matching can also be used in list comprehensions
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   let xs = [(1,3), (4,3), (2,4), (5,3), (5,6), (3,1)]
   print [a+b | (a,b) <- xs]
@@ -1117,7 +1119,7 @@ main = do
 
 We can also match with different lengths on lists
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 listStatus :: (Show a) => [a] -> String
 listStatus [] = "The list is empty"
 listStatus (x:[]) = "The list has one element: " ++ show x
@@ -1131,7 +1133,7 @@ main = do
 
 Recursion with lists
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 sum' :: (Num a) => [a] -> a
 sum' [] = 0
 sum' (x:xs) = x + sum' xs
@@ -1142,7 +1144,7 @@ main = do
 
 Sometimes we want to refer to whole match pattern. We could write
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 firstLetter :: String -> String
 firstLetter "" = error "The string cannot be empty"
 firstLetter (x:xs) = "The first letter of " ++ x:xs ++ " is " ++ [x]
@@ -1155,7 +1157,7 @@ But we can use something called /patterns/ if we want to refer to the whole
 matched pattern. You do that by giving the whole pattern a name followed by ~@~
 and then the pattern as usual
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 firstLetter :: String -> String
 firstLetter "" = error "The string cannot be empty"
 firstLetter all@(x:xs) = "The first letter of " ++ all ++ " is " ++ [x]
@@ -1168,7 +1170,7 @@ main = do
 
 Instead of matching on fixed patterns we can use guards to match on conditions
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 bmiString :: (RealFloat a) => a -> String
 bmiString bmi
     | bmi <= 18.5 = "Underweight"
@@ -1191,7 +1193,7 @@ catch-all guard), evaluation falls through to the next pattern.
 All guards can also be defined on the same line but the readability is not as
 nice then
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 max1' :: (Ord a) => a -> a -> a
 max1' a b | a > b = a | otherwise = b
 
@@ -1210,7 +1212,7 @@ main = do
 We can change our example from the [[*Guards][guards]] section above to accept wight and
 height instead
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 bmiString :: (RealFloat a) => a -> a -> String
 bmiString weight height
     | weight / height ^ 2 <= 18.5 = "Underweight"
@@ -1225,7 +1227,7 @@ main = do
 We have a lot of repeated code (which is also executed for every guard we
 test!). We can redefine the code above with the ~where~ clause
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 bmiString :: (RealFloat a) => a -> a -> String
 bmiString weight height
     | bmi <= 18.5 = "Underweight"
@@ -1242,7 +1244,7 @@ Now the ~bmi~ variable is only calculated once and the code looks much better
 
 We can also use pattern matching in the ~where~ clause. Below is a silly example
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 initials :: String -> String -> String
 initials firstname lastname = [f] ++ ". " ++ [l] ++ "."
     where (f:_) = firstname
@@ -1255,7 +1257,7 @@ main = do
 Functions can also be defined in the ~where~ clause. Say we want to calculate
 the bmi for a list of weigth-height tuples
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 calcBmis :: (RealFloat a) => [(a, a)] -> [a]
 calcBmis xs = [bmi w h | (w, h) <- xs]
     where bmi weight height = weight / height ^ 2
@@ -1273,7 +1275,7 @@ functions helper functions as well, each with its own ~where~ clause.
 The ~let~ keyword can be used to define very local variables and has the form
 ~let <bindings> in <expression>~. E.g.
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 cylinder :: (RealFloat a) => a -> a -> a
 cylinder r h =
     let sideArea = 2 * pi * r * h
@@ -1289,7 +1291,7 @@ difference is that ~let~ bindings are expression (and returns a value) while
 the ~where~ binding is not. Just like the ~if~ statement we can use it almost
 anywhere
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print [if 5 > 3 then "Woo" else "Boo", if 'a' > 'b' then "Foo" else "Bar"]
   print (4 * (if 10 > 5 then 10 else 0) + 2)
@@ -1300,14 +1302,14 @@ main = do
 If we want to bind multiple variables inline we can separate them with
 semicolons (it's optional to put a semicolon after the last binding)
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (let a = 100; b = 200; c = 300 in a*b*c, let foo="Hey "; bar = "there!" in foo ++ bar)
 #+END_SRC
 
 You can pattern match with ~let~ bindings
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print ((let (a,b,c) = (1,2,3) in a+b+c) * 100)
 #+END_SRC
@@ -1320,7 +1322,7 @@ to the output function and all predicates and sections that come after of the
 binding. The following code block will only output the BMI of people with a BMI
 over 25
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 calcBmis :: (RealFloat a) => [(a, a)] -> [a]
 calcBmis xs = [bmi | (w, h) <- xs, let bmi = w / h ^ 2, bmi >= 25.0]
 
@@ -1343,7 +1345,7 @@ anywhere. Case expressions are as the name implies, expressions.
 
 Compare the two interchangable functions below
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 head0 :: [a] -> a
 head0 [] = error "No head for empty lists!"
 head0 (x:_) = x
@@ -1373,7 +1375,7 @@ expression and no suitable pattern is found, a runtime error occurs.
 
 Another example
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 describeList :: [a] -> String
 describeList xs = "The list is " ++ case xs of [] -> "empty."
                                                [x] -> "a singleton list."
@@ -1386,7 +1388,7 @@ main = do
 
 Which could also be written as
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 describeList :: [a] -> String
 describeList xs = "The list is " ++ what xs
     where what [] = "empty."
@@ -1407,7 +1409,7 @@ instead we many times have to use recursion to declare what something is.
 
 ** Maximum
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 maximum' :: (Ord a) => [a] -> a
 maximum' [] = error "maximum of empty list"
 maximum' [x] = x
@@ -1422,7 +1424,7 @@ main = do
 
 ** Replicate
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 replicate' :: (Num i, Ord i) => i -> a -> [a]
 replicate' n x
     | n <= 0    = []
@@ -1434,7 +1436,7 @@ main = do
 
 ** Take
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 take' :: (Num i, Ord i) => i -> [a] -> [a]
 take' n _
     | n <= 0   = []
@@ -1447,7 +1449,7 @@ main = do
 
 ** Reverse
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 reverse' :: [a] -> [a]
 reverse' [] = []
 reverse' (x:xs) = reverse' xs ++ [x]
@@ -1458,7 +1460,7 @@ main = do
 
 ** Repeat
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 repeat' :: a -> [a]
 repeat' x = x:repeat' x
 
@@ -1468,7 +1470,7 @@ main = do
 
 ** Zip
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 zip' :: [a] -> [b] -> [(a,b)]
 zip' _ [] = []
 zip' [] _ = []
@@ -1480,7 +1482,7 @@ main = do
 
 ** Elem
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 elem' :: (Eq a) => a -> [a] -> Bool
 elem' a [] = False
 elem' a (x:xs)
@@ -1494,7 +1496,7 @@ main = do
 
 ** Quick sort
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 quicksort :: (Ord a) => [a] -> [a]
 quicksort [] = []
 quicksort (x:xs) =
@@ -1531,7 +1533,7 @@ As you can see, ~->~ is right-associative. So we can call the ~max~ function
 like this (we first apply the first parameter which returns a new function where
 we apply the second parameter)
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print ((max 5) 4)
   print ((max 8) 9)
@@ -1547,7 +1549,7 @@ let max3 = max 3
 or in a program (note that the ~Num~ class constraint is added to the function
 signature because 3 is a ~Num~)
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 max3 :: (Num a, Ord a) => a -> a
 max3 = max 3
 
@@ -1559,7 +1561,7 @@ main = do
 We can also have partially applied infix functions by surrounding it with
 parameters and just writing one of the parameters
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 divideByTen :: (Floating a) => a -> a
 divideByTen = (/10)
 
@@ -1573,7 +1575,7 @@ main = do
 
 or
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 isUpperAlphanum :: Char -> Bool
 isUpperAlphanum = (`elem` ['A'..'Z'])
 
@@ -1591,7 +1593,7 @@ a parameter is a function we will have to surround it's type signature with
 parentheses. The following function will apply a given function two times to
 another given parameter
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 applyTwice :: (a -> a) -> a -> a
 applyTwice f x = f (f x)
 
@@ -1604,7 +1606,7 @@ main = do
 
 Some standard functions redefined
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 zipWith' :: (a -> b -> c) -> [a] -> [b] -> [c]
 zipWith' _ [] _ = []
 zipWith' _ _ [] = []
@@ -1620,7 +1622,7 @@ main = do
 
 The ~flip~ function can be defined as below
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 flip' :: (a -> b -> c) -> (b -> a -> c)
 flip' f = g
     where g x y = f y x
@@ -1633,7 +1635,7 @@ main = do
 But because the way currying (with partial application) we can simplify it as
 below
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 flip' :: (a -> b -> c) -> b -> a -> c
 flip' f y x = f x y
 
@@ -1646,7 +1648,7 @@ main = do
 
 ~map~ is defined as
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 map' :: (a -> b) -> [a] -> [b]
 map' _ [] = []
 map' f (x:xs) = f x : map f xs
@@ -1661,7 +1663,7 @@ main = do
 
 ~filter~ is defined as
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 filter' :: (a -> Bool) -> [a] -> [a]
 filter' _ [] = []
 filter' p (x:xs)
@@ -1681,7 +1683,7 @@ Both ~map~ and ~filter~ can be replaced with list comprehensions and it all
 depends on readability in each case which one to use. The [[*Quick sort][quicksort function]]
 we defined earlier can now be written in a more readable way.
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 quicksort :: (Ord a) => [a] -> [a]
 quicksort [] = []
 quicksort (x:xs) =
@@ -1697,31 +1699,215 @@ main = do
 Some examples where we use ~filter~ and ~map~. To find the largest number under
 100000 that's divisible by 3829
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = print (head (filter p [100000,99999..]))
     where p x = x `mod` 3829 == 0
 #+END_SRC
 
 Find the sum of all odd squares that are smaller than 10000
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = print (sum (takeWhile (<10000) (filter odd (map (^2) [1..]))))
 #+END_SRC
 
 We could define the exact same thing using list comprehensions (if we want to,
 it's about preference)
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = print (sum (takeWhile (<10000) [n^2 | n <- [1..], odd (n^2)]))
 #+END_SRC
 
 We can also use ~map~ to create a list of partially applied functions. Below we
 use map to create a list which looks like ~[(0*),(1*),(2*),(3*),(4*),(5*)...~
 
-#+BEGIN_SRC haskell
+#+BEGIN_SRC python :python runghc :results output
 main = do
   print (let listOfFuns = map (*) [0..] in (listOfFuns !! 4) 5)
 #+END_SRC
+
+** Lambdas
+
+Lambdas are anonymous funtions (and are defined where they are used). To define
+a lambda we write ~\~ followed by the parameters (separated by spaces), then
+~->~ followed by the function body. Usually a lambda is surrounded with
+parentheses so it doesn't extend to the end of the line. The example below could
+have
+
+#+BEGIN_SRC python :python runghc :results output
+main = do
+  print (filter (\x -> odd x || x > 20 ) [1..25])
+#+END_SRC
+
+Don't use lambdas to replace partial application. This code snippet
+
+#+BEGIN_SRC python :python runghc :results output
+main = print (map (\x -> x + 3) [1,6,3,2])
+#+END_SRC
+
+can be written as (which is preferrable)
+
+#+BEGIN_SRC python :python runghc :results output
+main = print (map (+3) [1,6,3,2])
+#+END_SRC
+
+Like normal functions, lambdas can accept multiple parameters
+
+#+BEGIN_SRC python :python runghc :results output
+main = print (zipWith (\a b -> (a * 30 + 3) / b) [5,4,3,2,1] [1,2,3,4,5])
+#+END_SRC
+
+and accept pattern matching. We can't define multiple patterns so if the pattern
+doesn't match in a lambda a runtime error occurs.
+
+#+BEGIN_SRC python :python runghc :results output
+main = print (map (\(a,b) -> a + b) [(1,2),(3,5),(6,3),(2,6),(2,5)])
+#+END_SRC
+
+If a function is meant to be partially applied it is preferrable if the function
+returns a lambda to show this
+
+#+BEGIN_SRC python :python runghc :results output
+flip' :: (a -> b -> c) -> b -> a -> c
+flip' f x y = f y x
+#+END_SRC
+
+Should be written like this
+
+#+BEGIN_SRC python :python runghc :results output
+flip' :: (a -> b -> c) -> b -> a -> c
+flip' f = \x y -> f y x
+#+END_SRC
+
+The most common use case with flip is calling it with just the function
+parameter and then passing the resulting function on to a map or a filter.
+
+** Folds
+
+*** The ~foldl~ function
+
+The signature of ~foldl~ is
+
+#+BEGIN_SRC  haskell
+foldl :: (a -> b -> a) -> a -> [b] -> a
+#+END_SRC
+
+and works like this
+
+#+BEGIN_SRC
+foldl op acc [1, 2, 3, 4]
+((((acc `op` 1) `op` 2) `op` 3) `op` 4)
+
+foldl (-) 0 [1,2,3,4]
+((((0 - 1) - 2) - 3) - 4) = -10
+#+END_SRC
+
+eg.
+
+#+BEGIN_SRC python :python runghc :results output
+main = print (foldl (-) 0 [1,2,3,4])
+#+END_SRC
+
+Here's ~sum~ reimplemented
+
+#+BEGIN_SRC python :python runghc :results output
+sum' :: (Num a) => [a] -> a
+sum' xs = foldl (\acc x -> acc + x) 0 xs
+-- or even
+-- sum' = foldl (+) 0
+
+main = print (sum' [3,5,2,1])
+#+END_SRC
+
+There's also a ~foldl1~ function that works like ~foldl~ but which doesn't
+expect a explicit starting value but will take the first value in the list as
+starting value. Will not work with empty lists
+
+*** The ~foldr~ funtion
+
+The signature of ~foldr~ is
+
+#+BEGIN_SRC  haskell
+foldr :: (a -> b -> b) -> b -> [a] -> b
+#+END_SRC
+
+and works like this
+
+#+BEGIN_SRC
+foldr op acc [1,2,3,4]
+(1 `op` (2 `op` (3 `op` (4 `op` acc))))
+
+foldr (-) 0 [1,2,3,4]
+(1 - (2 - (3 - (4 - 0)))) = -2
+#+END_SRC
+
+eg.
+
+#+BEGIN_SRC python :python runghc :results output
+main = print (foldr (-) 0 [1,2,3,4])
+#+END_SRC
+
+Here's ~map~ reimplemented
+
+#+BEGIN_SRC python :python runghc :results output
+map' :: (a -> b) -> [a] -> [b]
+map' f xs = foldr (\x acc -> f x : acc) [] xs
+
+main = print (map' (+3) [1,2,3])
+#+END_SRC
+
+A major difference between ~foldl~ and ~foldr~ is that ~foldr~ will run on
+infinite lists. If you take an infinite list at some point and you fold it up
+from the right, you'll eventually reach the beginning of the list. However, if
+you take an infinite list at a point and you try to fold it up from the left,
+you'll never reach an end!
+
+The following will work
+
+#+BEGIN_SRC python :python runghc :results output
+map' :: (a -> b) -> [a] -> [b]
+map' f xs = foldr (\x acc -> f x : acc) [] xs
+
+main = print (take 5 (map' (+3) [1..]))
+#+END_SRC
+
+and this will run forever
+
+#+BEGIN_SRC  haskell
+map' :: (a -> b) -> [a] -> [b]
+map' f xs = foldl (\acc x -> acc ++ [f x]) [] xs
+
+main = print (take 5 (map' (+3) [1..]))
+#+END_SRC
+
+There's also a ~foldr1~ function that works like ~foldr~ but which doesn't
+expect a explicit starting value but will take the last value in the list as
+starting value. Will not work with empty lists
+
+*** Some fold examples
+
+Note that all the functions below are not optimal but just to show how folds
+works
+
+#+BEGIN_SRC python :python runghc :results output
+maximum' :: (Ord a) => [a] -> a
+maximum' = foldr1 (\x acc -> if x > acc then x else acc)
+
+reverse' :: [a] -> [a]
+reverse' = foldl (\acc x -> x : acc) []
+
+product' :: (Num a) => [a] -> a
+product' = foldr1 (*)
+
+filter' :: (a -> Bool) -> [a] -> [a]
+filter' p = foldr (\x acc -> if p x then x : acc else acc) []
+
+head' :: [a] -> a
+head' = foldr1 (\x _ -> x)
+
+last' :: [a] -> a
+last' = foldl1 (\_ x -> x)
+#+END_SRC
+
 
 * Links
 

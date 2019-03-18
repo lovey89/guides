@@ -34,6 +34,8 @@
   - [[#the-map-and-filter-funtions][The ~map~ and ~filter~ funtions]]
   - [[#lambdas][Lambdas]]
   - [[#folds][Folds]]
+  - [[#function-application-with-][Function application with ~$~]]
+  - [[#function-composition][Function composition]]
 - [[#links][Links]]
 #+END_QUOTE
 
@@ -1937,7 +1939,7 @@ main = do
   print (sum (map sqrt [1..130]))
 #+END_SRC
 
-*** Function application with ~$~
+** Function application with ~$~
 
 It's defined as
 
@@ -1984,6 +1986,21 @@ four function with the parameter 3
 #+BEGIN_SRC haskell
 main = print (map ($ 3) [(4+), (10*), (^2), sqrt])
 #+END_SRC
+
+** Function composition
+
+In mathematics, function composition is defined like ~(f∘g)(x) = f(g(x))~. So
+function composition will call the function ~g~ with the parameter ~x~ and pass
+the result to the function ~f~. In Haskell we do function composition with the
+~.~ function which is defined like
+
+#+BEGIN_SRC haskell
+(.) :: (b -> c) -> (a -> b) -> a -> c
+f . g = \x -> f (g x)
+#+END_SRC
+
+So the expression ~negate . (* 3)~ returns a function which takes a number,
+multiplies it with 3 and the negates it.
 
 * Links
 

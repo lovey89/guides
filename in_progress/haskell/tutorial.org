@@ -34,7 +34,7 @@
   - [[#the-map-and-filter-funtions][The ~map~ and ~filter~ funtions]]
   - [[#lambdas][Lambdas]]
   - [[#folds][Folds]]
-  - [[#function-application-with-][Function application with ~$~]]
+  - [[#function-application-with-the--function][Function application with the ~$~ function]]
   - [[#function-composition][Function composition]]
 - [[#links][Links]]
 #+END_QUOTE
@@ -1939,7 +1939,7 @@ main = do
   print (sum (map sqrt [1..130]))
 #+END_SRC
 
-** Function application with ~$~
+** Function application with the ~$~ function
 
 It's defined as
 
@@ -2000,7 +2000,77 @@ f . g = \x -> f (g x)
 #+END_SRC
 
 So the expression ~negate . (* 3)~ returns a function which takes a number,
-multiplies it with 3 and the negates it.
+multiplies it with 3 and the negates it. We could use lambdas but in many cases
+function composition is clearer and more concise. Compare:
+
+#+BEGIN_SRC haskell
+main = do
+  print (map (\x -> negate (abs x)) [5,-3,-6,7,-3,2,-19,24])
+  print (map (negate . abs) [5,-3,-6,7,-3,2,-19,24])
+#+END_SRC
+
+Function composition is right associative (~f (g (z x))~ is equal to
+~(f . g . z) x~), so:
+
+#+BEGIN_SRC haskell
+main = do
+  print (map (\xs -> negate (sum (tail xs))) [[1..5],[3..6],[1..7]])
+  print (map (negate . sum . tail) [[1..5],[3..6],[1..7]])
+#+END_SRC
+
+If a function accepts multiple parameters we will have to partially apply it
+until it only accepts one parameter. E.g.
+
+#+BEGIN_SRC haskell
+main = do
+  print (sum (replicate 5 (max 6.7 8.9)))
+  print ((sum . replicate 5 . max 6.7) 8.9)
+  print (sum . replicate 5 . max 6.7 $ 8.9)
+#+END_SRC
+
+We can also use function composition when we want to use currying to get rid of
+a parameter on both sides
+
+#+BEGIN_SRC haskell
+fn0 x = ceiling (negate (tan (cos (max 50 x))))
+fn1 x = (ceiling . negate . tan . cos . max 50) x
+fn2 = ceiling . negate . tan . cos . max 50
+
+main = do
+  print (fn0 67)
+  print (fn1 67)
+  print (fn2 67)
+#+END_SRC
+
+A more advanced example
+
+#+BEGIN_SRC haskell
+oddSquareSum :: Integer
+oddSquareSum = sum (takeWhile (<10000) (filter odd (map (^2) [1..])))
+
+main = print (oddSquareSum)
+#+END_SRC
+
+Can be written as
+
+#+BEGIN_SRC haskell
+oddSquareSum :: Integer
+oddSquareSum = sum . takeWhile (<10000) . filter odd . map (^2) $ [1..]
+
+main = print (oddSquareSum)
+#+END_SRC
+
+But it's not very readable so the following is probably preferrable
+
+#+BEGIN_SRC haskell
+oddSquareSum :: Integer
+oddSquareSum =
+    let oddSquares = filter odd $ map (^2) [1..]
+        belowLimit = takeWhile (<10000) oddSquares
+    in  sum belowLimit
+
+main = print (oddSquareSum)
+#+END_SRC
 
 * Links
 

@@ -1,0 +1,16 @@
+[
+    {
+        "firstName":"John",
+        "lastName":"Smith",
+        "petName":"Snuffles"
+    },
+    {
+        "firstName":"Margret",
+        "lastName":"Bucket",
+        "age":"78"
+    },
+    {
+        "firstName":"Unknown",
+        "petName":"Fido"
+    }
+]

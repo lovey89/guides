@@ -1176,6 +1176,15 @@ basket.add('banana')
 print(basket)
 #+END_SRC
 
+Or if you want to add a collection of objects
+
+#+BEGIN_SRC python :python python3 :results output
+basket = {'apple', 'orange'}
+print(basket)
+basket.update(['banana', 'orange', 'pear'])
+print(basket)
+#+END_SRC
+
 ** Remove elements
 
 You can use either the ~discard~ method or the ~remove~ method to remove an

@@ -10,7 +10,12 @@
 - [[#the-while-loop][The ~while~ loop]]
 - [[#the-case-expression][The ~case~ expression]]
 - [[#the-select-expression][The ~select~ expression]]
+- [[#file-redirection][File redirection]]
+- [[#pipes][Pipes]]
+- [[#process-substitution][Process substitution]]
+- [[#arithmetic-evaluation][Arithmetic evaluation]]
 - [[#colors][Colors]]
+- [[#other][Other]]
 - [[#examples-1][Examples]]
   - [[#script-with-curl-having-a-json-body][Script with curl having a json body]]
   - [[#run-script-with-arguments-from-a-file][Run script with arguments from a file]]
@@ -209,6 +214,30 @@ test -n "$HOME" && echo 'Your homedir is set!'
 #[[ ! $DISPLAY ]] && echo "Your DISPLAY variable is not not empty, you probably don't have Xorg running."
 #+END_SRC
 
+#+BEGIN_SRC bash :results output
+#!/bin/bash
+# Program for moving files to a private garbage bucket.
+# The garbage bucket is located to the hidden directory .garbage
+# in the home directory
+# Command: throw filename
+if [[ "$#" -ne 1 ]]
+  then
+    echo "The command $0 should have only one argument, the file"
+    echo "that should be deleted"
+    exit 1
+fi
+echo "You have asked for moving the file $1 to the garbage bucket."
+echo -n "Should the file be moved (yes/YES)? "
+read answer
+if [[ "$answer" = "yes" -o $answer = "YES" ]]
+  then
+    echo "The file has been moved to the garbage bucket"
+    mv -f "$1" ~/.garbage
+  else
+    echo "The file is not moved to the garbage bucket"
+fi
+#+END_SRC
+
 * The ~for~ loop
 
 Comes in two forms. Like a for each loop:
@@ -371,6 +400,144 @@ associated with a number. The variable (in this case ~choice~) will be set to
 the value the user picked (or empty if the answer was not valid). The menu will
 be deplayed until ~break~ is called
 
+* File redirection
+
+| Syntax            | Description                                             |
+|-------------------+---------------------------------------------------------|
+| ~command > file~  | stdout to ~file~                                        |
+| ~command 1> file~ | Same as above                                           |
+| ~command < file~  | The content of ~file~ the command is reading from stdin |
+| ~command 0< file~ | Same as above                                           |
+| ~command 2> file~ | stderr ro ~file~                                        |
+
+If the file already exists it will be emptied, otherwise it will be created. You
+can use ~>>~ or ~2>>~ if you want to append on the file instead. Remember that
+you can redirect to ~/dev/null~ if you're not interested in the result. You can
+also redirect the content from loops, i.e. all the commands inside the loop
+
+#+BEGIN_SRC bash :results output
+for homedir in /path/*
+do
+  rm "$homedir/secret"
+done 2> /dev/null
+#+END_SRC
+
+If you want to redirect stdout and stderr to the same file you will have to use
+~2>&1~. E.g.
+
+#+BEGIN_SRC bash :results output
+grep proud file 'not a file' > proud.log 2>&1
+#+END_SRC
+
+stderr will now point to where stdout is pointing. The order is important. If
+you don't use this syntax both stderr and stdout will point to the beginning of
+the file and will overwrite eachother. ~1>&2~ is also permitted.
+
+* Pipes
+
+Used to redirect one commands stdout to another commands stdin. Each command
+will be executed in its own subshell, i.e. variables that you change or
+initialize will not be available for the other commands.
+
+#+BEGIN_SRC bash :results output
+message=Test
+echo 'Salut, le monde!' | read message
+echo "The message is: $message"
+echo 'Salut, le monde!' | { read message; echo "The message is: $message"; }
+echo "The message is: $message"
+#+END_SRC
+
+The example above uses anonymous pipes. You can also use named pipes by creating
+a fifo file with the ~mkfifo~ command. This file can be read by a process and
+written to by another process. A read operation will block as long as there is
+nothing to be read. Same for writes (i.e. it will block as long as nobody is
+reading). A fifo file will not contain any information on it's own.
+
+* Process substitution
+
+~<(..)~ runs the command in the parentheses and puts the result in a temporary
+named pipe (or something like it) which then the file will look in. Good to use
+if a command expects a file but you want to hand it the output from a command.
+
+So instead of running the following commands
+
+#+BEGIN_SRC bash :results output
+head -n 1 .dictionary > file1
+tail -n 1 .dictionary > file2
+diff -y file1 file2
+rm file1 file2
+#+END_SRC
+
+You can run
+
+#+BEGIN_SRC bash :results output
+diff -y <(head -n 1 .dictionary) <(tail -n 1 .dictionary)
+#+END_SRC
+
+which will leave no traces of temporary files. If you put ~echo~ in front of the
+command you can see what happens
+
+#+BEGIN_SRC
+$ echo diff -y <(head -n 1 .dictionary) <(tail -n 1 .dictionary)
+diff -y /dev/fd/63 /dev/fd/62
+#+END_SRC
+
+~>(..)~ can be used when a file writes it output to a file but you want to pass
+the output to a command. E.g.
+
+#+BEGIN_SRC bash :results output
+tar -cf >(ssh host tar xf -) .
+#+END_SRC
+
+* Arithmetic evaluation
+
+With the ~let~ keyword you can evaluate arithmetic expressions
+
+#+BEGIN_SRC bash :results output
+let a=4+5 # if you also put quotes around the expression you are allowed to use spaces
+echo $a
+#+END_SRC
+
+See ~help let~ for a list of operands
+
+You can also use ~((..))~ which is equivalent with the ~let~ keyword but which
+can also be used in e.g. ~if~ statement
+
+#+BEGIN_SRC bash :results output
+((a=(5+2)*3))
+#or
+if (($a == 21)); then echo 'Blackjack!'; fi
+# We don't need the $ since we expect variables in arithmetic contexts
+if ((a == 21)); then echo 'Blackjack!'; fi
+#+END_SRC
+
+Arithmetic substitution is also possible with ~$((..))~
+
+#+BEGIN_SRC bash :results output
+a=4
+b=8
+echo "There are $(($a * $b)) cells"
+# or
+echo "There are $((a * b)) cells"
+#+END_SRC
+
+A few C features is also available. The ternary operator
+
+#+BEGIN_SRC bash :results output
+a=-4
+echo $a
+((abs = (a >= 0) ? a : -a))
+echo $abs
+#+END_SRC
+
+And in ~if~ statement, if the value is ~0~ it is treated as ~false~ and
+everything else if ~true~
+
+#+BEGIN_SRC bash :results output
+flag=5
+if ((flag)); then echo "uh oh, our flag is up"; fi
+#+END_SRC
+
 * Colors
 
 #+BEGIN_SRC bash :results output
@@ -379,6 +546,19 @@ be deplayed until ~break~ is called
 for i in {0..255} ; do
     printf "\x1b[38;5;${i}mcolour${i}\n"
 done
+#+END_SRC
+
+* Other
+
+When you run a command in Bash, you have the option of specifying a temporary
+environment change which only takes effect for the duration of that command.
+This is done by putting ~VAR=value~ in front of the command. In the example
+below I open a new shell for demonstration
+
+#+BEGIN_SRC bash :results output
+bash -c 'echo "x is set to \"$x\" and y is set to \"$y\""'
+x="x-value" y="y-value" bash -c 'echo "x is set to \"$x\" and y is set to \"$y\""'
+bash -c 'echo "x is set to \"$x\" and y is set to \"$y\""'
 #+END_SRC
 
 * Examples

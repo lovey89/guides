@@ -62,17 +62,17 @@ echo $#
 
 * Special variables
 
-| Variable          | Description                                                                                                        |
-|-------------------+--------------------------------------------------------------------------------------------------------------------|
-| ~"$0"~            | The name or the path of the running script                                                                         |
-| ~"$1"~, ~"$2"~... | Argument to the script. /Positional parameters/. Also ~${10}~ and larger are available                             |
-| ~"$*"~            | Expands to all words in all arguments. Separated by the first character in the ~IFS~ variable                      |
-| ~"$@"~            | Expands all arguments to array. Imporant to put quotes around this variable to make each entry in the array quoted |
-| ~$#~              | Number of set arguments                                                                                            |
-| ~$?~              | The exit code of the last completed command running in the foreground                                              |
-| ~$$~              | The PID of the current shell                                                                                       |
-| ~$!~              | The PID for the last executed command in the background                                                            |
-| ~$_~              | The last argument to the last command that was executed                                                            |
+| Variable           | Description                                                                                                        |
+|--------------------+--------------------------------------------------------------------------------------------------------------------|
+| ~"$0"~             | The name or the path of the running script                                                                         |
+| ~"$1"~, ~"$2"~ ... | Argument to the script. /Positional parameters/. Also ~${10}~ and larger are available                             |
+| ~"$*"~             | Expands to all words in all arguments. Separated by the first character in the ~IFS~ variable                      |
+| ~"$@"~             | Expands all arguments to array. Imporant to put quotes around this variable to make each entry in the array quoted |
+| ~$#~               | Number of set arguments                                                                                            |
+| ~$?~               | The exit code of the last completed command running in the foreground                                              |
+| ~$$~               | The PID of the current shell                                                                                       |
+| ~$!~               | The PID for the last executed command in the background                                                            |
+| ~$_~               | The last argument to the last command that was executed                                                            |
 
 You can use the ~shift~ command to shift all positional parameters down one
 step. I.e. ~$2~ becomes ~$1~, ~$3~ becomes ~$2~ etc.

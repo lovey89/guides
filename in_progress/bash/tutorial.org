@@ -2,6 +2,7 @@
 #+BEGIN_QUOTE
 - [[#temp][Temp]]
 - [[#special-constructs][Special constructs]]
+- [[#special-variables][Special variables]]
 - [[#parameter-expansion][Parameter expansion]]
 - [[#the-if-statement][The ~if~ statement]]
   - [[#different-tests][Different tests]]
@@ -10,6 +11,9 @@
 - [[#the-while-loop][The ~while~ loop]]
 - [[#the-case-expression][The ~case~ expression]]
 - [[#the-select-expression][The ~select~ expression]]
+- [[#arrays][Arrays]]
+  - [[#creation][Creation]]
+  - [[#an-example-to-read-the-result-from-find-to-an-array][An example to read the result from ~find~ to an array]]
 - [[#file-redirection][File redirection]]
 - [[#pipes][Pipes]]
 - [[#process-substitution][Process substitution]]
@@ -55,6 +59,23 @@ echo $#
 | ~(( expression ))~          | Arithmetic command. Operators such as ~+~, ~-~, ~*~ and ~/~ are allowed. E.g. ~(( a=b+7 ))~ or ~if (( a < b ))~                                                                                                                                                                  |
 | ~$(( expression ))~         | Arithmetic substitution. Like the previous but the whole expression will be replaced with the result. E.g. ~echo ”The average is $(( (a+b)/2 ))”~                                                                                                                                |
 | ~command &~                 | The command will be executed in the background                                                                                                                                                                                                                                   |
+
+* Special variables
+
+| Variable          | Description                                                                                                        |
+|-------------------+--------------------------------------------------------------------------------------------------------------------|
+| ~"$0"~            | The name or the path of the running script                                                                         |
+| ~"$1"~, ~"$2"~... | Argument to the script. /Positional parameters/. Also ~${10}~ and larger are available                             |
+| ~"$*"~            | Expands to all words in all arguments. Separated by the first character in the ~IFS~ variable                      |
+| ~"$@"~            | Expands all arguments to array. Imporant to put quotes around this variable to make each entry in the array quoted |
+| ~$#~              | Number of set arguments                                                                                            |
+| ~$?~              | The exit code of the last completed command running in the foreground                                              |
+| ~$$~              | The PID of the current shell                                                                                       |
+| ~$!~              | The PID for the last executed command in the background                                                            |
+| ~$_~              | The last argument to the last command that was executed                                                            |
+
+You can use the ~shift~ command to shift all positional parameters down one
+step. I.e. ~$2~ becomes ~$1~, ~$3~ becomes ~$2~ etc.
 
 * Parameter expansion
 
@@ -399,6 +420,59 @@ The program above wil present the user with a list of all the alternatives
 associated with a number. The variable (in this case ~choice~) will be set to
 the value the user picked (or empty if the answer was not valid). The menu will
 be deplayed until ~break~ is called
+
+* Arrays
+
+Arrays indices starts at 0 in bash
+
+** Creation
+
+#+BEGIN_SRC bash :results output
+names=("Bob" "Peter" "$USER" "Big Bad John") # Fixed size
+( IFS=,; echo "Today's contestants are: ${names[*]}" ) # Run in a subshell so IFS is not updated for rest of program
+#+END_SRC
+
+#+BEGIN_SRC bash :results output
+names=([0]="Bob" [1]="Peter" [20]="$USER" [21]="Big Bad John")
+( IFS=,; echo "Today's contestants are: ${names[*]}" )
+#+END_SRC
+
+#+BEGIN_SRC bash :results output
+names[0]="Bob"
+names[3]="$USER"
+( IFS=,; echo "Today's contestants are: ${names[*]}" )
+#+END_SRC
+
+#+BEGIN_SRC bash :results output
+files=($HOME/*) # Globs are permitted
+( IFS=,; echo "Files in home dir are: ${files[*]}" )
+#+END_SRC
+
+#+BEGIN_SRC bash :results output
+files=($(ls "$HOME")) # Not the recommended way since spaces in names may make thing difficult
+( IFS=,; echo "Files in home dir are: ${files[*]}" )
+#+END_SRC
+
+#+BEGIN_SRC bash :results output
+names=("Bob" "Peter" "$USER" "Big Bad John") # Fixed size
+#names_copy=$names # Will only set the first element
+names_copy=("${names[@]}")
+( IFS=,; echo "Today's contestants are: ${names_copy[*]}" )
+#+END_SRC
+
+** An example to read the result from ~find~ to an array
+
+~+=()~ will add one or more elements to the end of the array
+
+#+BEGIN_SRC bash :results output
+files=()
+while read -r -d $'\0'; do # If you don't want to use null you can use $'\n' for newline and $'\t' for tab.. 
+    files+=("$REPLY") # If you provide no variable to read the result will be put in REPLY
+done < <(find $HOME -print0) # < for file redirection and <(..) for process substitution
+
+echo "${files[0]}"
+echo "${files[1]}"
+#+END_SRC
 
 * File redirection
 

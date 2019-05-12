@@ -523,7 +523,7 @@ for name in ${names[@]}; do
 done
 #+END_SRC
 
-The ~"$(array[@])"~ expansion can also be used at other occurences e.g. when you
+The ~"${array[@]}"~ expansion can also be used at other occurences e.g. when you
 want to treat them as a list of arguments
 
 #+BEGIN_SRC

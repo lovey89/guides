@@ -2,7 +2,10 @@
 #+BEGIN_QUOTE
 - [[#temp][Temp]]
 - [[#special-constructs][Special constructs]]
-- [[#special-variables][Special variables]]
+- [[#variables][Variables]]
+  - [[#special-variables][Special variables]]
+  - [[#check-if-a-variable-is-set-or-not][Check if a variable is set or not]]
+  - [[#unset-a-variable][Unset a variable]]
 - [[#parameter-expansion][Parameter expansion]]
 - [[#the-if-statement][The ~if~ statement]]
   - [[#different-tests][Different tests]]
@@ -14,12 +17,15 @@
 - [[#arrays][Arrays]]
   - [[#creation][Creation]]
   - [[#an-example-to-read-the-result-from-find-to-an-array][An example to read the result from ~find~ to an array]]
+  - [[#usage][Usage]]
+  - [[#associative-array][Associative array]]
 - [[#file-redirection][File redirection]]
 - [[#pipes][Pipes]]
 - [[#process-substitution][Process substitution]]
 - [[#arithmetic-evaluation][Arithmetic evaluation]]
 - [[#colors][Colors]]
 - [[#other][Other]]
+- [[#links][Links]]
 - [[#examples-1][Examples]]
   - [[#script-with-curl-having-a-json-body][Script with curl having a json body]]
   - [[#run-script-with-arguments-from-a-file][Run script with arguments from a file]]
@@ -60,7 +66,8 @@ echo $#
 | ~$(( expression ))~         | Arithmetic substitution. Like the previous but the whole expression will be replaced with the result. E.g. ~echo ”The average is $(( (a+b)/2 ))”~                                                                                                                                |
 | ~command &~                 | The command will be executed in the background                                                                                                                                                                                                                                   |
 
-* Special variables
+* Variables
+** Special variables
 
 | Variable           | Description                                                                                                        |
 |--------------------+--------------------------------------------------------------------------------------------------------------------|
@@ -76,6 +83,30 @@ echo $#
 
 You can use the ~shift~ command to shift all positional parameters down one
 step. I.e. ~$2~ becomes ~$1~, ~$3~ becomes ~$2~ etc.
+
+** Check if a variable is set or not
+
+You can use parameter expansion
+
+#+BEGIN_SRC bash :results output
+#var="value"
+#var= # In this case the variable is set to an empty value
+if [ -z ${var+x} ]; then echo "var is unset"; else echo "var is set to '$var'"; fi
+#+END_SRC
+
+where ~${var+x}~ will evaluate to nothing when unset and to ~x~ if set
+
+** Unset a variable
+
+Use the ~unset~ command
+
+#+BEGIN_SRC bash :results output
+unset 'variable' # Quoted to avoid globing
+unset 'array[2]'
+unset -v 'variable' # Explicitly state that it is a variable
+unset -f myFunction # Unset functions
+#+END_SRC
+
 
 * Parameter expansion
 
@@ -474,6 +505,89 @@ echo "${files[0]}"
 echo "${files[1]}"
 #+END_SRC
 
+If the ~read~ command find ~EOF~ it will put the result in the variable but will
+also set an error code in the exit code variable, ~$?~.
+
+** Usage
+
+#+BEGIN_SRC bash :results output
+names=("Bob" "Peter" "$USER" "Big Bad John")
+echo "With quotes"
+for name in "${names[@]}"; do # Quoting is important or it will treat spaces as element separators
+  echo "$name"
+done
+echo
+echo "Without quotes"
+for name in ${names[@]}; do
+  echo "$name"
+done
+#+END_SRC
+
+The ~"$(array[@])"~ expansion can also be used at other occurences e.g. when you
+want to treat them as a list of arguments
+
+#+BEGIN_SRC
+cp "${myfiles[@]}" /backups/
+#+END_SRC
+
+~”${array[*]}”~ is only usable when printing a string. The elements will be
+separated by a space or the first characted in the ~IFS~ variable.
+
+#+BEGIN_SRC bash :results output
+names=("Bob" "Peter" "$USER" "Big Bad John")
+( IFS=,; echo "Today's contestants are: ${names[*]}" )
+#+END_SRC
+
+You can refer to a specific variable given an index. The ~[..]~ part is
+automatically an arithmetic context (so you can perform arithmetic operations
+without ~$((..))~)
+
+#+BEGIN_SRC bash :results output
+indexedArray=( "one" "two" )
+index=0
+echo "${indexedArray[$index]}"
+# In a arithmetic context you don't have to put a $ before the variable name
+echo "${indexedArray[index]}"
+echo "${indexedArray[index + 1]}"
+#+END_SRC
+
+The number of set elements in an array you get by ~${#array[@]}~. It also works
+on sparse lists
+
+#+BEGIN_SRC bash :results output
+names0=("Bob" "Peter" "$USER" "Big Bad John") # Fixed size
+names1=([0]="Bob" [1]="Peter" [20]="$USER" [21]="Big Bad John")
+echo "${#names0[@]}"
+echo "${#names1[@]}"
+#+END_SRC
+
+~printf~ is a handy way to print an array.
+
+#+BEGIN_SRC bash :results output
+names=("Bob" "Peter" "$USER" "Big Bad John")
+printf "%s\0" "${names[@]}" # In this case it is null separated
+#+END_SRC
+
+** Associative array
+
+Behaves like a map and is an array that is not indexed by numbers
+
+#+BEGIN_SRC bash :results output
+declare -A names
+names=(
+  ["one"]="Bob"
+  ["two"]="Peter"
+  ["three"]="$USER"
+  ["four"]="Big Bad John"
+)
+echo ${names["two"]}
+echo ${#names[@]}
+for key in "${!names[@]}"; do # The ! is used to get the key. Remove it and it will return all values instead
+  echo "Key = $key"
+  echo "Value = ${names[$key]}"
+done
+#+END_SRC
+
 * File redirection
 
 | Syntax            | Description                                             |
@@ -634,6 +748,16 @@ bash -c 'echo "x is set to \"$x\" and y is set to \"$y\""'
 x="x-value" y="y-value" bash -c 'echo "x is set to \"$x\" and y is set to \"$y\""'
 bash -c 'echo "x is set to \"$x\" and y is set to \"$y\""'
 #+END_SRC
+
+* Links
+
+- [[http://www.gnu.org/software/bash/manual/bashref.html]]
+- [[http://mywiki.wooledge.org/BashGuide]]
+- [[https://wiki.bash-hackers.org/start]]
+- [[http://www.grymoire.com/Unix/]]
+- [[https://bash.cyberciti.biz/guide/Changing_bash_prompt]]
+- [[https://www.cyberciti.biz/tips/howto-linux-unix-bash-shell-setup-prompt.html]]
+- [[https://askubuntu.com/questions/466198/how-do-i-change-the-color-for-directories-with-ls-in-the-console]]
 
 * Examples
 ** Script with curl having a json body

@@ -36,6 +36,9 @@
   - [[#folds][Folds]]
   - [[#function-application-with-the--function][Function application with the ~$~ function]]
   - [[#function-composition][Function composition]]
+- [[#modules][Modules]]
+  - [[#creating-own-modules][Creating own modules]]
+  - [[#some-links][Some links]]
 - [[#links][Links]]
 #+END_QUOTE
 
@@ -2071,6 +2074,83 @@ oddSquareSum =
 
 main = print (oddSquareSum)
 #+END_SRC
+
+* Modules
+
+The syntax for importing modules in a Haskell program is ~import <module name>~.
+The import statements should be placed at the top of the file. Most functions,
+types and type classes we have worked with so far are part of the ~Prelude~
+module which is imported by default.
+
+We can import the ~Data.List~ module which introduces useful functions to work
+with lists. We will define a function that returns the number of unique elements
+in a list.
+
+#+BEGIN_SRC haskell
+import Data.List
+
+numUniques :: (Eq a) => [a] -> Int
+numUniques = length . nub
+
+main = print (numUniques "abcav")
+#+END_SRC
+
+All functions thet ~Data.List~ exports became available in the global namespace,
+which means that we can call them wherever in the current file. The ~nub~
+function is defined in ~Data.List~ and filters all duplicate elements.
+
+We don't have to import everything from a module. If we only want to import the
+~nub~ and ~sort~ functions from ~Data.List~ we can use the following syntax.
+
+#+BEGIN_SRC haskell
+import Data.List (nub, sort)
+#+END_SRC
+
+Sometimes we want to import everything except a few functions (maybe we have
+defined a function with the same name already). If we want to import everything
+except ~nub~ you write
+
+#+BEGIN_SRC haskell
+import Data.List hiding (nub)
+#+END_SRC
+
+We can also solve name clashes with qualified imports
+
+#+BEGIN_SRC haskell
+import qualified Data.Map
+#+END_SRC
+
+In order to call the ~filter~ function of ~Data.Map~ you use ~Data.Map.filter~
+while a call to ~filter~ will refer to the one defined in ~Prelude~. We can also
+rename the qualified import to something shorter with
+
+#+BEGIN_SRC haskell
+import qualified Data.Map as M
+#+END_SRC
+
+Now instead of calling ~Data.Map.filter~ you can use just ~M.filter~.
+
+** Creating own modules
+
+** Some links
+
+Link to see which modules are in the standard library
+- [[https://downloads.haskell.org/~ghc/latest/docs/html/libraries/]]
+
+To search for functions or to find out where they're located
+- [[https://hoogle.haskell.org/]]
+
+About ~Data.List~
+- [[http://learnyouahaskell.com/modules#data-list]]
+
+About ~Data.Char~
+- [[http://learnyouahaskell.com/modules#data-char]]
+
+About ~Data.Map~
+- [[http://learnyouahaskell.com/modules#data-map]]
+
+About ~Data.Set~
+- [[http://learnyouahaskell.com/modules#data-set]]
 
 * Links
 

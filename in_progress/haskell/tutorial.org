@@ -2132,6 +2132,26 @@ Now instead of calling ~Data.Map.filter~ you can use just ~M.filter~.
 
 ** Creating own modules
 
+We have a defined our own module ~Geometry~ in the file [[file:Geometry.hs][Geometry.hs]]
+
+#+BEGIN_SRC haskell
+import Geometry
+
+main = print (cubeVolume 5)
+#+END_SRC
+
+- [[file:Geo/Sphere.hs][Geo/Sphere.hs]]
+- [[file:Geo/Cuboid.hs][Geo/Cuboid.hs]]
+- [[file:Geo/Cube.hs][Geo/Cube.hs]]
+
+#+BEGIN_SRC haskell
+import qualified Geo.Sphere as Sphere
+import qualified Geo.Cuboid as Cuboid
+import qualified Geo.Cube as Cube
+
+main = print (Cube.volume 5)
+#+END_SRC
+
 ** Some links
 
 Link to see which modules are in the standard library

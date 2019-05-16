@@ -25,5 +25,6 @@ cuboidVolume a b c = rectangleArea a b * c
 cuboidArea :: Float -> Float -> Float -> Float
 cuboidArea a b c = rectangleArea a b * 2 + rectangleArea a c * 2 + rectangleArea c b * 2
 
+-- Note that this function is not exported
 rectangleArea :: Float -> Float -> Float
 rectangleArea a b = a * b

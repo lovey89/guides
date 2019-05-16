@@ -2132,24 +2132,39 @@ Now instead of calling ~Data.Map.filter~ you can use just ~M.filter~.
 
 ** Creating own modules
 
-We have a defined our own module ~Geometry~ in the file [[file:Geometry.hs][Geometry.hs]]
+We have a defined our own module ~Geometry~ in the file [[file:Geometry.hs][Geometry.hs]]. In the
+beginning of the module we have defined the module name which should be the same
+as the file name (without ~.hs~). Then we specify the functions that the module
+should export followed by the function definitions. To use the module, import it
+as you usually would do. ~Geometry.hs~ needs to be in the same folder.
 
 #+BEGIN_SRC haskell
 import Geometry
 
-main = print (cubeVolume 5)
+main = do
+  print (cubeVolume 5)
+  print (sphereVolume 5)
 #+END_SRC
+
+We can also put the modules in a hierarchical structure. We can now create a
+module ~Geo~ which have three submodules: ~Sphere~, ~Cuboid~ and ~Cube~. Create
+a directory called ~Geo~ and then a file for each submodule, like below:
 
 - [[file:Geo/Sphere.hs][Geo/Sphere.hs]]
 - [[file:Geo/Cuboid.hs][Geo/Cuboid.hs]]
-- [[file:Geo/Cube.hs][Geo/Cube.hs]]
+- [[file:Geo/Cube.hs][Geo/Cube.hs]] (note that this sub module have imported the ~Geo/Cuboid~ module)
+
+If we want to import all these modules we will have to do qualified imports
+since each module have their own definitions of ~area~ and volume
 
 #+BEGIN_SRC haskell
 import qualified Geo.Sphere as Sphere
 import qualified Geo.Cuboid as Cuboid
 import qualified Geo.Cube as Cube
 
-main = print (Cube.volume 5)
+main = do
+  print (Cube.volume 5)
+  print (Sphere.volume 5)
 #+END_SRC
 
 ** Some links

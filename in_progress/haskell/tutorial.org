@@ -39,6 +39,7 @@
 - [[#modules][Modules]]
   - [[#creating-own-modules][Creating own modules]]
   - [[#some-links][Some links]]
+- [[#creating-types-and-typeclasses][Creating types and typeclasses]]
 - [[#links][Links]]
 #+END_QUOTE
 
@@ -2186,6 +2187,138 @@ About ~Data.Map~
 
 About ~Data.Set~
 - [[http://learnyouahaskell.com/modules#data-set]]
+
+* Creating types and typeclasses
+
+You can create your own type with the ~data~ keyword. A ~Bool~ is defined like
+
+#+BEGIN_SRC haskell
+data Bool = False | True
+#+END_SRC
+
+The part before ~=~ denotes the type (in this case ~Bool~) and the part after
+are the value constructors. They specify the different values the type can have,
+separated by a ~|~. The type and each value constructor must begin with a
+capital letter.
+
+A more advanded example would be to define the type ~Shape~:
+
+#+BEGIN_SRC haskell
+data Shape = Circle Float Float Float | Rectangle Float Float Float Float
+#+END_SRC
+
+The ~Shape~ class can represent a ~Circle~ where the first two parameters would
+represent the center coordinate and the third would represent the radius. It can
+also represent a ~Rectangle~ where the first two floats represents the top-left
+corner and the last two floats would represent the bottom-right corner.
+
+Now we can calculte the area of a shape with this function (note how we can use
+pattern matching for the different value constructors and how we don't care
+about the center coordinate for the ~Circle~)
+
+#+BEGIN_SRC haskell
+data Shape = Circle Float Float Float | Rectangle Float Float Float Float
+
+area :: Shape -> Float
+area (Circle _ _ r) = pi * r ^ 2
+area (Rectangle x1 y1 x2 y2) = (abs $ x2 - x1) * (abs $ y2 - y1)
+
+main = do
+  print (area $ Circle 10 20 10)
+  print (area $ Rectangle 0 0 100 100)
+#+END_SRC
+
+Also not that value constructors are functions like everything else
+
+#+BEGIN_SRC  haskell
+data Shape = Circle Float Float Float | Rectangle Float Float Float Float
+
+:t Circle
+-- Circle :: Float -> Float -> Float -> Shape
+:t Rectangle
+-- Rectangle :: Float -> Float -> Float -> Float -> Shape
+#+END_SRC
+
+Right now we can't print a shape because it doesn't implement the ~show~
+function. We can make the ~Shape~ type part of the ~Show~ typeclass with the
+following code. We don't have to do anything more. Also try it out without
+~deriving (Show)~
+
+#+BEGIN_SRC haskell
+data Shape = Circle Float Float Float | Rectangle Float Float Float Float deriving (Show)
+--data Shape = Circle Float Float Float | Rectangle Float Float Float Float
+
+main = print (Circle 1 2 3)
+#+END_SRC
+
+Since value constructors are functions, we can map them and partially apply them
+and everything you otherwise can do with functions. Here we create four
+~Circles~ with the same center but different radii
+
+#+BEGIN_SRC haskell
+data Shape = Circle Float Float Float | Rectangle Float Float Float Float deriving (Show)
+
+main = print (map (Circle 10 20) [1,2,3,4])
+#+END_SRC
+
+We can also redefine our ~Shape~ class to have better representiation of the
+coordinates. Notice in the example below that the ~Point~ class also have a
+value constructor called ~Point~ which is totally fine. The ~area~ method has
+also been redefined
+
+#+BEGIN_SRC haskell
+data Point = Point Float Float deriving (Show)
+data Shape = Circle Point Float | Rectangle Point Point deriving (Show)
+
+area :: Shape -> Float
+area (Circle _ r) = pi * r ^ 2
+area (Rectangle (Point x1 y1) (Point x2 y2)) = (abs $ x2 - x1) * (abs $ y2 - y1)
+
+main = do
+  print (area $ Circle (Point 10 20) 10)
+  print (area $ Rectangle (Point 0 0) (Point 100 100))
+#+END_SRC
+
+We can also create auxilliary functions that create shapes of some size at the
+zero coordinates
+
+#+BEGIN_SRC haskell
+data Point = Point Float Float deriving (Show)
+data Shape = Circle Point Float | Rectangle Point Point deriving (Show)
+
+baseCircle :: Float -> Shape
+baseCircle r = Circle (Point 0 0) r
+
+baseRect :: Float -> Float -> Shape
+baseRect width height = Rectangle (Point 0 0) (Point width height)
+
+main = do
+  print (baseCircle 10)
+  print (baseRect 5 10)
+#+END_SRC
+
+You can also export your datatype in a module. To do that you just write the
+type along with the functions you are exporting and then add some parentheses
+and in them specify the value constructors that you want to export for it,
+separated by commas. If you want to export all the value constructors for a
+given type, just write ~..~.
+
+#+BEGIN_SRC  haskell
+module Shapes
+( Point(..)
+, Shape(..)
+, area
+, baseCircle
+, baseRect
+) where
+#+END_SRC
+
+We could also have exported ~Shape~ with ~Shape(Rectangle, Circle)~. You can
+also choose to not export any value constructors at all for a type (by writing
+~Shape~ and no parentheses in the export statement). That way, someone importing
+our module could only make shapes by using the auxilliary functions ~baseCircle~
+and ~baseRect~. Also if you decide to not export a value constructor, whoever
+uses the module can't pattern match against that value constructor.
 
 * Links
 

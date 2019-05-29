@@ -107,7 +107,6 @@ unset -v 'variable' # Explicitly state that it is a variable
 unset -f myFunction # Unset functions
 #+END_SRC
 
-
 * Parameter expansion
 
 | Syntax                   | Description                                                                                                                                                                                           |
@@ -877,3 +876,18 @@ echo "$VAR1"
 echo "$VAR2"
 #+END_SRC
 
+Read the result from ~sed~ into multiple variables. Good when you want to run a
+script multiple times and the data is read from a file
+
+#+BEGIN_SRC bash :results output
+while IFS="" read -r p || [[ -n "$p" ]]; do
+  IFS=':' read var1 var2 var3 var4 rest < <(echo "$p" | sed -rn 's/^"([^"]*)" "([^"]*)" "([^"]*)" "([^"]*)"/\1:\2:\3:\4/p')
+  echo "var1 = '$var1'"
+  echo "var2 = '$var2'"
+  echo "var3 = '$var3'"
+  echo "var4 = '$var4'"
+  echo "rest = '$rest'"
+  echo "---"
+done < <(echo -n '" Field 1" "Field 2 " "Field   3" "Field 4"
+"Field 5" "Field 6" "Field 7" "Field 8"')
+#+END_SRC

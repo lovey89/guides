@@ -864,6 +864,9 @@ echo "$VAR1"
 echo "$VAR2"
 #+END_SRC
 
+~read~ won't read from a pipe (or possibly the result is lost because the pipe
+creates a subshell).
+
 As you will notice from the example above all the text that doesn't get placed
 in its own variable will be placed in the last variable
 

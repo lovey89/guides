@@ -30,6 +30,7 @@
   - [[#script-with-curl-having-a-json-body][Script with curl having a json body]]
   - [[#run-script-with-arguments-from-a-file][Run script with arguments from a file]]
   - [[#assigning-multiple-variables-at-once][Assigning multiple variables at once]]
+  - [[#merge-two-files-line-by-line][Merge two files line by line]]
 #+END_QUOTE
 
 * Temp
@@ -893,4 +894,27 @@ while IFS="" read -r p || [[ -n "$p" ]]; do
   echo "---"
 done < <(echo -n '" Field 1" "Field 2 " "Field   3" "Field 4"
 "Field 5" "Field 6" "Field 7" "Field 8"')
+#+END_SRC
+
+** Merge two files line by line
+
+The following command will merge ~file1~ and ~file2~ line by line. If one file
+is longer than the other the shorter will just be "extended" with empty lines
+
+#+BEGIN_SRC bash
+paste file1 file2 > resulting_file
+#+END_SRC
+
+The ~-d~ option will let you change character that is used between the merged
+lines
+
+#+BEGIN_SRC bash :results output
+paste -d ' ' \
+<(echo -n 'Line 11
+Line 12
+Line 13') \
+<(echo -n 'Line 21
+Line 22
+Line 23
+Line 24')
 #+END_SRC

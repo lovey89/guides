@@ -31,6 +31,7 @@
   - [[#run-script-with-arguments-from-a-file][Run script with arguments from a file]]
   - [[#assigning-multiple-variables-at-once][Assigning multiple variables at once]]
   - [[#merge-two-files-line-by-line][Merge two files line by line]]
+  - [[#check-number-of-arguments-and-output-help-text][Check number of arguments and output help text]]
 #+END_QUOTE
 
 * Temp
@@ -917,4 +918,22 @@ Line 13') \
 Line 22
 Line 23
 Line 24')
+#+END_SRC
+
+** Check number of arguments and output help text
+
+If the script wasn't provided exactly one argument the help text will be printed
+to ~stderr~
+
+#+BEGIN_SRC bash :results output
+if [[ "$#" -ne 1 ]]
+  then
+    cat 1>&2 << END_HEREDOC
+Description
+
+Usage:
+  script <param1> <param2>
+END_HEREDOC
+    exit 1
+fi
 #+END_SRC

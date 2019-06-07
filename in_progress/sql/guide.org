@@ -4,13 +4,30 @@
 
 Image found [[https://www.codeproject.com/Articles/33052/Visual-Representation-of-SQL-Joins][here]]
 
-* Insert data from another table with default values
+* Insert data from another table with default values (postgres)
 
 #+BEGIN_SRC sql
 INSERT INTO mytable1(col11, col12, col13, col14)
   SELECT col21, col22, 'default_string', 1
   FROM mytable2
   WHERE col23 = 'a_value';
+#+END_SRC
+
+* Insert/Update and retrieve the updated rows
+
+#+BEGIN_SRC sql
+INSERT INTO mytable(col1, col2, col3)
+VALUES ('val1', 'val2', 'val3')
+RETURNING
+col1, col2, col3, col4, col5;
+#+END_SRC
+
+#+BEGIN_SRC sql
+UPDATE mytable
+SET col1 = 'val1', col2 = 'val2'
+WHERE col3 = 'val3'
+RETURNING
+col1, col2, col3, col4, col5;
 #+END_SRC
 
 * Get constraints from Postgrespl

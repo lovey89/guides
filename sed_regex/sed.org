@@ -278,6 +278,40 @@ sed 's/day/night/i' \
 <(echo -e 'Day is day')
 #+END_SRC
 
+*** Execute command (~/e~) (GNU Specific)
+
+Note that in the following example we need to put two backslashes before the
+quotation sign. If you remove the ~e~ flag you will see the command which is to
+be executed.
+
+The result of the command will be placed in the pattern space and you can
+continue to process it.
+
+#+BEGIN_SRC bash :results output
+sed -r 's/(.*) (.*)/echo Clear: \\"\1\\". Unzipped: \\"$(echo "\2" | base64 -d | gunzip)\\"/e' \
+\
+<(echo -e 'Text H4sIAOMQAF0AA/NIzcnJVwjPL8pJUeQCAN3dFH0NAAAA
+Other_text H4sIAAARAF0AA3PLz1dwSiziAgBPeZlKCAAAAA==')
+#+END_SRC
+
+Maybe a cleaner version where the logic is put in a separate function.
+
+#+BEGIN_SRC bash :results output
+myfunc()
+{
+  echo "Clear: \"$1\". Unzipped: \"$(echo "$2" | base64 -d | gunzip)\""
+}
+
+# This is needed to export the function to a subshells which I
+# guess sed runs the commands in
+typeset -fx myfunc
+
+sed -r 's/(.*) (.*)/myfunc "\1" "\2"/e' \
+\
+<(echo -e 'Text H4sIAOMQAF0AA/NIzcnJVwjPL8pJUeQCAN3dFH0NAAAA
+Other_text H4sIAAARAF0AA3PLz1dwSiziAgBPeZlKCAAAAA==')
+#+END_SRC
+
 *** Combine flags
 
 Flags can be combined when it makes sense. The ~/w~ flag needs to be put as the

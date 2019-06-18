@@ -3999,9 +3999,11 @@ print(list(data[i] for i in range(len(data)-1, -1, -1)))
 
 ** Magic methods
 
-The ones named something like ~__name__~. The duoble underscore is sometime
+The ones named something like ~__name__~. The double underscore is sometime
 called /dunder/ and that's why the magic methods sometimes are called
 /dunder methods/
+
+[[https://micropyramid.com/blog/python-special-class-methods-or-magic-methods/]]
 
 *** Operator overloading
 

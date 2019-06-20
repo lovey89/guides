@@ -9,6 +9,8 @@
   - [[#example][Example]]
 - [[#tcpdump][tcpdump]]
   - [[#example-1][Example]]
+- [[#docker][Docker]]
+  - [[#view-stdout-from-container][View stdout from container]]
 - [[#ssh][ssh]]
   - [[#attach-to-tmux-on-connect][Attach to ~tmux~ on connect]]
   - [[#port-forwarding][Port forwarding]]
@@ -170,6 +172,16 @@ that directory will be ignored.
 
 #+BEGIN_SRC bash
 tcpdump -c 2000 -s 0 -i eth0 -A -w dump.pcap
+#+END_SRC
+
+* Docker
+
+** View stdout from container
+
+#+BEGIN_SRC bash
+docker logs <containter_name> -f --tail 10
+#e.g.
+docker logs wiremock -f --tail 10
 #+END_SRC
 
 * ssh

@@ -32,6 +32,7 @@
   - [[#assigning-multiple-variables-at-once][Assigning multiple variables at once]]
   - [[#merge-two-files-line-by-line][Merge two files line by line]]
   - [[#check-number-of-arguments-and-output-help-text][Check number of arguments and output help text]]
+  - [[#assigning-here-documents-to-variables][Assigning here documents to variables]]
 #+END_QUOTE
 
 * Temp
@@ -111,24 +112,26 @@ unset -f myFunction # Unset functions
 
 * Parameter expansion
 
-| Syntax                   | Description                                                                                                                                                                                           |
-|--------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| ~${var:-word}~           | If ~var~ is unset or null this will expand to ~word~. Else to the value of ~var~                                                                                                                      |
-| ~${var-word}~            | If ~var~ is unset this will expand to ~word~. Else to the value of ~var~                                                                                                                              |
-| ~${var:=word}~           | If ~var~ is unset or null ~var~ will get the value ~word~. Then expand to the value of ~var~                                                                                                          |
-| ~${var=word}~            | If ~var~ is unset ~var~ will get the value ~word~. Then expand to the value of ~var~                                                                                                                  |
-| ~${var:+word}~           | If ~var~ is unset or null this will expand to null, else ~word~                                                                                                                                       |
-| ~${var+word}~            | If ~var~ is unset this will expand to null, else ~word~                                                                                                                                               |
-| ~${var:?word}~           | If ~var~ is unset or null, the expansion of ~word~ will be printer on stderr (or another message if ~word~ is absent) and the shell with exit with non zero exit code. Otherwise the value of ~var~   |
-| ~${var?word}~            | If ~var~ is unset, the expansion of ~word~ will be printer on stderr (or another message if ~word~ is absent) and the shell with exit with non zero exit code. Otherwise the value of ~var~           |
-| ~${var:offset:length}~   | Expand up to ~length~ characters of the value starting with ~offset~ (0 indexed). If ~length~ is absent, take everything until the end. If ~offset~ is negative (use parentheses), count from the end |
-| ~${#var}~                | Expands to the number of characters of the value of ~var~                                                                                                                                             |
-| ~${var#pattern}~         | ~pattern~ (glob) will match from the beginning of ~var~. Will expand to the value of ~var~ with the shortest match removed                                                                            |
-| ~${var##pattern}~        | ~pattern~ (glob) will match from the beginning of ~var~. Will expand to the value of ~var~ with the longest match removed                                                                             |
-| ~${var%pattern}~         | ~pattern~ (glob) will match from the end of ~var~. Will expand to the value of ~var~ with the shortest match removed                                                                                  |
-| ~${var%%pattern}~        | ~pattern~ (glob) will match from the end of ~var~. Will expand to the value of ~var~ with the longest match removed                                                                                   |
-| ~${var/pattern/string}~  | The first occurence of ~pattern~ (glob) in the value of ~var~ will be replaced with string                                                                                                            |
-| ~${var//pattern/string}~ | All occurences of ~pattern~ (glob) in the value of ~var~ will be replaced with string                                                                                                                 |
+[[https://www.gnu.org/software/bash/manual/html_node/Shell-Parameter-Expansion.html]]
+
+| Syntax                   | Description                                                                                                                                                                                                                                          |
+|--------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ~${var:-word}~           | If ~var~ is unset or null this will expand to ~word~. Else to the value of ~var~                                                                                                                                                                     |
+| ~${var-word}~            | If ~var~ is unset this will expand to ~word~. Else to the value of ~var~                                                                                                                                                                             |
+| ~${var:=word}~           | If ~var~ is unset or null ~var~ will get the value ~word~. Then expand to the value of ~var~                                                                                                                                                         |
+| ~${var=word}~            | If ~var~ is unset ~var~ will get the value ~word~. Then expand to the value of ~var~                                                                                                                                                                 |
+| ~${var:+word}~           | If ~var~ is unset or null this will expand to null, else ~word~                                                                                                                                                                                      |
+| ~${var+word}~            | If ~var~ is unset this will expand to null, else ~word~                                                                                                                                                                                              |
+| ~${var:?word}~           | If ~var~ is unset or null, the expansion of ~word~ will be printer on stderr (or another message if ~word~ is absent) and the shell with exit with non zero exit code. Otherwise the value of ~var~                                                  |
+| ~${var?word}~            | If ~var~ is unset, the expansion of ~word~ will be printer on stderr (or another message if ~word~ is absent) and the shell with exit with non zero exit code. Otherwise the value of ~var~                                                          |
+| ~${var:offset:length}~   | Expand up to ~length~ characters of the value starting with ~offset~ (0 indexed). If ~length~ is absent, take everything until the end. If ~offset~ is negative (use a space after ~:~), count from the end. Negative length will count from the end |
+| ~${#var}~                | Expands to the number of characters of the value of ~var~                                                                                                                                                                                            |
+| ~${var#pattern}~         | ~pattern~ (glob) will match from the beginning of ~var~. Will expand to the value of ~var~ with the shortest match removed                                                                                                                           |
+| ~${var##pattern}~        | ~pattern~ (glob) will match from the beginning of ~var~. Will expand to the value of ~var~ with the longest match removed                                                                                                                            |
+| ~${var%pattern}~         | ~pattern~ (glob) will match from the end of ~var~. Will expand to the value of ~var~ with the shortest match removed                                                                                                                                 |
+| ~${var%%pattern}~        | ~pattern~ (glob) will match from the end of ~var~. Will expand to the value of ~var~ with the longest match removed                                                                                                                                  |
+| ~${var/pattern/string}~  | The first occurence of ~pattern~ (glob) in the value of ~var~ will be replaced with string                                                                                                                                                           |
+| ~${var//pattern/string}~ | All occurences of ~pattern~ (glob) in the value of ~var~ will be replaced with string                                                                                                                                                                |
 
 #+BEGIN_SRC bash :results output
 #!/bin/bash
@@ -143,6 +146,10 @@ echo "${var/\//|}"
 echo "${var//\//|}"
 
 echo "${var2:-${var#*/}}" # Looks like we can nest
+
+string=01234567890abcdefgh
+echo ${string: -7}
+echo ${string: -7:-2}
 #+END_SRC
 
 * The ~if~ statement
@@ -782,6 +789,48 @@ END_HEREDOC
 echo curl -X POST --header 'Content-Type: content-type' -d "$PAYLOAD" 'http://host:port/path/to/call'
 #+END_SRC
 
+*** Build the payload given input
+
+#+BEGIN_SRC bash :results output :shebang "#!/bin/bash\nset input1 input2"
+#!/bin/bash
+
+PREFIX=$(cat << END_HEREDOC
+{
+  "operations": [
+END_HEREDOC
+)
+
+SUFFIX=$(cat << END_HEREDOC
+
+  ]
+}
+END_HEREDOC
+)
+
+OPERATIONS=()
+
+for param in "$@"
+do
+
+  IFS= read -r -d '' OPERATION << END_HEREDOC
+
+    {
+      "operation": {
+        "variable": "$param"
+      }
+    }
+END_HEREDOC
+
+  OPERATIONS+=("${OPERATION:0:-1}") # To remove the trailing white space
+done
+
+OPERATIONS=$( IFS=, ; echo "${OPERATIONS[*]}") # Join all elements with at comma
+
+PAYLOAD="${PREFIX}${OPERATIONS}${SUFFIX}"
+
+echo "$PAYLOAD"
+#+END_SRC
+
 ** Run script with arguments from a file
 
 #+BEGIN_SRC bash :results output
@@ -936,4 +985,37 @@ Usage:
 END_HEREDOC
     exit 1
 fi
+#+END_SRC
+
+** Assigning here documents to variables
+
+The following code is very inefficient and will affect performance if you run it
+in e.g. a loop (guess because it needs to run ~cat~ multiple times)
+
+#+BEGIN_SRC bash :results output
+MYVAR="Row 3"
+
+VAR=$(cat << END_HEREDOC
+Row 1
+Row 2
+${MYVAR}
+Row 4
+END_HEREDOC
+)
+echo "$VAR"
+#+END_SRC
+
+A much more efficient alternative is
+
+#+BEGIN_SRC bash :results output
+MYVAR="Row 3"
+
+read -r -d '' VAR << END_HEREDOC
+Row 1
+Row 2
+${MYVAR}
+Row 4
+END_HEREDOC
+
+echo "$VAR"
 #+END_SRC

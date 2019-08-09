@@ -22,3 +22,27 @@ maven with the option ~-Denforcer.skip=true~. E.g.
 #+BEGIN_SRC bash
 mvn clean install -Denforcer.skip=true
 #+END_SRC
+
+I have seen occurences when this didn't work. That time I had to add this to my
+~pom.xml~:
+
+#+BEGIN_SRC xml
+<build>
+  <pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <configuration combine.self="override">
+          <rules>
+            <requireReleaseDeps>
+              <message>No Snapshots Allowed!</message>
+            </requireReleaseDeps>
+          </rules>
+          <fail>false</fail>
+        </configuration>
+      </plugin>
+    </plugins>
+  </pluginManagement>
+</build>
+#+END_SRC

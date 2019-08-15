@@ -17,6 +17,8 @@
   - [[#reverse-port-forwarding][Reverse port forwarding]]
   - [[#setting-up-a-socks-proxy][Setting up a socks proxy]]
   - [[#handling-keys][Handling keys]]
+- [[#dnf][dnf]]
+  - [[#adding-a-repo][Adding a repo]]
 #+END_QUOTE
 
 * tar
@@ -175,7 +177,6 @@ tcpdump -c 2000 -s 0 -i eth0 -A -w dump.pcap
 #+END_SRC
 
 * Docker
-
 ** View stdout from container
 
 #+BEGIN_SRC bash
@@ -185,7 +186,6 @@ docker logs wiremock -f --tail 10
 #+END_SRC
 
 * ssh
-
 ** Attach to ~tmux~ on connect
 
 The following command will when connecting to ~host~ attach to an existing tmux
@@ -203,3 +203,36 @@ ssh user@host -t 'tmux a || tmux || /bin/bash'
 ** Setting up a socks proxy
 
 ** Handling keys
+* dnf
+
+[[https://www.rootusers.com/25-useful-dnf-command-examples-for-package-management-in-linux/]]
+
+| Command                                   | Description                                                                                           |
+|-------------------------------------------+-------------------------------------------------------------------------------------------------------|
+| ~dnf check-update~                        | Check for available updates for packages in enabled repositories                                      |
+| ~dnf update package_name~                 | Update a specific package                                                                             |
+| ~dnf update~                              | Update all packages                                                                                   |
+| ~dnf update -x package_name~              | Update all packages except ~package_name~                                                             |
+| ~dnf updateinfo list sec~                 | Install security updates only                                                                         |
+| ~dnf install rpm-file.rpm~                | Install a ~.rpm~ file. Will also install dependencies (the ~rpm~ command won't do that)               |
+| ~dnf remove package_name~                 | Uninstall package. Packages that depend on ~package_name~ will also be removed (you will be prompted) |
+| ~dnf reinstall package_name~              | Reinstall a package. Similar to removing and then installing again                                    |
+| ~dnf repolist~                            | View enabled repositories                                                                             |
+| ~dnf repolist all~                        | View enabled and disabled repositories                                                                |
+| ~dnf list installed~                      | List installed packages                                                                               |
+| ~dnf clean all~                           | Clear cached information (the cached information is only used to speed up dnf)                        |
+| ~dnf info package_name~                   | Shows detailed information about ~package_name~                                                       |
+| ~dnf provides */iscsiadm~                 | Shows which package that provides the command ~iscsiadm~                                              |
+| ~dnf provides /etc/httpd/conf/httpd.conf~ | Shows which package that provides a file                                                              |
+
+** Adding a repo
+
+We can specify a new repository by manually editing or creating a new ~.repo~
+file in the ~/etc/yum.repos.d~ directory, however we can much more easily create
+a persistent repository with the ~dnf config-manager~ command.
+
+#+BEGIN_SRC bash
+dnf config-manager --add-repo="https://mirror.aarnet.edu.au/pub/centos/7"
+#+END_SRC
+
+Which will create the file ~/etc/yum.repos.d/mirror.aarnet.edu.au_pub_centos_7.repo~

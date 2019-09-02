@@ -135,6 +135,29 @@ WHERE f.id = t.id
 AND t.id = 1 -- Optional if you only want it to happen on some rows
 #+END_SRC
 
+* Run an ~WHERE IN~ and also keep the values not found in the result
+
+In this case I found it best to create a temporary table and then joining the
+tables
+
+#+BEGIN_SRC sql
+create temp table temp_table(temp_column VARCHAR primary key); -- Or another type if not VARCHAR is suitable
+
+insert into temp_table(temp_column) -- Add the values you want to search for
+VALUES ("1"),
+  ("2"),
+  ("3"),
+  ("4");
+
+-- This step will now keep all values in temp_table even if it's not found in other_table
+select *
+from temp_table t left join other_table o
+  on t.temp_column = o.other_column;
+
+-- When you're done
+drop table temp_table;
+#+END_SRC
+
 * Interesting links
 
 [[http://rachbelaid.com/postgres-full-text-search-is-good-enough/]]

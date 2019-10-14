@@ -78,6 +78,31 @@ SELECT pg_cancel_backend(20475);
 SELECT pg_terminate_backend(PID);
 #+END_SRC
 
+* Order by range (hack solution)
+
+In the example below I want to find the number of people born in a specific
+decade where the birth year is found in the birth_year column.
+
+#+BEGIN_SRC sql
+select (birth_year / 10) * 10 as decade, count(*)
+from people
+group by decade
+order by decade asc;
+#+END_SRC
+
+If you are grouping some value you can use the following code
+
+#+BEGIN_SRC sql
+select (ct / 10 + 1) * 10 as numberOfObjects, count(*) --Note the "+ 1". I do that because I wanted the upper bound displayed
+from (
+  select col_1, count(*) ct
+  from table_1
+  group by col_1
+) as foo -- apparently this is needed
+group by numberOfObjects
+order by numberOfObjects desc;
+#+END_SRC
+
 * Find duplicates
 
 #+BEGIN_SRC sql

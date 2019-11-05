@@ -19,6 +19,9 @@
   - [[#handling-keys][Handling keys]]
 - [[#dnf][dnf]]
   - [[#adding-a-repo][Adding a repo]]
+- [[#disk-and-partition-info][Disk and partition info]]
+  - [[#mounted-file-systems][Mounted file systems]]
+  - [[#display-disk-information][Display disk information]]
 #+END_QUOTE
 
 * tar
@@ -236,3 +239,16 @@ dnf config-manager --add-repo="https://mirror.aarnet.edu.au/pub/centos/7"
 #+END_SRC
 
 Which will create the file ~/etc/yum.repos.d/mirror.aarnet.edu.au_pub_centos_7.repo~
+
+* Disk and partition info
+** Mounted file systems
+
+#+BEGIN_SRC bash
+df -Th
+#+END_SRC
+
+** Display disk information
+
+#+BEGIN_SRC bash
+fdisk -l /dev/sda
+#+END_SRC

@@ -1,0 +1,178 @@
+[[https://hub.docker.com]]
+[[https://jonnylangefeld.github.io/learning/Docker/How%252Bto%252BDocker.html]]
+
+* Check version
+
+#+BEGIN_SRC
+docker --version
+#+END_SRC
+
+* Run hello world
+
+#+BEGIN_SRC bash
+docker run hello-world
+#+END_SRC
+
+Will return
+
+#+BEGIN_SRC
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client, which sent it
+    to your terminal.
+
+To try something more ambitious, you can run an Ubuntu container with:
+ $ docker run -it ubuntu bash
+
+Share images, automate workflows, and more with a free Docker ID:
+ https://cloud.docker.com/
+
+For more examples and ideas, visit:
+ https://docs.docker.com/engine/userguide/
+#+END_SRC
+
+* List containers
+
+#+BEGIN_SRC bash
+docker ps -a
+#+END_SRC
+
+returns
+
+#+BEGIN_SRC
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS                    PORTS               NAMES
+3b383b36c992        hello-world         "/hello"            3 seconds ago       Exited (0) 1 second ago                       bold_feynman
+#+END_SRC
+
+The name is random. To set the container name ourselves you can use ~--name~
+option
+
+#+BEGIN_SRC bash
+docker run --name my-hello hello-world
+#+END_SRC
+
+If you run ~docker ps -a~ again you get the following output
+
+#+BEGIN_SRC
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS                     PORTS               NAMES
+3b9ebd872270        hello-world         "/hello"            5 seconds ago       Exited (0) 3 seconds ago                       my-hello
+3b383b36c992        hello-world         "/hello"            2 minutes ago       Exited (0) 2 minutes ago                       bold_feynman
+#+END_SRC
+
+* Delete a container
+
+#+BEGIN_SRC bash
+docker rm my-hello
+#+END_SRC
+
+will delete the container with the name ~my-hello~. If you want a container to
+be deleted when it exits, you can include the ~--rm~ flag. E.g.
+
+#+BEGIN_SRC bash
+docker run --rm hello-world
+#+END_SRC
+
+* Run a ubuntu container
+
+#+BEGIN_SRC bash
+docker run -it --name my-linux-container ubuntu bash
+#+END_SRC
+
+The first time docker will pull the ubuntu image from the official docker hub.
+Any command run in the container will only live there for this session. If you
+create a file (~touch myfile~) it will only exist until the container exits (the
+~exit~ command).
+
+Try running ~docker ps -a~ from another terminal and you will see that you have
+a container running.
+
+If you exit the container and then start it again you will see that it starts up
+very fast. This time we don't have to download the image
+
+* View images available for offline use
+
+#+BEGIN_SRC bash
+docker images
+#+END_SRC
+
+will now return
+
+#+BEGIN_SRC
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+ubuntu              latest              775349758637        11 days ago         64.2MB
+hello-world         latest              fce289e99eb9        10 months ago       1.84kB
+#+END_SRC
+
+In order to free up some disk space you can remove an image with the command
+
+#+BEGIN_SRC bash
+docker rmi [image name]
+#+END_SRC
+
+e.g.
+
+#+BEGIN_SRC bash
+docker rmi hello-world
+#+END_SRC
+
+* Remove all exited containers
+
+#+BEGIN_SRC bash
+docker rm $(docker ps -a -f status=exited -q)
+#+END_SRC
+
+Other things to remove is described by [[https://www.digitalocean.com/community/tutorials/how-to-remove-docker-images-containers-and-volumes][this]] article.
+
+* Volumes
+
+You can also create a container that refers to some local files with the ~-v~
+flag. The syntax is
+
+#+BEGIN_SRC
+-v [absolute path to local]:[absulute path inside container]
+#+END_SRC
+
+I don't know what happens when referring to a local relative path but I couldn't
+see any data and no data was persisted. Maybe the path is relative to soemthing
+else but the current directory?
+
+A full example would be
+
+#+BEGIN_SRC bash
+docker run -it --rm -v $PWD/my-shared-dir:/my-data ubuntu bash
+#+END_SRC
+
+If ~my-shared-dir~ doesn't exist in your home directory it will automatically be
+created. Open the continer and create a file in the ~my-data~ directory and you
+will see that it is created in the ~my-shared-dir~ directory.
+
+* Dockerfile
+
+We can also create our own images. Until now we have only used images created by
+others. If the image is not found locally it will search at the official docker
+hub. We create them by writing a file called
+~Dockerfile~
+
+#+BEGIN_SRC Dockerfile
+FROM ubuntu
+CMD echo "Hello World"
+#+END_SRC
+
+Navigate to that directory
+
+#+BEGIN_SRC bash
+docker build -t my-ubuntu-image .
+#+END_SRC
+
+Dockerfile
+
+#+BEGIN_SRC
+FROM ubuntu
+RUN apt-get upgrade && apt-get update && apt-get install -y python3
+#+END_SRC

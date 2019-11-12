@@ -1,2 +1,2 @@
 FROM ubuntu
-CMD echo "Hello world" # Comment
+CMD echo "Hello world" # Comments are allowed

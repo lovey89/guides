@@ -156,24 +156,69 @@ will see that it is created in the ~my-shared-dir~ directory.
 
 We can also create our own images. Until now we have only used images created by
 others. If the image is not found locally it will search at the official docker
-hub. We create our own images by writing a file called ~Dockerfile~
+hub. We create our own images by writing a file called ~Dockerfile~. I have
+prepared a file at [[file:01_my-ubuntu-image/Dockerfile][01_my-ubuntu-image/Dockerfile]]. Almost always you will base
+your image on another image. That is what the ~FROM~ keyword means. In our file
+we based it on the ~ubuntu~ image. After that you can execute any linux command
+you want with the ~CMD~ keyword.
 
-#+INCLUDE: "01_my-ubuntu-image/Dockerfile" src Dockerfile
-
-#+BEGIN_SRC Dockerfile
-FROM ubuntu
-CMD echo "Hello World"
-#+END_SRC
-
-Navigate to that directory
+Navigate to the folder where the ~Dockerfile~ is created and run
 
 #+BEGIN_SRC bash
 docker build -t my-ubuntu-image .
 #+END_SRC
 
-Dockerfile
+This command will create a new image with the name ~my-ubuntu-image~. The dot at
+the end just tells the command that it should look in the current directory for
+the ~Dockerfile~. You will now see your newly created image when you run the
+~docker images~ command.
 
-#+BEGIN_SRC
-FROM ubuntu
-RUN apt-get upgrade && apt-get update && apt-get install -y python3
+Try running your container with
+
+#+BEGIN_SRC bash
+docker run --rm my-ubuntu-image
 #+END_SRC
+
+The string ~Hello world~ is printed. That is because we used the ~CMD~ command.
+When we are using the ~CMD~ command we will overwrite the command from the
+parent image (which in this case was ~/bin/bash~).
+
+** More advanced example with python installed
+
+Now we want to create a ubuntu container with python already installed. I have
+created a ~Dockerfile~ for this at [[file:02_my-python-image/Dockerfile][02_my-python-image/Dockerfile]].
+
+We dont use the ~CMD~ command in this ~Dockerfile~ which means that we inherit
+the ~CMD~ command from the ~ubuntu~ image (~/bin/bash~). But we are using the
+~RUN~ keyword which executes any linux command during the build of the
+container. So:
+
+- The ~CMD~ keyword is for what will run as soon as you start up the container
+(could be any ~.sh~ script of course to make it more elaborated)
+- The ~RUN~ keyword is if you want to install anything inside your container
+
+Each row in the ~Dockerfile~ will create a cached container. This is helpful
+if we need to rebuild our container. To not create unneccessary caches we should
+put as many commands as possible on one row. That's why we run 3 commands on the
+same line in the ~Dockerfile~ instead of just using 3 ~RUN~ commands (which is
+also acceptable).
+
+Navigate to the folder where the ~Dockerfile~ is created and run
+
+#+BEGIN_SRC bash
+docker build -t my-python-image .
+#+END_SRC
+
+Then run the container with the following command
+
+#+BEGIN_SRC bash
+docker run -it my-python-image
+#+END_SRC
+
+When you are inside the container you can verify that python is installed with
+
+#+BEGIN_SRC bash
+python3 --version
+#+END_SRC
+
+* Docker compose

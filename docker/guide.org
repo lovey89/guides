@@ -156,8 +156,9 @@ will see that it is created in the ~my-shared-dir~ directory.
 
 We can also create our own images. Until now we have only used images created by
 others. If the image is not found locally it will search at the official docker
-hub. We create them by writing a file called
-~Dockerfile~
+hub. We create our own images by writing a file called ~Dockerfile~
+
+#+INCLUDE: "01_my-ubuntu-image/Dockerfile" src Dockerfile
 
 #+BEGIN_SRC Dockerfile
 FROM ubuntu

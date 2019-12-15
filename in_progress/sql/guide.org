@@ -131,6 +131,39 @@ HAVING
 ORDER BY ct DESC;
 #+END_SRC
 
+* Give internal ranking to groups
+
+The ~GROUP BY~ clause can e good in some cases when you want to check if there
+are any duplicate values but in some cases you may want a specific value from a
+group. E.g. the entry which was created the latest. Instead of using ~GROUP BY~
+you can then use a call like this:
+
+#+BEGIN_SRC sql
+select Date, ProductID, Year, Price, row_number() over (partition by ProductID, Year order by Date desc) as RowNum
+from YourTable;
+#+END_SRC
+
+In the example above the ~ProductID~ and ~Year~ would be your groups and we then
+give them a rank by sorting the by the ~Date~ column. Note that all entries from
+each group would be returned, but with a column called ~RowNum~ which would
+include the internal row number for each group as if it was sorted by ~Date~.
+Then we can find the entry with the latest ~Date~ entry with:
+
+#+BEGIN_SRC sql
+with cteRowNumber as (
+    select Date, ProductID, Year, Price, row_number() over (partition by ProductID, Year order by Date desc) as RowNum
+    from YourTable
+)
+select Date, ProductID, Year, Price
+    from cteRowNumber
+    where RowNum = 1
+#+END_SRC
+
+The ~rank()~ window function is very similar to ~row_number~ but would give two
+values with equal ordering the same rank.
+
+See more about window function at [[http://www.postgresqltutorial.com/postgresql-window-function/]]
+
 * Doing a ~WHERE IN~ on multiple columns in Postgresql
 
 #+BEGIN_SRC sql

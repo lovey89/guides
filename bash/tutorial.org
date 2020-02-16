@@ -33,6 +33,8 @@
   - [[#merge-two-files-line-by-line][Merge two files line by line]]
   - [[#check-number-of-arguments-and-output-help-text][Check number of arguments and output help text]]
   - [[#assigning-here-documents-to-variables][Assigning here documents to variables]]
+  - [[#check-if-a-command-exist][Check if a command exist]]
+  - [[#check-if-a-shell-is-interactive][Check if a shell is interactive]]
 #+END_QUOTE
 
 * Temp
@@ -1018,4 +1020,31 @@ Row 4
 END_HEREDOC
 
 echo "$VAR"
+#+END_SRC
+
+** Check if a command exist
+
+[[https://unix.stackexchange.com/questions/85249/why-not-use-which-what-to-use-then/85250#85250][Source]]
+
+#+BEGIN_SRC bash :results output
+given_command='ls'
+#given_command='non-existing-command'
+
+if command -v "$given_command" > /dev/null 2>&1; then
+  echo "$given_command" is available
+else
+  echo "$given_command" is not available
+fi
+#+END_SRC
+
+** Check if a shell is interactive
+
+We can just examine if the ~PS1~ variable is set or not. [[https://www.gnu.org/software/bash/manual/html_node/Is-this-Shell-Interactive_003f.html][Source]]
+
+#+BEGIN_SRC bash :results output
+if [ -z "$PS1" ]; then
+        echo This shell is not interactive
+else
+        echo This shell is interactive
+fi
 #+END_SRC

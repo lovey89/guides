@@ -157,10 +157,13 @@ will see that it is created in the ~my-shared-dir~ directory.
 We can also create our own images. Until now we have only used images created by
 others. If the image is not found locally it will search at the official docker
 hub. We create our own images by writing a file called ~Dockerfile~. I have
-prepared a file at [[file:01_my-ubuntu-image/Dockerfile][01_my-ubuntu-image/Dockerfile]]. Almost always you will base
-your image on another image. That is what the ~FROM~ keyword means. In our file
-we based it on the ~ubuntu~ image. After that you can execute any linux command
-you want with the ~CMD~ keyword.
+prepared a file at [[file:01_my-ubuntu-image/Dockerfile][01_my-ubuntu-image/Dockerfile]].
+
+#+INCLUDE: 01_my-ubuntu-image/Dockerfile src Dockerfile
+
+Almost always you will base your image on another image. That is what the ~FROM~
+keyword means. In our file we based it on the ~ubuntu~ image. After that you can
+execute any linux command you want with the ~CMD~ keyword.
 
 Navigate to the folder where the ~Dockerfile~ is created and run
 
@@ -187,6 +190,8 @@ parent image (which in this case was ~/bin/bash~).
 
 Now we want to create a ubuntu container with python already installed. I have
 created a ~Dockerfile~ for this at [[file:02_my-python-image/Dockerfile][02_my-python-image/Dockerfile]].
+
+#+INCLUDE: 02_my-python-image/Dockerfile src Dockerfile
 
 We dont use the ~CMD~ command in this ~Dockerfile~ which means that we inherit
 the ~CMD~ command from the ~ubuntu~ image (~/bin/bash~). But we are using the

@@ -179,6 +179,21 @@ that directory will be ignored.
 tcpdump -c 2000 -s 0 -i eth0 -A -w dump.pcap
 #+END_SRC
 
+Catch only ~POST~ requests
+
+#+BEGIN_SRC bash
+tcpdump -c 2000 -s 0 -i eth0 -A -w dump.pcap '(tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x504f5354)'
+#+END_SRC
+
+Catch only from and to tcp port 80
+
+#+BEGIN_SRC bash
+tcpdump -c 2000 -s 0 -i eth0 -A -w dump.pcap 'tcp port 80'
+#+END_SRC
+
+More information about tcpdum and the filter can be found on the man pages for
+[[https://www.tcpdump.org/manpages/tcpdump.1.html][tcpdump]] and [[https://www.tcpdump.org/manpages/pcap-filter.7.html][pcap-filter]].
+
 * Docker
 ** View stdout from container
 

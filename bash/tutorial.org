@@ -35,6 +35,7 @@
   - [[#assigning-here-documents-to-variables][Assigning here documents to variables]]
   - [[#check-if-a-command-exist][Check if a command exist]]
   - [[#check-if-a-shell-is-interactive][Check if a shell is interactive]]
+  - [[#run-command-x-number-of-times][Run command x number of times]]
 #+END_QUOTE
 
 * Temp
@@ -1047,4 +1048,28 @@ if [ -z "$PS1" ]; then
 else
         echo This shell is interactive
 fi
+#+END_SRC
+
+** Run command x number of times
+
+#+BEGIN_SRC bash :results output
+for i in {1..10}; do echo iteration $i; done
+#+END_SRC
+
+If you want to put the result in a file
+
+#+BEGIN_SRC bash :results output
+for i in {1..10}; do echo iteration $i; done > file.txt
+#+END_SRC
+
+*** With a ~while~ loop
+
+#+BEGIN_SRC bash :results output
+END=5
+i=$END
+while [ $i -gt 0 ];
+do
+  echo iteration $i
+  i=$(($i-1))
+done
 #+END_SRC

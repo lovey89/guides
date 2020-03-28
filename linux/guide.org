@@ -1,5 +1,6 @@
 * Table of Contents :TOC:QUOTE:
 #+BEGIN_QUOTE
+- [[#journalctl][journalctl]]
 - [[#tar][tar]]
   - [[#main-operation-modes][Main operation modes]]
   - [[#examples][Examples]]
@@ -23,6 +24,14 @@
   - [[#mounted-file-systems][Mounted file systems]]
   - [[#display-disk-information][Display disk information]]
 #+END_QUOTE
+
+* journalctl
+
+See errors in the log from the last boot
+
+#+BEGIN_SRC bash
+journalctl -b -p err
+#+END_SRC
 
 * tar
 ** Main operation modes

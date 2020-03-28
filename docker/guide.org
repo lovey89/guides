@@ -1,10 +1,38 @@
 [[https://hub.docker.com]]
+
 [[https://jonnylangefeld.github.io/learning/Docker/How%252Bto%252BDocker.html]]
 
-* Check version
+* Check info about your docker installation
+
+Show version
 
 #+BEGIN_SRC
 docker --version
+#+END_SRC
+
+Show more info about docker on the current maching
+
+#+BEGIN_SRC
+docker info
+#+END_SRC
+
+Show more information about the docker version
+
+#+BEGIN_SRC
+docker version
+#+END_SRC
+
+Show help about docker commands
+
+#+BEGIN_SRC
+docker --help
+#+END_SRC
+
+Some of the commands are not to be used anylonger. E.g. ~docker rmi~ is now
+~docker image rm~. If you want to hide all legacy commands you can run
+
+#+BEGIN_SRC
+DOCKER_HIDE_LEGACY_COMMANDS=true docker --help
 #+END_SRC
 
 * Run hello world
@@ -37,10 +65,12 @@ For more examples and ideas, visit:
  https://docs.docker.com/engine/userguide/
 #+END_SRC
 
+After this the container is terminated
+
 * List containers
 
 #+BEGIN_SRC bash
-docker ps -a
+docker container ls -a
 #+END_SRC
 
 returns
@@ -57,7 +87,7 @@ option
 docker run --name my-hello hello-world
 #+END_SRC
 
-If you run ~docker ps -a~ again you get the following output
+If you run ~docker container ls -a~ again you get the following output
 
 #+BEGIN_SRC
 CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS                     PORTS               NAMES

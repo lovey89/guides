@@ -2,7 +2,25 @@
 
 [[https://jonnylangefeld.github.io/learning/Docker/How%252Bto%252BDocker.html]]
 
-* Check info about your docker installation
+* Table of Contents :TOC:QUOTE:
+#+BEGIN_QUOTE
+- [[#docker][Docker]]
+  - [[#check-info-about-your-docker-installation][Check info about your docker installation]]
+  - [[#run-a-container][Run a container]]
+  - [[#list-containers][List containers]]
+  - [[#stop-a-docker-container][Stop a docker container]]
+  - [[#delete-a-container][Delete a container]]
+  - [[#read-the-output-of-a-container-running-in-detached-mode][Read the output of a container running in detached mode]]
+  - [[#images][Images]]
+  - [[#run-a-ubuntu-container][Run a ubuntu container]]
+  - [[#volumes][Volumes]]
+- [[#dockerfile][Dockerfile]]
+  - [[#more-advanced-example-with-python-installed][More advanced example with python installed]]
+- [[#docker-compose][Docker compose]]
+#+END_QUOTE
+
+* Docker
+** Check info about your docker installation
 
 Show version
 
@@ -35,10 +53,11 @@ Some of the commands are not to be used anylonger. E.g. ~docker rmi~ is now
 DOCKER_HIDE_LEGACY_COMMANDS=true docker --help
 #+END_SRC
 
-* Run hello world
+** Run a container
+*** Run hello world
 
 #+BEGIN_SRC bash
-docker run hello-world
+docker container run hello-world
 #+END_SRC
 
 Will return
@@ -67,48 +86,255 @@ For more examples and ideas, visit:
 
 After this the container is terminated
 
-* List containers
+*** A more advanced example
+
+In this example we will run the ~jboss/wildfly~. For now it's interesting
+because it's interesting because it will expose port ~8080~ and we can navigate
+to a webpage.
+
+#+BEGIN_SRC bash
+docker container run -p 8080:8080 -it --name web jboss/wildfly
+#+END_SRC
+
+Then go to [[http://localhost:8080/]]
+
+| Option                        | Description                                                                                                          |
+|-------------------------------+----------------------------------------------------------------------------------------------------------------------|
+| ~-it~                         | Run in interactive mode                                                                                              |
+| ~-d~                          | Run in detached mode                                                                                                 |
+| ~--name name~                 | Give the container a the name ~name~ instead of a random one                                                         |
+| ~-P~                          | Expose the container port on random ports on the host system. use ~docker container ls~ to see which port was chosen |
+| ~-p host_port:container_port~ | Instead of chosing a random port you can chose one yourself                                                          |
+
+#+BEGIN_SRC bash
+docker container run -P -d --name web2 jboss/wildfly
+#+END_SRC
+
+This time the container runs in a detached mode (the command returns
+immediately). To see which port the container is exposing
+
+#+BEGIN_SRC bash
+docker container ls
+#+END_SRC
+
+My output is
+
+#+BEGIN_SRC
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                     NAMES
+21093c981261        jboss/wildfly       "/opt/jboss/wildfly/…"   10 seconds ago      Up 8 seconds        0.0.0.0:32768->8080/tcp   web2
+#+END_SRC
+
+so if I connect to port ~32768~ on localhost it will be routed to my container's port ~8080~.
+
+*** Overriding the container default command
+
+You can also override the command starting in the container (in this case
+starting wildfly) by providing your own command after the image name. E.g.
+
+#+BEGIN_SRC bash
+docker container run -it --name web3 jboss/wildfly bash # Run in interactive mode since we now only start bash
+#+END_SRC
+
+Now we can freely navigate inside the containers file system. If you would
+expose port ~8080~ of the container you would still not see anything on
+[[http://localhost:8080/]] since wildfly hasn't started
+
+*** Attach a volume
+
+#+BEGIN_SRC bash
+docker container run -d --name web4 -p 8080:8080 -v `pwd`/webapp.war:/opt/jboss/wildfly/standalone/deployments/webapp.war jboss/wildfly
+#+END_SRC
+
+In this case we have made a file available for the container
+
+| Option                                | Description                                                                                              |
+|---------------------------------------+----------------------------------------------------------------------------------------------------------|
+| ~-v host_location:container_location~ | Will make the file/dir at ~host_location~ on the host available at ~container_location~ in the container |
+
+In this case wildfly will find our ~.war~ file and deploy it. To verify that the
+~.war~ file is deployed you can run
+
+#+BEGIN_SRC bash
+curl http://localhost:8080/webapp/resources/persons
+#+END_SRC
+
+Remove all containers. For now we can run
+
+#+BEGIN_SRC bash
+docker container rm -f $(docker container ls -a -q)
+#+END_SRC
+
+** List containers
+
+#+BEGIN_SRC bash
+docker container ls
+#+END_SRC
+
+returns all running containers. If you run the [[*Run hello world][hello world]] example again you
+will only see
+
+#+BEGIN_SRC
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+#+END_SRC
+
+The container is not running anylonger so nothing is printed. To also see exited
+containers you will have to run
 
 #+BEGIN_SRC bash
 docker container ls -a
 #+END_SRC
 
-returns
+Will now return
 
 #+BEGIN_SRC
 CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS                    PORTS               NAMES
 3b383b36c992        hello-world         "/hello"            3 seconds ago       Exited (0) 1 second ago                       bold_feynman
 #+END_SRC
 
-The name is random. To set the container name ourselves you can use ~--name~
-option
+** Stop a docker container
 
 #+BEGIN_SRC bash
-docker run --name my-hello hello-world
+docker container stop <container>/<container_id>
 #+END_SRC
 
-If you run ~docker container ls -a~ again you get the following output
+*** Example
+
+Run
+
+#+BEGIN_SRC bash
+docker container run -p 8080:8080 -d --name web jboss/wildfly
+#+END_SRC
+
+We already know that the name will be ~web~ but we can still find the id by
+running
+
+#+BEGIN_SRC bash
+docker container ls
+#+END_SRC
+
+which returns
 
 #+BEGIN_SRC
-CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS                     PORTS               NAMES
-3b9ebd872270        hello-world         "/hello"            5 seconds ago       Exited (0) 3 seconds ago                       my-hello
-3b383b36c992        hello-world         "/hello"            2 minutes ago       Exited (0) 2 minutes ago                       bold_feynman
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                    NAMES
+e39fc3ea0675        jboss/wildfly       "/opt/jboss/wildfly/…"   52 seconds ago      Up 50 seconds       0.0.0.0:8080->8080/tcp   web
 #+END_SRC
 
-* Delete a container
+We can now stop the container with
 
 #+BEGIN_SRC bash
-docker rm my-hello
+docker container stop web
+# or
+docker container stop e39fc3ea0675
 #+END_SRC
 
-will delete the container with the name ~my-hello~. If you want a container to
-be deleted when it exits, you can include the ~--rm~ flag. E.g.
+You can now verify that the container has stopped with
 
 #+BEGIN_SRC bash
-docker run --rm hello-world
+docker container ls -a
 #+END_SRC
 
-* Run a ubuntu container
+** Delete a container
+
+Just because a container is stopped doesn't mean that it has been removed. To
+remove it you can run
+
+#+BEGIN_SRC bash
+docker container rm <container>/<container_id>
+# or
+docker container rm -f <container>/<container_id> # If you also want to be able to remove running containers
+#+END_SRC
+
+*** Example
+
+#+BEGIN_SRC
+$ docker container ls -a
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS                      PORTS               NAMES
+e39fc3ea0675        jboss/wildfly       "/opt/jboss/wildfly/…"   2 minutes ago       Exited (0) 2 seconds ago                        web
+
+$ docker container rm web
+web
+
+$ docker container ls -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+#+END_SRC
+
+*** Automatically remove a container after it stops
+
+You can run a container with the ~--rm~ flag to remove it after it terminates.
+
+#+BEGIN_SRC
+$ docker container run -d --rm hello-world # Run the container in detached mode
+6af1260e00c48224dc3c90601fbc1ac01bc62698c805c0faa6e290ee91e50c28
+
+$ docker container ls -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+#+END_SRC
+
+*** Remove all exited containers
+
+#+BEGIN_SRC bash
+docker container rm $(docker container ls -a -f status=exited -q)
+#+END_SRC
+
+Other things to remove is described by [[https://www.digitalocean.com/community/tutorials/how-to-remove-docker-images-containers-and-volumes][this]] article.
+
+** Read the output of a container running in detached mode
+
+#+BEGIN_SRC bash
+docker container logs <container>/<container_id>
+#+END_SRC
+
+Some useful options
+
+| Option     | Description                                          |
+|------------+------------------------------------------------------|
+| ~-f~       | Follow log output                                    |
+| ~--tail n~ | Show the ~n~ last lines in the log. Default is 'all' |
+| ~-t~       | Show timestamps                                      |
+
+*** Example
+
+#+BEGIN_SRC
+$ docker container run -d --name web jboss/wildfly
+6dbd79e2d894abc81afba0777fa2ffae0744540a575515962818fdeb7819e77c
+
+$ docker container logs web --tail 3
+2020-04-01T20:58:16.009495544Z 20:58:16,009 INFO  [org.jboss.as] (Controller Boot Thread) WFLYSRV0060: Http management interface listening on http://127.0.0.1:9990/management
+2020-04-01T20:58:16.009598742Z 20:58:16,009 INFO  [org.jboss.as] (Controller Boot Thread) WFLYSRV0051: Admin console listening on http://127.0.0.1:9990
+2020-04-01T20:58:16.009762919Z 20:58:16,009 INFO  [org.jboss.as] (Controller Boot Thread) WFLYSRV0025: WildFly Full 18.0.1.Final (WildFly Core 10.0.3.Final) started in 3099ms - Started 315 of 577 services (369 services are lazy, passive or on-demand)
+#+END_SRC
+
+** Images
+*** View images available for offline use
+
+#+BEGIN_SRC bash
+docker image ls
+#+END_SRC
+
+will now return
+
+#+BEGIN_SRC
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+jboss/wildfly       latest              e6f71554a543        4 months ago        757MB
+ubuntu              latest              775349758637        5 months ago        64.2MB
+hello-world         latest              fce289e99eb9        15 months ago       1.84kB
+#+END_SRC
+
+*** Remove images
+
+In order to free up some disk space you can remove an image with the command
+
+#+BEGIN_SRC bash
+docker image rm <image_name>
+#+END_SRC
+
+e.g.
+
+#+BEGIN_SRC bash
+docker image rm hello-world
+#+END_SRC
+
+** Run a ubuntu container
 
 #+BEGIN_SRC bash
 docker run -it --name my-linux-container ubuntu bash
@@ -125,41 +351,7 @@ a container running.
 If you exit the container and then start it again you will see that it starts up
 very fast. This time we don't have to download the image
 
-* View images available for offline use
-
-#+BEGIN_SRC bash
-docker images
-#+END_SRC
-
-will now return
-
-#+BEGIN_SRC
-REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
-ubuntu              latest              775349758637        11 days ago         64.2MB
-hello-world         latest              fce289e99eb9        10 months ago       1.84kB
-#+END_SRC
-
-In order to free up some disk space you can remove an image with the command
-
-#+BEGIN_SRC bash
-docker rmi [image name]
-#+END_SRC
-
-e.g.
-
-#+BEGIN_SRC bash
-docker rmi hello-world
-#+END_SRC
-
-* Remove all exited containers
-
-#+BEGIN_SRC bash
-docker rm $(docker ps -a -f status=exited -q)
-#+END_SRC
-
-Other things to remove is described by [[https://www.digitalocean.com/community/tutorials/how-to-remove-docker-images-containers-and-volumes][this]] article.
-
-* Volumes
+** Volumes
 
 You can also create a container that refers to some local files with the ~-v~
 flag. The syntax is

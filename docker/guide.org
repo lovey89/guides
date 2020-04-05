@@ -2,6 +2,8 @@
 
 [[https://jonnylangefeld.github.io/learning/Docker/How%252Bto%252BDocker.html]]
 
+[[https://docs.docker.com/engine/reference/builder/]]
+
 * Table of Contents :TOC:QUOTE:
 #+BEGIN_QUOTE
 - [[#docker][Docker]]
@@ -15,7 +17,16 @@
   - [[#run-a-ubuntu-container][Run a ubuntu container]]
   - [[#volumes][Volumes]]
 - [[#dockerfile][Dockerfile]]
+  - [[#copy-file-in-docker-container][Copy file in docker container]]
+  - [[#run-a-jar-file-in-a-docker-image][Run a jar file in a docker image]]
+  - [[#run-cmd-and-entrypoint-commands][~RUN~, ~CMD~ and ~ENTRYPOINT~ commands]]
+  - [[#expose-command][~EXPOSE~ command]]
+  - [[#volume-command][~VOLUME~ command]]
+  - [[#user-command][~USER~ command]]
+  - [[#healthcheck-command][~HEALTHCHECK~ command]]
+  - [[#other-commands][Other commands]]
   - [[#more-advanced-example-with-python-installed][More advanced example with python installed]]
+  - [[#tags][Tags]]
 - [[#docker-compose][Docker compose]]
 #+END_QUOTE
 
@@ -377,9 +388,9 @@ will see that it is created in the ~my-shared-dir~ directory.
 * Dockerfile
 
 We can also create our own images. Until now we have only used images created by
-others. If the image is not found locally it will search at the official docker
-hub. We create our own images by writing a file called ~Dockerfile~. I have
-prepared a file at [[file:01_my-ubuntu-image/Dockerfile][01_my-ubuntu-image/Dockerfile]].
+others. If the image is not found locally it will search at the [[https://hub.docker.com/][official docker hub]].
+We create our own images by writing a file called ~Dockerfile~. I have prepared
+a file at [[file:01_my-ubuntu-image/Dockerfile][01_my-ubuntu-image/Dockerfile]].
 
 #+INCLUDE: 01_my-ubuntu-image/Dockerfile src Dockerfile
 
@@ -390,23 +401,165 @@ execute any linux command you want with the ~CMD~ keyword.
 Navigate to the folder where the ~Dockerfile~ is created and run
 
 #+BEGIN_SRC bash
-docker build -t my-ubuntu-image .
+docker image build -t my-ubuntu-image .
 #+END_SRC
 
 This command will create a new image with the name ~my-ubuntu-image~. The dot at
-the end just tells the command that it should look in the current directory for
-the ~Dockerfile~. You will now see your newly created image when you run the
-~docker images~ command.
+the end tells the command to use the current directory as the context (and look
+for the ~Dockerfile~ here). It's advisable to only have what you need in the
+context so the docker client doesn't send uneccessary data to the docker host.
+If that is not possible you can have a ~.dockerignore~ file. So create a new
+directory for each ~Dockerfile~ you create. You will now see your newly created
+image when you run the ~docker image ls~ command.
 
 Try running your container with
 
 #+BEGIN_SRC bash
-docker run --rm my-ubuntu-image
+docker container run --rm my-ubuntu-image
 #+END_SRC
 
 The string ~Hello world~ is printed. That is because we used the ~CMD~ command.
 When we are using the ~CMD~ command we will overwrite the command from the
 parent image (which in this case was ~/bin/bash~).
+
+You can see how the image was build using
+
+#+BEGIN_SRC bash
+docker image history my-ubuntu-image
+#+END_SRC
+
+** Copy file in docker container
+*** ~COPY~ instruction
+
+Copy new files or directories to the container filesystem
+
+#+BEGIN_SRC bash
+COPY host_file container_destination
+#+END_SRC
+
+It seems like as if ~host_file~ must be in the context (same directory or sub
+directories of the ~Dockerfile~) when building the image.
+
+I have created an example ~Dockerfile~ using ~COPY~ at [[file:03_copy_example/Dockerfile][03_copy_example/Dockerfile]].
+Notice how this file doesn't have a ~CMD~ command. If none is given the ~CMD~
+used in the parent will be used. If you have multiple ~CMD~ commands only the
+last one will be used.
+
+Build the image by navigating to ~03_copy_example~ and run
+
+#+BEGIN_SRC bash
+docker image build -t helloweb .
+#+END_SRC
+
+Then run the container and send a request to see that it works
+
+#+BEGIN_SRC bash
+docker container run -d -p 8080:8080 helloweb
+
+curl http://localhost:8080/webapp/resources/persons
+#+END_SRC
+
+*** ~ADD~ instruction
+
+Allows tar file auto-extraction in the image. E.g:
+~Add app.tar.gz /opt/var/myapp~- Can download files from a remote URL but
+recommended to use ~curl~ or ~wget~ instead.
+
+Investigate when this should be used
+
+** Run a jar file in a docker image
+
+I prepared a directory called ~04_java_jar~ with a [[file:04_java_jar/Dockerfile][Dockerfile]] and a simple java
+project that will produce a jar. Build the java project with
+
+#+BEGIN_SRC bash
+
+#+END_SRC
+
+and then build the docker image and run it.
+
+To include docker with maven you can look at [[https://github.com/fabric8io/docker-maven-plugin]].
+
+** ~RUN~, ~CMD~ and ~ENTRYPOINT~ commands
+*** ~RUN~ command
+
+Runs a command in the container file system when building an image
+
+#+BEGIN_SRC Dockerfile
+RUN apt-get update && apt-get install -y git # Update your system
+# or
+RUN /opt/jboss/wildfly/bin/add-user.sh admin Admin#007 -silent # Other command
+#+END_SRC
+
+*** ~CMD~ command
+
+Defaults for executing container; can be [[*Overriding the container default command][overridden from CLI]]. A container can
+have multiple ~CMD~ commands but only the last will run. If no ~CMD~ command is
+provided the ~CMD~ from the parent container will be used.
+
+#+BEGIN_SRC Dockerfile
+CMD ["/opt/jboss/wildfly/bin/standalone.sh", "-b", "0.0.0.0", "-bmanagement", "0.0.0.0"]
+# or
+CMD java -jar /deployments/myapp-1.0-SNAPSHOT.jar
+#+END_SRC
+
+*** ~ENTRYPOINT~ command
+
+configures the container executable; can be overridden using ~--entrypoint~ from
+CLI. The default value is ~/bin/sh -c~
+
+#+BEGIN_SRC Dockerfile
+ENTRYPOINT ["/entrypoint.sh"]
+#+END_SRC
+
+Investigate more what this is good for..
+
+** ~EXPOSE~ command
+
+Expose network ports on which the container is listening
+
+#+BEGIN_SRC Dockerfile
+EXPOSE 9990
+#+END_SRC
+
+Need to explicitly publish the host port when starting the container (using ~-p~
+or ~-P~, see [[*A more advanced example][this previous]] section).
+
+** ~VOLUME~ command
+
+Creates a mount point with the specified name
+
+#+BEGIN_SRC Dockerfile
+VOLUME /opt/couchbase/var
+#+END_SRC
+
+Then you can mount a file or directory on the host system to that mount point
+
+#+BEGIN_SRC bash
+docker container run ... -v data:/opt/couchbase/var
+#+END_SRC
+
+** ~USER~ command
+
+Set the user name or UID to use when running the image. Investigate more why
+this is needed
+
+** ~HEALTHCHECK~ command
+
+Performs a healthcheck on the application inside the container (and not only the
+container itself).
+
+#+BEGIN_SRC Dockerfile
+HEALTHCHECK --interval=5s --timeout=3s CMD curl --fail http://localhost:8091/pools || exit 1
+#+END_SRC
+
+This will run the command ~curl --fail http://localhost:8091/pools || exit 1~
+(administrative interface of couchbase) every 5 seconds and if it fails or
+doesn't respond within 3 seconds the container will be marked as unhealthy.
+
+** Other commands
+
+LABEL. ENV, WORKDIR, ARG, ONBUILD, STOPSIGNAL, SHELL
 
 ** More advanced example with python installed
 
@@ -448,4 +601,5 @@ When you are inside the container you can verify that python is installed with
 python3 --version
 #+END_SRC
 
+** Tags
 * Docker compose

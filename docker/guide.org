@@ -19,11 +19,11 @@
 - [[#dockerfile][Dockerfile]]
   - [[#copy-file-in-docker-container][Copy file in docker container]]
   - [[#run-a-jar-file-in-a-docker-image][Run a jar file in a docker image]]
-  - [[#run-cmd-and-entrypoint-commands][~RUN~, ~CMD~ and ~ENTRYPOINT~ commands]]
-  - [[#expose-command][~EXPOSE~ command]]
-  - [[#volume-command][~VOLUME~ command]]
-  - [[#user-command][~USER~ command]]
-  - [[#healthcheck-command][~HEALTHCHECK~ command]]
+  - [[#the-run-cmd-and-entrypoint-commands][The ~RUN~, ~CMD~ and ~ENTRYPOINT~ commands]]
+  - [[#the-expose-command][The ~EXPOSE~ command]]
+  - [[#the-volume-command][The ~VOLUME~ command]]
+  - [[#the-user-command][The ~USER~ command]]
+  - [[#the-healthcheck-command][The ~HEALTHCHECK~ command]]
   - [[#other-commands][Other commands]]
   - [[#more-advanced-example-with-python-installed][More advanced example with python installed]]
   - [[#tags][Tags]]
@@ -155,6 +155,8 @@ expose port ~8080~ of the container you would still not see anything on
 #+BEGIN_SRC bash
 docker container run -d --name web4 -p 8080:8080 -v `pwd`/webapp.war:/opt/jboss/wildfly/standalone/deployments/webapp.war jboss/wildfly
 #+END_SRC
+
+Note to self: Check [[https://thepracticaldeveloper.com/2018/08/06/how-to-deploy-a-spring-boot-war-in-wildfly-jboss/][this webpage]] to build own war
 
 In this case we have made a file available for the container
 
@@ -429,7 +431,7 @@ docker image history my-ubuntu-image
 #+END_SRC
 
 ** Copy file in docker container
-*** ~COPY~ instruction
+*** The ~COPY~ command
 
 Copy new files or directories to the container filesystem
 
@@ -459,7 +461,7 @@ docker container run -d -p 8080:8080 helloweb
 curl http://localhost:8080/webapp/resources/persons
 #+END_SRC
 
-*** ~ADD~ instruction
+*** The ~ADD~ command
 
 Allows tar file auto-extraction in the image. E.g:
 ~Add app.tar.gz /opt/var/myapp~- Can download files from a remote URL but
@@ -473,15 +475,21 @@ I prepared a directory called ~04_java_jar~ with a [[file:04_java_jar/Dockerfile
 project that will produce a jar. Build the java project with
 
 #+BEGIN_SRC bash
-
+mvn package
 #+END_SRC
 
 and then build the docker image and run it.
 
+#+BEGIN_SRC bash
+docker image build -t java-jar-container .
+
+docker container run --rm java-jar-container
+#+END_SRC
+
 To include docker with maven you can look at [[https://github.com/fabric8io/docker-maven-plugin]].
 
-** ~RUN~, ~CMD~ and ~ENTRYPOINT~ commands
-*** ~RUN~ command
+** The ~RUN~, ~CMD~ and ~ENTRYPOINT~ commands
+*** The ~RUN~ command
 
 Runs a command in the container file system when building an image
 
@@ -491,7 +499,7 @@ RUN apt-get update && apt-get install -y git # Update your system
 RUN /opt/jboss/wildfly/bin/add-user.sh admin Admin#007 -silent # Other command
 #+END_SRC
 
-*** ~CMD~ command
+*** The ~CMD~ command
 
 Defaults for executing container; can be [[*Overriding the container default command][overridden from CLI]]. A container can
 have multiple ~CMD~ commands but only the last will run. If no ~CMD~ command is
@@ -503,7 +511,7 @@ CMD ["/opt/jboss/wildfly/bin/standalone.sh", "-b", "0.0.0.0", "-bmanagement", "0
 CMD java -jar /deployments/myapp-1.0-SNAPSHOT.jar
 #+END_SRC
 
-*** ~ENTRYPOINT~ command
+*** The ~ENTRYPOINT~ command
 
 configures the container executable; can be overridden using ~--entrypoint~ from
 CLI. The default value is ~/bin/sh -c~
@@ -514,7 +522,7 @@ ENTRYPOINT ["/entrypoint.sh"]
 
 Investigate more what this is good for..
 
-** ~EXPOSE~ command
+** The ~EXPOSE~ command
 
 Expose network ports on which the container is listening
 
@@ -525,7 +533,7 @@ EXPOSE 9990
 Need to explicitly publish the host port when starting the container (using ~-p~
 or ~-P~, see [[*A more advanced example][this previous]] section).
 
-** ~VOLUME~ command
+** The ~VOLUME~ command
 
 Creates a mount point with the specified name
 
@@ -539,12 +547,12 @@ Then you can mount a file or directory on the host system to that mount point
 docker container run ... -v data:/opt/couchbase/var
 #+END_SRC
 
-** ~USER~ command
+** The ~USER~ command
 
 Set the user name or UID to use when running the image. Investigate more why
 this is needed
 
-** ~HEALTHCHECK~ command
+** The ~HEALTHCHECK~ command
 
 Performs a healthcheck on the application inside the container (and not only the
 container itself).

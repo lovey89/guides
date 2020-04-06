@@ -1,5 +1,6 @@
 FROM openjdk:jdk-alpine
 
-COPY myapp/target/myapp-1.0-SNAPSHOT.jar /deployments/
+COPY target/hello-world-jar-1.0-SNAPSHOT.jar /deployments/
 
-CMD java -jar /deployments/myapp-1.0-SNAPSHOT.jar
+# Print java version and run the jar
+CMD java -version && java -jar /deployments/hello-world-jar-1.0-SNAPSHOT.jar

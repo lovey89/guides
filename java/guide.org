@@ -46,3 +46,12 @@ I have seen occurences when this didn't work. That time I had to add this to my
   </pluginManagement>
 </build>
 #+END_SRC
+
+* IntelliJ
+** Make newer versions of IntelliJ search for projects recursively
+
+[[https://youtrack.jetbrains.com/issue/IDEA-222158]]\\
+The 2019.3.2+ versions will have the ~Search for projects recursively~ option
+for the new project ~File | New Project Settings | Settings for New Projects...~ ->
+~Build, Execution, Deployment | Build Tools | Maven | Importing | 'Search for projects recursively'~.
+It will also be possible to toggle this action from Help | Find Action popup

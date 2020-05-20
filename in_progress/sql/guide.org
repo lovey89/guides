@@ -239,6 +239,14 @@ from temp_table t left join other_table o
 drop table temp_table;
 #+END_SRC
 
+* Generate guid
+
+[[https://til.hashrocket.com/posts/31a5135e19-generate-a-uuid-in-postgresql]]
+
+#+BEGIN_SRC sql
+select upper(replace(cast(uuid_generate_v4() as varchar(50)), '-', ''));
+#+END_SRC
+
 * Interesting links
 
 [[http://rachbelaid.com/postgres-full-text-search-is-good-enough/]]

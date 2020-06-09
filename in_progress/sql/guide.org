@@ -247,6 +247,21 @@ drop table temp_table;
 select upper(replace(cast(uuid_generate_v4() as varchar(50)), '-', ''));
 #+END_SRC
 
+* How to update rows of two tables that have foreign key restrictions
+
+[[https://stackoverflow.com/questions/34383412/how-to-update-rows-of-two-tables-that-have-foreign-key-restrictions]]
+
+#+BEGIN_SRC sql
+with new_a as (
+  update a
+    set rid = 110
+  where rid = 1
+)
+update b
+  set rid = 110
+where rid = 1;
+#+END_SRC
+
 * Interesting links
 
 [[http://rachbelaid.com/postgres-full-text-search-is-good-enough/]]

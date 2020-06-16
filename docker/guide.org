@@ -80,6 +80,7 @@ This message shows that your installation appears to be working correctly.
 To generate this message, Docker took the following steps:
  1. The Docker client contacted the Docker daemon.
  2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
  3. The Docker daemon created a new container from that image which runs the
     executable that produces the output you are currently reading.
  4. The Docker daemon streamed that output to the Docker client, which sent it
@@ -89,10 +90,10 @@ To try something more ambitious, you can run an Ubuntu container with:
  $ docker run -it ubuntu bash
 
 Share images, automate workflows, and more with a free Docker ID:
- https://cloud.docker.com/
+ https://hub.docker.com/
 
 For more examples and ideas, visit:
- https://docs.docker.com/engine/userguide/
+ https://docs.docker.com/get-started/
 #+END_SRC
 
 After this the container is terminated
@@ -100,8 +101,7 @@ After this the container is terminated
 *** A more advanced example
 
 In this example we will run the ~jboss/wildfly~. For now it's interesting
-because it's interesting because it will expose port ~8080~ and we can navigate
-to a webpage.
+because it will expose port ~8080~ and we can navigate to a webpage.
 
 #+BEGIN_SRC bash
 docker container run -p 8080:8080 -it --name web jboss/wildfly
@@ -152,11 +152,18 @@ expose port ~8080~ of the container you would still not see anything on
 
 *** Attach a volume
 
+Start with creating a ~war~ file. Go to the ~build_wildfly_war~ directory (all
+code is fetched from [[https://thepracticaldeveloper.com/2018/08/06/how-to-deploy-a-spring-boot-war-in-wildfly-jboss/][this webpage]]) and run
+
 #+BEGIN_SRC bash
-docker container run -d --name web4 -p 8080:8080 -v `pwd`/webapp.war:/opt/jboss/wildfly/standalone/deployments/webapp.war jboss/wildfly
+mvn clean install
 #+END_SRC
 
-Note to self: Check [[https://thepracticaldeveloper.com/2018/08/06/how-to-deploy-a-spring-boot-war-in-wildfly-jboss/][this webpage]] to build own war
+Then we can run the following
+
+#+BEGIN_SRC bash
+docker container run -it --name web4 -p 8080:8080 -v `pwd`/target/jboss-wildfly-demo-1.0.0-SNAPSHOT.war:/opt/jboss/wildfly/standalone/deployments/webapp.war jboss/wildfly
+#+END_SRC
 
 In this case we have made a file available for the container
 
@@ -168,7 +175,7 @@ In this case wildfly will find our ~.war~ file and deploy it. To verify that the
 ~.war~ file is deployed you can run
 
 #+BEGIN_SRC bash
-curl http://localhost:8080/webapp/resources/persons
+curl http://localhost:8080/webapp/hola
 #+END_SRC
 
 Remove all containers. For now we can run
@@ -353,6 +360,8 @@ docker image rm hello-world
 docker run -it --name my-linux-container ubuntu bash
 #+END_SRC
 
+Note that the command above is overriding the default command as described [[*Overriding the container default command][here]].
+
 The first time docker will pull the ubuntu image from the official docker hub.
 Any command run in the container will only live there for this session. If you
 create a file (~touch myfile~) it will only exist until the container exits (the
@@ -374,7 +383,7 @@ flag. The syntax is
 #+END_SRC
 
 I don't know what happens when referring to a local relative path but I couldn't
-see any data and no data was persisted. Maybe the path is relative to soemthing
+see any data and no data was persisted. Maybe the path is relative to something
 else but the current directory?
 
 A full example would be

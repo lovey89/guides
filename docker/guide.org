@@ -114,7 +114,7 @@ Then go to [[http://localhost:8080/]]
 | ~-it~                         | Run in interactive mode                                                                                              |
 | ~-d~                          | Run in detached mode                                                                                                 |
 | ~--name name~                 | Give the container a the name ~name~ instead of a random one                                                         |
-| ~-P~                          | Expose the container port on random ports on the host system. use ~docker container ls~ to see which port was chosen |
+| ~-P~                          | Expose the container port on random ports on the host system. Use ~docker container ls~ to see which port was chosen |
 | ~-p host_port:container_port~ | Instead of chosing a random port you can chose one yourself                                                          |
 
 #+BEGIN_SRC bash
@@ -162,14 +162,14 @@ mvn clean install
 Then we can run the following
 
 #+BEGIN_SRC bash
-docker container run -it --name web4 -p 8080:8080 -v `pwd`/target/jboss-wildfly-demo-1.0.0-SNAPSHOT.war:/opt/jboss/wildfly/standalone/deployments/webapp.war jboss/wildfly
+docker container run -it --name web4 -p 8080:8080 -v $(pwd)/target/jboss-wildfly-demo-1.0.0-SNAPSHOT.war:/opt/jboss/wildfly/standalone/deployments/webapp.war jboss/wildfly
 #+END_SRC
 
 In this case we have made a file available for the container
 
-| Option                                | Description                                                                                              |
-|---------------------------------------+----------------------------------------------------------------------------------------------------------|
-| ~-v host_location:container_location~ | Will make the file/dir at ~host_location~ on the host available at ~container_location~ in the container |
+| Option                                | Description                                                                                                                      |
+|---------------------------------------+----------------------------------------------------------------------------------------------------------------------------------|
+| ~-v host_location:container_location~ | Will make the file/dir at ~host_location~ on the host available at ~container_location~ in the container. Must be absolute paths |
 
 In this case wildfly will find our ~.war~ file and deploy it. To verify that the
 ~.war~ file is deployed you can run
@@ -393,7 +393,7 @@ docker run -it --rm -v $PWD/my-shared-dir:/my-data ubuntu bash
 #+END_SRC
 
 If ~my-shared-dir~ doesn't exist in your home directory it will automatically be
-created. Open the continer and create a file in the ~my-data~ directory and you
+created. Open the container and create a file in the ~my-data~ directory and you
 will see that it is created in the ~my-shared-dir~ directory.
 
 * Dockerfile

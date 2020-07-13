@@ -36,6 +36,7 @@
   - [[#check-if-a-command-exist][Check if a command exist]]
   - [[#check-if-a-shell-is-interactive][Check if a shell is interactive]]
   - [[#run-command-x-number-of-times][Run command x number of times]]
+  - [[#find-number-of-files-with-specific-file-extension][Find number of files with specific file extension]]
 #+END_QUOTE
 
 * Temp
@@ -1072,4 +1073,24 @@ do
   echo iteration $i
   i=$(($i-1))
 done
+#+END_SRC
+
+** Find number of files with specific file extension
+
+[[https://askubuntu.com/a/454568]]
+
+#+BEGIN_SRC bash
+find /path/to/directory -mindepth 1 -type f -iname "*.jpg" -printf x | wc -c
+#+END_SRC
+
+It will find the file extension case insensitively
+
+If you don't want it to be recursive, simply add ~-maxdepth 1~.
+
+To find all extensions in a directory and sub directories look at [[https://www.2daygeek.com/how-to-count-files-by-extension-in-linux/][this]] page. I
+don't think it's correct though since it won't handle new lines in the file
+name. See if you can correct this (probably with ~exec~?):
+
+#+BEGIN_SRC bash
+find . -type f | sed -n 's/..*\.//p' | sort | uniq -c
 #+END_SRC

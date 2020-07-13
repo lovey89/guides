@@ -23,6 +23,9 @@
 - [[#disk-and-partition-info][Disk and partition info]]
   - [[#mounted-file-systems][Mounted file systems]]
   - [[#display-disk-information][Display disk information]]
+- [[#rmlint][rmlint]]
+- [[#exiftool][Exiftool]]
+  - [[#renaming-images][Renaming images]]
 #+END_QUOTE
 
 * journalctl
@@ -276,3 +279,63 @@ df -Th
 #+BEGIN_SRC bash
 fdisk -l /dev/sda
 #+END_SRC
+
+* rmlint
+
+To find duplicate file. The most common usages can be found [[https://rmlint.readthedocs.io/en/latest/tutorial.html][here]].
+
+Note that nothing will be removed. ~rmlint~ will produce a ~rmlint.sh~ and
+~rmlint.json~ files. When you execute ~rmlint.sh~ you will be shown some options
+before the removal starts.
+
+Find duplicates in the current directory
+
+#+BEGIN_SRC bash
+rmlint
+#+END_SRC
+
+Find duplicates in the current directory and determine that the first
+alphabetical file in a group of conflicts is original.
+
+#+BEGIN_SRC bash
+rmlint -S a
+#+END_SRC
+
+To use last alpabetical as original you can user
+
+#+BEGIN_SRC bash
+rmlint -S A
+#+END_SRC
+
+Give multiple dirs to look inside instead of the current dir
+
+#+BEGIN_SRC bash
+rmline dir1 dir2
+#+END_SRC
+
+By default if there are conflicts found in ~dir1~ and ~dir2~ the file in ~dir1~
+is considered to be original
+
+* Exiftool
+
+Read and write meta information in files
+
+** Renaming images
+
+[[https://exiftool.org/exiftool_pod.html#renaming_examples]]
+
+See [[https://superuser.com/a/695050][this]] answer
+
+#+BEGIN_SRC bash
+exiftool -r '-FileName<CreateDate' -d '%Y-%m-%d/%H_%M_%S%%-c.%%le' <yourFolder>
+#+END_SRC
+
+- ~-r~ is for recursion
+- ~'-FileName<CreateDate'~ tells exiftool to rename the file accordingly to its EXIF tag ~CreateDate~
+- ~-d '%Y-%m-%d/%H_%M_%S%%-c.%%le'~ tells how to build the filename string from the date source ~CreateDate~
+
+The command will sort all files in the current directory and all sub directories
+and place them in directories with the date of the day the file was created and
+name the files the time when they were created. They will add numbers after the
+time stamp if needed (because of collisions). If an EXIF file is not found (or
+not complete?) the file will be left as it were.

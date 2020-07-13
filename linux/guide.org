@@ -322,7 +322,7 @@ Read and write meta information in files
 
 ** Renaming images
 
-[[https://exiftool.org/exiftool_pod.html#renaming_examples]]
+[[https://exiftool.org/exiftool_pod.html#RENAMING-EXAMPLES]]
 
 See [[https://superuser.com/a/695050][this]] answer
 
@@ -331,8 +331,8 @@ exiftool -r '-FileName<CreateDate' -d '%Y-%m-%d/%H_%M_%S%%-c.%%le' <yourFolder>
 #+END_SRC
 
 - ~-r~ is for recursion
-- ~'-FileName<CreateDate'~ tells exiftool to rename the file accordingly to its EXIF tag ~CreateDate~
-- ~-d '%Y-%m-%d/%H_%M_%S%%-c.%%le'~ tells how to build the filename string from the date source ~CreateDate~
+- ~-FileName<CreateDate~ tells exiftool to rename the file accordingly to its EXIF tag ~CreateDate~
+- ~-d %Y-%m-%d/%H_%M_%S%%-c.%%le~ tells how to build the filename string from the date source ~CreateDate~
 
 The command will sort all files in the current directory and all sub directories
 and place them in directories with the date of the day the file was created and

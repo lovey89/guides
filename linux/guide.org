@@ -26,6 +26,7 @@
 - [[#rmlint][rmlint]]
 - [[#exiftool][Exiftool]]
   - [[#renaming-images][Renaming images]]
+- [[#grub2-and-related][grub2 and related]]
 #+END_QUOTE
 
 * journalctl
@@ -339,3 +340,45 @@ and place them in directories with the date of the day the file was created and
 name the files the time when they were created. They will add numbers after the
 time stamp if needed (because of collisions). If an EXIF file is not found (or
 not complete?) the file will be left as it were.
+
+* grub2 and related
+
+~grub2~ will try to boot from an /ESP partition/ which in linux will be mounted
+on ~/boot/efi/~.
+
+If you get problems with grub and you need to boot you system using the grub
+command line you can follow [[https://fedoraproject.org/wiki/GRUB_2#Encountering_the_dreaded_GRUB_2_boot_prompt][this]] guide. Since I am running UEFI had to replace
+the ~linux~ command with ~linuxefi~ and ~initrd~ with ~initrdefi~.
+
+To see the boot order of the system you can use the ~efibootmgr -v~ command. On
+my system the first option is:
+
+#+BEGIN_SRC
+Boot0000* fedora        HD(2,GPT,xxxxxxxx-yyyy-zzzz-aaaa-bbbbbbbbbbbb,0xe1800,0x32000)/File(\EFI\FEDORA\GRUBX64.EFI)
+#+END_SRC
+
+which in my case means ~/dev/sda2~ (notice the ~2~ after ~HD~). To verify that
+this is actually the case run:
+
+- Run ~gdisk /dev/sda~
+- Choose ~i~ (show detailed information on a partition)
+- Choose the partition you think is used (in my case ~2~)
+- Verify that /Partition unique GUID/ is set to the guid above (~xxxxxxxx-yyyy-zzzz-aaaa-bbbbbbbbbbbb~)
+
+In my case the computer booted with the wrong partiotion. I followed [[https://www.linuxbabe.com/command-line/how-to-use-linux-efibootmgr-examples][this]] guide
+to add another boot entry.
+
+I had to install ~grub2-efi-x64-modules~ using
+
+#+BEGIN_SRC bash
+sudo dnf install grub2-efi-x64-modules
+#+END_SRC
+
+and then run
+
+#+BEGIN_SRC bash
+sudo grub-install /dev/sda --target=x86_64-efi --efi-directory=/boot/efi/
+#+END_SRC
+
+This added a new boot entry on top when you ran ~efibootmgr -v~ and solved my
+problem in the end

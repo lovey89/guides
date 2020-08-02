@@ -24,8 +24,12 @@
   - [[#mounted-file-systems][Mounted file systems]]
   - [[#display-disk-information][Display disk information]]
 - [[#rmlint][rmlint]]
-- [[#exiftool][Exiftool]]
-  - [[#renaming-images][Renaming images]]
+- [[#sorting-photos][Sorting photos]]
+  - [[#exiftool][Exiftool]]
+  - [[#rapid-photo-downloader][rapid-photo-downloader]]
+- [[#rsync][rsync]]
+  - [[#copy-locally-eg-to-an-external-hard-drive][Copy locally (e.g. to an external hard drive)]]
+  - [[#use-slash-in-the-end-or-not][Use slash in the end or not?]]
 - [[#grub2-and-related][grub2 and related]]
 #+END_QUOTE
 
@@ -273,6 +277,8 @@ Which will create the file ~/etc/yum.repos.d/mirror.aarnet.edu.au_pub_centos_7.r
 
 #+BEGIN_SRC bash
 df -Th
+# or
+lsblk -f
 #+END_SRC
 
 ** Display disk information
@@ -317,11 +323,12 @@ rmline dir1 dir2
 By default if there are conflicts found in ~dir1~ and ~dir2~ the file in ~dir1~
 is considered to be original
 
-* Exiftool
+* Sorting photos
+** Exiftool
 
 Read and write meta information in files
 
-** Renaming images
+*** Renaming images
 
 [[https://exiftool.org/exiftool_pod.html#RENAMING-EXAMPLES]]
 
@@ -340,6 +347,37 @@ and place them in directories with the date of the day the file was created and
 name the files the time when they were created. They will add numbers after the
 time stamp if needed (because of collisions). If an EXIF file is not found (or
 not complete?) the file will be left as it were.
+
+** rapid-photo-downloader
+
+Was recommended this tool as well but haven't tested it myself
+
+#+BEGIN_SRC bash
+sudo dnf install rapid-photo-downloader
+#+END_SRC
+
+* rsync
+
+[[https://www.thegeekstuff.com/2011/01/rsync-exclude-files-and-folders/?utm_source=feedburner]]
+
+** Copy locally (e.g. to an external hard drive)
+
+From [[https://serverfault.com/a/505758][this]] answer:
+
+#+BEGIN_SRC
+rsync -avhW --no-compress --progress src/ dst/
+#+END_SRC
+
+~-n~ to dry run
+
+** Use slash in the end or not?
+
+[[http://qdosmsq.dunbar-it.co.uk/blog/2013/02/rsync-to-slash-or-not-to-slash/]]
+
+A trailing slash on the destination doesn't matter but it does for the source.
+If you don't include a slash the directory and it's content is copied to the
+destination folder. If you use a slash only the content of the source directory
+will be copied to the destination directory
 
 * grub2 and related
 

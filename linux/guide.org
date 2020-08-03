@@ -24,6 +24,7 @@
   - [[#mounted-file-systems][Mounted file systems]]
   - [[#display-disk-information][Display disk information]]
 - [[#rmlint][rmlint]]
+  - [[#finding-and-deleting-empty-directories][Finding and deleting empty directories]]
 - [[#sorting-photos][Sorting photos]]
   - [[#exiftool][Exiftool]]
   - [[#rapid-photo-downloader][rapid-photo-downloader]]
@@ -323,6 +324,20 @@ rmline dir1 dir2
 By default if there are conflicts found in ~dir1~ and ~dir2~ the file in ~dir1~
 is considered to be original
 
+** Finding and deleting empty directories
+
+This is not an ~rmlint~ command but I put it here anyway. Find empty directories:
+
+#+BEGIN_SRC bash
+find . -type d -empty -print
+#+END_SRC
+
+Delete them (will recursively delete empty directories):
+
+#+BEGIN_SRC bash
+find . -type d -empty -delete
+#+END_SRC
+
 * Sorting photos
 ** Exiftool
 
@@ -344,9 +359,26 @@ exiftool -r '-FileName<CreateDate' -d '%Y-%m-%d/%H_%M_%S%%-c.%%le' <yourFolder>
 
 The command will sort all files in the current directory and all sub directories
 and place them in directories with the date of the day the file was created and
-name the files the time when they were created. They will add numbers after the
-time stamp if needed (because of collisions). If an EXIF file is not found (or
-not complete?) the file will be left as it were.
+name the files the time when they were created. So the original directories will
+be removed (if all files could be handled) and replaced with directories with
+the date the images were captured. They will add numbers after the time stamp if
+needed (because of collisions). If an EXIF file is not found (or not complete?)
+the file will be left as it were.
+
+#+BEGIN_SRC bash
+exiftool -r '-FileName<CreateDate' -d '%Y_%m_%d-%H_%M_%S%%-c.%%le' <yourFolder>
+#+END_SRC
+
+This command doesn't include any slash in the argument for the ~-d~ option so
+the files will be left in their original directories but the file names will be
+updated (in this case the date and time is in the name).
+
+#+BEGIN_SRC bash
+exiftool -r '-FileName<CreateDate' -d './%Y_%m_%d-%H_%M_%S%%-c.%%le' <yourFolder>
+#+END_SRC
+
+Move all the files from the subdirectories of ~yourFolder~ to ~yourFolder~ and
+update the filenames
 
 ** rapid-photo-downloader
 

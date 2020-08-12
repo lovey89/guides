@@ -386,6 +386,47 @@ exiftool -r '-FileName<CreateDate' -d './%Y_%m_%d-%H_%M_%S%%-c.%%le' <yourFolder
 Move all the files from the subdirectories of ~yourFolder~ to ~yourFolder~ and
 update the file names
 
+**** Update names using capture date and current name
+
+In the example my files are all named like
+
+#+BEGIN_SRC
+HH_MM_SS.jpg
+# or
+HH_MM_SS_optional_comment.jpg
+#+END_SRC
+
+I want to rename them to
+
+#+BEGIN_SRC
+yyyy_mm_dd-HH_MM_SS.jpg
+# or
+yyyy_mm_dd-HH_MM_SS_optional_comment.jpg
+#+END_SRC
+
+We need to make use of the /Advanced formatting feature/ (found in man pages)
+which allows perl expressions to be run on a "variable"
+
+In this case I don't add the lower case file ending (~%%le~) in the date format.
+I remove the regex ~.._.._..~ from the beginning of the file name and keep the
+rest.
+
+#+BEGIN_SRC bash
+exiftool -r '-FileName<${CreateDate}${filename;s/^.._.._..(.*)/$1/}' -d '%Y_%m_%d-%H_%M_%S%%-c' .
+#+END_SRC
+
+Note that this will only substitute part of the file name. If the file name
+doesn't match ~^.._.._..(.*)~ nothing will be substituted and the file name will
+be returned as is (and be appended to the capture date in the resulting file
+name). If you want to replace a file not matching that regex with only it's file
+extension you would have to do something like this:
+
+#+BEGIN_SRC bash
+exiftool -r '-FileName<${CreateDate}${filename;s/.*(\..*)/$1/ if not /^.._.._../;s/^.._.._..(.*)/$1/}' -d '%Y_%m_%d-%H_%M_%S%%-c' .
+#+END_SRC
+
+To investigate. What if there is no exif info?
+
 ** rapid-photo-downloader
 
 Was recommended this tool as well but haven't tested it myself

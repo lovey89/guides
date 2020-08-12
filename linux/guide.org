@@ -347,6 +347,8 @@ Read and write meta information in files
 
 [[https://exiftool.org/exiftool_pod.html#RENAMING-EXAMPLES]]
 
+**** Move pictures to folder with capture date and name them the capture time
+
 See [[https://superuser.com/a/695050][this]] answer
 
 #+BEGIN_SRC bash
@@ -365,6 +367,8 @@ the date the images were captured. They will add numbers after the time stamp if
 needed (because of collisions). If an EXIF file is not found (or not complete?)
 the file will be left as it were.
 
+**** Update picture name to capture date and time but don't move to other foler
+
 #+BEGIN_SRC bash
 exiftool -r '-FileName<CreateDate' -d '%Y_%m_%d-%H_%M_%S%%-c.%%le' <yourFolder>
 #+END_SRC
@@ -373,12 +377,14 @@ This command doesn't include any slash in the argument for the ~-d~ option so
 the files will be left in their original directories but the file names will be
 updated (in this case the date and time is in the name).
 
+**** Move all pictures in subdirs to current dir and update names to capture date and time
+
 #+BEGIN_SRC bash
 exiftool -r '-FileName<CreateDate' -d './%Y_%m_%d-%H_%M_%S%%-c.%%le' <yourFolder>
 #+END_SRC
 
 Move all the files from the subdirectories of ~yourFolder~ to ~yourFolder~ and
-update the filenames
+update the file names
 
 ** rapid-photo-downloader
 

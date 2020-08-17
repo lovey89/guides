@@ -425,7 +425,8 @@ extension you would have to do something like this:
 exiftool -r '-FileName<${CreateDate}${filename;s/.*(\..*)/$1/ if not /^.._.._../;s/^.._.._..(.*)/$1/}' -d '%Y_%m_%d-%H_%M_%S%%-c' .
 #+END_SRC
 
-To investigate. What if there is no exif info?
+Files with no exif info (e.g. pictures from WhatsApp) seems to be not updated at
+all.
 
 ** rapid-photo-downloader
 

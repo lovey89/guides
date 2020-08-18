@@ -457,7 +457,7 @@ exiftool -r '-FileName<${CreateDate}${directory;s/.*.{4}-.{2}-.{2}(.*)$/$1/g}${f
 To change to upper case use
 
 #+BEGIN_SRC bash
-s/.*/uc($1)/e
+s/match_pattern/uc($1)/e
 #+END_SRC
 
 ~e~ is used to execute functions in the second part of the substitution. To

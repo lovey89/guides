@@ -428,6 +428,71 @@ exiftool -r '-FileName<${CreateDate}${filename;s/.*(\..*)/$1/ if not /^.._.._../
 Files with no exif info (e.g. pictures from WhatsApp) seems to be not updated at
 all.
 
+**** Update names with parts of the directory name
+
+In this example I have my files like this
+
+#+BEGIN_SRC
+yyyy-mm-dd/file.jpg
+# or
+yyyy-mm-dd_optional_comment/file.jpg
+#+END_SRC
+
+I want to rename them to
+
+#+BEGIN_SRC
+yyyy-mm-dd/yyyy_mm_dd-HH_MM_SS.jpg.jpg
+# or
+yyyy-mm-dd_optional_comment/yyyy_mm_dd-HH_MM_SS_optional_comment.jpg
+#+END_SRC
+
+Run this
+
+#+BEGIN_SRC bash
+exiftool -r '-FileName<${CreateDate}${directory;s/.*.{4}-.{2}-.{2}(.*)$/$1/g}${filename;s/.*(\..*)/lc($1)/e}' -d '%Y_%m_%d-%H_%M_%S%%-c' .
+#+END_SRC
+
+**** Change case in substitutions
+
+To change to upper case use
+
+#+BEGIN_SRC bash
+s/.*/uc($1)/e
+#+END_SRC
+
+~e~ is used to execute functions in the second part of the substitution. To
+change to lower case you use ~lc~ instead of ~uc~.
+
+**** Available tags
+
+[[https://exiftool.org/TagNames/Extra.html]]
+
+Note that there is a writable tag called ~TestName~ that can be used for dry
+runs. So use
+
+#+BEGIN_SRC bash
+exiftool -r '-TestName<CreateDate' -d '%Y-%m-%d/%H_%M_%S%%-c.%%le' <yourFolder>
+#+END_SRC
+
+instead of
+
+#+BEGIN_SRC bash
+exiftool -r '-FileName<CreateDate' -d '%Y-%m-%d/%H_%M_%S%%-c.%%le' <yourFolder>
+#+END_SRC
+
+It will print each files old name and new name without actually updating it
+
+**** Variables in date string
+
+See ~man strftime~
+
+Additionally variables supported
+
+- ~%d~ current directory of file
+- ~%f~ current filename of file
+- ~%e~ the file ending of file (extension)
+- ~%c~ copy number. If we get duplicates of the date we will append a copy number
+
 ** rapid-photo-downloader
 
 Was recommended this tool as well but haven't tested it myself

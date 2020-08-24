@@ -1092,5 +1092,5 @@ don't think it's correct though since it won't handle new lines in the file
 name. See if you can correct this (probably with ~exec~?):
 
 #+BEGIN_SRC bash
-find . -type f | sed -n 's/..*\.//p' | sort | uniq -c
+find . -type f | sed -n 's/..*\.//p' | sort | uniq -c | sort -bnr
 #+END_SRC

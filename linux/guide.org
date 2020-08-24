@@ -24,6 +24,7 @@
   - [[#mounted-file-systems][Mounted file systems]]
   - [[#display-disk-information][Display disk information]]
 - [[#rmlint][rmlint]]
+  - [[#tagged-directories][Tagged directories]]
   - [[#finding-and-deleting-empty-directories][Finding and deleting empty directories]]
 - [[#sorting-photos][Sorting photos]]
   - [[#exiftool][Exiftool]]
@@ -309,7 +310,7 @@ alphabetical file in a group of conflicts is original.
 rmlint -S a
 #+END_SRC
 
-To use last alpabetical as original you can user
+To use last alphabetical as original you can use
 
 #+BEGIN_SRC bash
 rmlint -S A
@@ -318,11 +319,121 @@ rmlint -S A
 Give multiple dirs to look inside instead of the current dir
 
 #+BEGIN_SRC bash
-rmline dir1 dir2
+rmlint dir1 dir2
 #+END_SRC
 
 By default if there are conflicts found in ~dir1~ and ~dir2~ the file in ~dir1~
 is considered to be original
+
+** Tagged directories
+
+To never delete anything from a directory when running ~rmlint~ you can use the
+following command. All directories after ~//~ are called tagged and by applying
+the ~-k~ option (keep-all-tagged) we will never remove duplicates from these
+directories
+
+#+BEGIN_SRC bash
+rmlint paths/to/remove // paths/to/keep -k
+#+END_SRC
+
+You can also add the ~-m~ option (must-match-tagged). In this case we will only
+look for duplicates of which at least one is in one of the tagged paths
+
+#+BEGIN_SRC bash
+rmlint paths/to/remove // paths/to/keep -k
+#+END_SRC
+
+*** Examples
+
+#+BEGIN_SRC
+.
+├── da
+│   ├── fil.txt   # contains a (unique)
+│   ├── fila.txt  # contains e (duplicate)
+│   └── fila2.txt # contains f (duplicate)
+├── db
+│   ├── fil.txt   # contains b (unique)
+│   ├── filb.txt  # contains e (duplicate)
+│   └── filb2.txt # contains f (duplicate)
+├── dc
+│   ├── fil.txt   # contains c (unique)
+│   └── filc.txt  # contains e (duplicate)
+└── dd
+    ├── fil.txt   # contains d (unique)
+    └── fild.txt  # contains e (duplicate)
+#+END_SRC
+
+#+BEGIN_SRC bash
+rmlint da db // dc dd
+#+END_SRC
+
+returns
+
+#+BEGIN_SRC
+# Duplicate(s):
+    ls './dc/filc.txt'
+    rm './dd/fild.txt'
+    rm './da/fila.txt'
+    rm './db/filb.txt'
+    ls './da/fila2.txt'
+    rm './db/filb2.txt'
+
+==> Note: Please use the saved script below for removal, not the above output.
+==> In total 10 files, whereof 4 are duplicates in 2 groups.
+==> This equals 8 B of duplicates which could be removed.
+==> Scanning took in total 0.060s.
+#+END_SRC
+
+All duplicates are removed (tagged paths seems to be favoured for originals).
+
+#+BEGIN_SRC bash
+rmlint da db // dc dd -k
+#+END_SRC
+
+returns
+
+#+BEGIN_SRC
+# Duplicate(s):
+    ls './da/fila2.txt'
+    rm './db/filb2.txt'
+    ls './dc/filc.txt'
+    ls './dd/fild.txt'
+    rm './da/fila.txt'
+    rm './db/filb.txt'
+
+==> Note: Please use the saved script below for removal, not the above output.
+==> In total 10 files, whereof 3 are duplicates in 2 groups.
+==> This equals 6 B of duplicates which could be removed.
+==> Scanning took in total 0.058s.
+#+END_SRC
+
+Nothing in the tagged directories (the directories after ~//~) will be removed
+when using the ~-k~ option.
+
+#+BEGIN_SRC bash
+rmlint da db // dc dd -km
+#+END_SRC
+
+returns
+
+#+BEGIN_SRC
+# Duplicate(s):
+    ls './dc/filc.txt'
+    ls './dd/fild.txt'
+    rm './da/fila.txt'
+    rm './db/filb.txt'
+
+==> Note: Please use the saved script below for removal, not the above output.
+==> In total 10 files, whereof 2 are duplicates in 1 groups.
+==> This equals 4 B of duplicates which could be removed.
+==> Scanning took in total 0.057s.
+#+END_SRC
+
+Nothing in the untagged directories (the directories before ~//~) will be
+removed whe using the ~-m~ option unless they also exists in the tagged
+directoris (the directories after ~//~). Since there are no files that are
+equal to ~da/fila2.txt~ or ~db/filb2.txt~ in directories ~dc~ or ~dd~ we will
+not remove it even though they are duplicates.
 
 ** Finding and deleting empty directories
 

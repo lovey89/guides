@@ -1,0 +1,5 @@
+From https://fedoramagazine.org/getting-started-with-haskell-on-fedora/
+
+https://github.com/thma/WhyHaskellMatters
+http://dev.stephendiehl.com/hask/
+https://www.seas.upenn.edu/~cis194/spring13/lectures.html

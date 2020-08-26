@@ -60,6 +60,7 @@
 - [[http://www.grymoire.com/Unix/Sed.html]]
 - [[http://www.panix.com/~elflord/unix/sed.html]]
 - [[https://www.gnu.org/software/sed/manual/sed.html#sed-scripts]]
+- [[http://sed.sourceforge.net/sed1line.txt]]
 
 * Things to think about
 

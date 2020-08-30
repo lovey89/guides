@@ -430,8 +430,8 @@ returns
 #+END_SRC
 
 Nothing in the untagged directories (the directories before ~//~) will be
-removed whe using the ~-m~ option unless they also exists in the tagged
-directoris (the directories after ~//~). Since there are no files that are
+removed when using the ~-m~ option unless they also exists in the tagged
+directories (the directories after ~//~). Since there are no files that are
 equal to ~da/fila2.txt~ or ~db/filb2.txt~ in directories ~dc~ or ~dd~ we will
 not remove it even though they are duplicates.
 

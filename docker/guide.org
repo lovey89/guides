@@ -24,10 +24,14 @@
   - [[#the-volume-command][The ~VOLUME~ command]]
   - [[#the-user-command][The ~USER~ command]]
   - [[#the-healthcheck-command][The ~HEALTHCHECK~ command]]
+  - [[#the-env-and-arg-commands][The ~ENV~ and ~ARG~ commands]]
   - [[#other-commands][Other commands]]
   - [[#more-advanced-example-with-python-installed][More advanced example with python installed]]
   - [[#tags][Tags]]
 - [[#docker-compose][Docker compose]]
+- [[#other-commands-1][Other commands]]
+  - [[#remove-all-images][Remove all images]]
+  - [[#remove-all-containers][Remove all containers]]
 #+END_QUOTE
 
 * Docker
@@ -440,7 +444,7 @@ docker image history my-ubuntu-image
 #+END_SRC
 
 ** Copy file in docker container
-*** The ~COPY~ command
+*** The ~COPY~ command. TODO: Update with own war file
 
 Copy new files or directories to the container filesystem
 
@@ -473,10 +477,16 @@ curl http://localhost:8080/webapp/resources/persons
 *** The ~ADD~ command
 
 Allows tar file auto-extraction in the image. E.g:
-~Add app.tar.gz /opt/var/myapp~- Can download files from a remote URL but
+~Add app.tar.gz /opt/var/myapp~. Can download files from a remote URL but
 recommended to use ~curl~ or ~wget~ instead.
 
-Investigate when this should be used
+Investigate when this should be used. Seems like ~COPY~ is almost always the
+correct command to use.
+
+Apparently one of the reasons you should use ~RUN curl~ instead of ~ADD~ is that
+you can chain the commands together instead of adding multiple layer. E.g.
+download the file, extract it and remove all file you don't need. In this way
+you can keep the file size down.
 
 ** Run a jar file in a docker image
 
@@ -556,6 +566,8 @@ Then you can mount a file or directory on the host system to that mount point
 docker container run ... -v data:/opt/couchbase/var
 #+END_SRC
 
+TODO: What happens if we mount a volume without creating a mount point?
+
 ** The ~USER~ command
 
 Set the user name or UID to use when running the image. Investigate more why
@@ -574,9 +586,46 @@ This will run the command ~curl --fail http://localhost:8091/pools || exit 1~
 (administrative interface of couchbase) every 5 seconds and if it fails or
 doesn't respond within 3 seconds the container will be marked as unhealthy.
 
+** The ~ENV~ and ~ARG~ commands
+
+~ARG~ are also known as build-time variables. They are available from when they
+are declared until the image is built. So they will not be available for the
+running container (including ~CMD~ and ~ENDPOINT~).
+
+#+BEGIN_SRC Dockerfile
+ARG var_name # This form expects the value to be provided when building
+             # E.g. docker build --build-arg var_name=value
+             # Otherwise it will fail
+# or
+ARG var_name=default_value
+#+END_SRC
+
+~ENV~ variable are also available during build time. They will also be available
+to the container during run time as well.
+
+#+BEGIN_SRC Dockerfile
+ENV var_name
+# or
+ENV var_name=default_value
+#+END_SRC
+
+~ENV~ variable can be overridden when starting the container like
+
+#+BEGIN_SRC bash
+docker run -e "var_name=new_value" container_name
+#+END_SRC
+
+If you omit the value to set it will take the value from the host environment
+and send to the host
+
+#+BEGIN_SRC bash
+export var_name=new_value
+docker run -e var_name container_name
+#+END_SRC
+
 ** Other commands
 
-LABEL. ENV, WORKDIR, ARG, ONBUILD, STOPSIGNAL, SHELL
+LABEL. WORKDIR, ONBUILD, STOPSIGNAL, SHELL
 
 ** More advanced example with python installed
 
@@ -619,4 +668,19 @@ python3 --version
 #+END_SRC
 
 ** Tags
+
+
+
 * Docker compose
+* Other commands
+** Remove all images
+
+#+BEGIN_SRC bash
+docker image rm -f $(docker image ls -aq)
+#+END_SRC
+
+** Remove all containers
+
+#+BEGIN_SRC bash
+docker container rm -f $(docker container ls -aq)
+#+END_SRC

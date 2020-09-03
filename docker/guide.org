@@ -669,7 +669,90 @@ python3 --version
 
 ** Tags
 
+I have prepared a ~Dockerfile~ at [[file:tags_examples/ver_1/Dockerfile][tags_examples/ver_1/Dockerfile]]. Navigate to
+the directory and build it.
 
+#+BEGIN_SRC bash
+docker image build -t helloworld .
+#+END_SRC
+
+You will see the output
+
+#+BEGIN_SRC 
+Successfully tagged helloworld:latest
+#+END_SRC
+
+and ~latest~ is the default tag both when building and running. So if you don't
+state a tag when starting a container it will automatically use ~latest~. Both
+the following commands will work the same
+
+#+BEGIN_SRC bash
+docker container run helloworld
+# or
+docker container run helloworld:latest # Will produce the same thing since latest is default value
+#+END_SRC
+
+Remove the image we just created
+
+#+BEGIN_SRC bash
+docker container rm helloworld:latest
+#+END_SRC
+
+Now create a new image with an explicit tag instead
+
+#+BEGIN_SRC bash
+docker image build -t helloworld:1 .
+#+END_SRC
+
+Now the output will say
+
+#+BEGIN_SRC
+Successfully tagged helloworld:1
+#+END_SRC
+
+None of the previous commands to start a container will work now since there is
+no ~helloworld~ container with a ~latest~ tag. Note that we don't have any other
+tags on the container but still it doesn't work. We will have to explicitly
+state which image and tag we want to use
+
+#+BEGIN_SRC bash
+docker container run helloworld:1
+#+END_SRC
+
+You can add more tags to an existing container with the ~tag~ command
+
+#+BEGIN_SRC bash
+docker image tag helloworld:1 helloworld:latest
+#+END_SRC
+
+If you now run ~docker image ls~ you will see both ~helloworld:1~ and
+~helloworld:latest~ and both of them will have the same image id. Note that when
+you try to remove one of these images it will only untag it and if we remove the
+last tag from an image, the image itself will be removed.
+
+Now if you enter the directory ~ver_2~ and build [[file:tags_examples/ver_2/Dockerfile][tags_examples/ver_2/Dockerfile]]
+with:
+
+#+BEGIN_SRC bash
+docker image build -t helloworld:2 .
+#+END_SRC
+
+you will end up with a new image with a new image id. We can update the ~latest~
+tag to point at version ~2~ (you don't have to untag first)
+
+#+BEGIN_SRC bash
+docker image tag helloworld:2 helloworld:latest
+#+END_SRC
+
+We can now easily choose which version to run by stating the tag (omitting the
+tag will run ~latest~ which now points to version 2)
+
+#+BEGIN_SRC bash
+docker container run helloworld:1
+docker container run helloworld:2
+docker container run helloworld:latest # version 2
+ocker container run helloworld # latest which is version 2
+#+END_SRC
 
 * Docker compose
 * Other commands
@@ -684,3 +767,4 @@ docker image rm -f $(docker image ls -aq)
 #+BEGIN_SRC bash
 docker container rm -f $(docker container ls -aq)
 #+END_SRC
+

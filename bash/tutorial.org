@@ -141,19 +141,19 @@ unset -f myFunction # Unset functions
 #!/bin/bash
 
 var="a/b/c/d"
-echo "${#var}"
-echo "${var#*/}"
-echo "${var##*/}"
-echo "${var%/*}"
-echo "${var%%/*}"
-echo "${var/\//|}"
-echo "${var//\//|}"
+echo "${#var}"        # 7
+echo "${var#*/}"      # b/c/d
+echo "${var##*/}"     # d
+echo "${var%/*}"      # a/b/c
+echo "${var%%/*}"     # a
+echo "${var/\//|}"    # a|b/c/d
+echo "${var//\//|}"   # a|b|c|d
 
 echo "${var2:-${var#*/}}" # Looks like we can nest
 
 string=01234567890abcdefgh
-echo ${string: -7}
-echo ${string: -7:-2}
+echo ${string: -7}    # bcdefgh
+echo ${string: -7:-2} # bcdef
 #+END_SRC
 
 * The ~if~ statement

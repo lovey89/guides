@@ -29,9 +29,11 @@
   - [[#more-advanced-example-with-python-installed][More advanced example with python installed]]
   - [[#tags][Tags]]
 - [[#docker-compose][Docker compose]]
+  - [[#hello-world][Hello world]]
 - [[#other-commands-1][Other commands]]
   - [[#remove-all-images][Remove all images]]
   - [[#remove-all-containers][Remove all containers]]
+- [[#to-investigate][To investigate]]
 #+END_QUOTE
 
 * Docker
@@ -448,7 +450,7 @@ docker image history my-ubuntu-image
 
 Copy new files or directories to the container filesystem
 
-#+BEGIN_SRC bash
+#+BEGIN_SRC
 COPY host_file container_destination
 #+END_SRC
 
@@ -485,8 +487,8 @@ correct command to use.
 
 Apparently one of the reasons you should use ~RUN curl~ instead of ~ADD~ is that
 you can chain the commands together instead of adding multiple layer. E.g.
-download the file, extract it and remove all file you don't need. In this way
-you can keep the file size down.
+download the file, extract it and remove all file you don't need with a single
+~RUN~ command. In this way you can keep the file size down.
 
 ** Run a jar file in a docker image
 
@@ -755,6 +757,72 @@ ocker container run helloworld # latest which is version 2
 #+END_SRC
 
 * Docker compose
+
+You can easily run multicontainer applications with Docker Compose. The
+configuration is by default defined in ~docker-compose.yml~ and settings can be
+overridden by ~docker-compose.override.yml~. We can also provide multiple files
+with the ~-f~ option.
+
+#+BEGIN_SRC bash
+docker-compose -v
+docker-compose --help
+docker-compose up --help
+#+END_SRC
+
+** Hello world
+
+I have create a file [[file:05_docker-compose-hello-world/docker-compose.yml][05_docker-compose-hello-world/docker-compose.yml]]. Navigate
+to that directory and run:
+
+#+BEGIN_SRC bash
+docker-compose up -d
+#+END_SRC
+
+This will bring up all services (in the example above there's only one service)
+in detached mode. If the ~deployments~ directory didn't already exist in your
+home directory, it will now exist. I did have some problems with the permissions
+when letting ~docker-compose~ create the ~deployments~ directory for me. There
+was an error in the wildfly log but if I created the ~deployments~ directory
+first the rest of this example will work.
+
+Run:
+
+#+BEGIN_SRC bash
+docker-compose ps
+#+END_SRC
+
+to check the status. Run:
+
+#+BEGIN_SRC bash
+docker-compose logs -f
+#+END_SRC
+
+to see the logs. The ~deployments~ is still empty so if you run
+
+#+BEGIN_SRC bash
+curl http://localhost:8080/webapp/hola
+#+END_SRC
+
+nothing interesting will happen (apart from a 404 - Not Found). Copy our created
+~war~ file to the ~deployment~ directory.
+
+#+BEGIN_SRC bash
+cp build_wildfly_war/target/jboss-wildfly-demo-1.0.0-SNAPSHOT.war ~/deployments/webapp.war
+#+END_SRC
+
+You will see in the wildfly log that it will be automatically deployed (unless
+the ~deployment~ directory has the wrong permissions you get when it is created
+automatically for you). Run the ~curl~ command above again and see that you get
+a proper response.
+
+Now bring down this service with
+
+#+BEGIN_SRC bash
+docker-compose down
+#+END_SRC
+
+This will stop and remove the service and also remove the network.
+
 * Other commands
 ** Remove all images
 
@@ -768,3 +836,6 @@ docker image rm -f $(docker image ls -aq)
 docker container rm -f $(docker container ls -aq)
 #+END_SRC
 
+* To investigate
+
+vad gör ~docker run --restart always~?

@@ -1,0 +1,8 @@
+version: '3' # Version 3 reference: https://docs.docker.com/compose/compose-file/
+services:
+  web: # Name of service
+    image: jboss/wildfly # Which image to use
+    volumes: # Volume mappings: host:container
+      - ~/deployments:/opt/jboss/wildfly/standalone/deployments
+    ports: # Port mapping: host:container
+      - 8080:8080

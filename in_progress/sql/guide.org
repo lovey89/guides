@@ -262,6 +262,21 @@ update b
 where rid = 1;
 #+END_SRC
 
+* Comparing timestamps
+
+To find a timestamp that is greater than the time 2 hours ago you can run
+
+#+BEGIN_SRC sql
+select *
+from mytable
+where mytimestampfield > now() - interval '2 hours'
+order by mytimestampfield;
+#+END_SRC
+
+~hours~ can of course be replaced with ~days~, ~seconds~ etc.
+
+[[https://stackoverflow.com/questions/27283951/how-to-subtract-days-or-months-from-datetime-using-postgresql-netezza]]
+
 * Interesting links
 
 [[http://rachbelaid.com/postgres-full-text-search-is-good-enough/]]

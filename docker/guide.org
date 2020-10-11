@@ -30,6 +30,7 @@
   - [[#tags][Tags]]
 - [[#docker-compose][Docker compose]]
   - [[#hello-world][Hello world]]
+  - [[#running-two-containers-with-python-and-postgresql][Running two containers with python and postgresql]]
 - [[#other-commands-1][Other commands]]
   - [[#remove-all-images][Remove all images]]
   - [[#remove-all-containers][Remove all containers]]
@@ -771,8 +772,8 @@ docker-compose up --help
 
 ** Hello world
 
-I have create a file [[file:05_docker-compose-hello-world/docker-compose.yml][05_docker-compose-hello-world/docker-compose.yml]]. Navigate
-to that directory and run:
+I have create a file [[file:05_docker-compose-hello-world/docker-compose.yml][05_docker-compose-hello-world/docker-compose.yml]] (the
+compose file reference is found [[https://docs.docker.com/compose/compose-file/][here]]). Navigate to that directory and run:
 
 #+BEGIN_SRC bash
 docker-compose up -d
@@ -822,6 +823,64 @@ docker-compose down
 #+END_SRC
 
 This will stop and remove the service and also remove the network.
+
+** Running two containers with python and postgresql
+
+The file [[06_docker-compose-python-postgresql/docker-compose.yml]] will start up
+two containers that will be able to communicate with each other. See the
+comments inside that file for details.
+
+It depends on [[06_docker-compose-python-postgresql/Dockerfile]] which in turn
+depends on [[06_docker-compose-python-postgresql/postgresprog.py]].
+
+When running
+
+#+BEGIN_SRC bash
+docker-compose up -d
+docker-compose logs -f
+#+END_SRC
+
+A container with a postgresql server will be started. When the container is
+running (not necessarily the application itself) another container containing
+our python program will be started (note the ~depends-on~ directive in the
+~docker-compose.yml~ file). The python program will try to reconnect to the
+database until it succeeds. It will probably fail the first time since the
+database is not running yet. Then it will create a table, add one entry and
+print all entries in the database every second. Try adding another line to the
+table and see that the result changes.
+
+The ~Dockerfile~ was automatically build when starting the containers. If you
+do any changes in the ~Dockerfile~ or the python script you will have to run
+
+#+BEGIN_SRC bash
+docker-compose build
+#+END_SRC
+
+to rebuild it. Then you can start it again.
+
+Note how the ~my-python~ service can refer to the ~postgres~ service by using
+the service name (as given to the environment variable ~POSTGRES_LOCATION~).
+To see what happens, connect to the ~my-python~ service:
+
+#+BEGIN_SRC bash
+docker exec -it python-postgres /bin/bash
+#+END_SRC
+
+and run
+
+#+BEGIN_SRC bash
+ping $POSTGRES_LOCATION
+#+END_SRC
+
+When you're done run
+
+#+BEGIN_SRC bash
+docker-compose down
+#+END_SRC
+
+This will stop and remove the services and also remove the network. If you start
+the containers again you will see that all the data in the database has been
+lost.
 
 * Other commands
 ** Remove all images

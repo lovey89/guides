@@ -1,0 +1,8 @@
+version: '3'
+services:
+  postgres: # Override settings for the service called 'postgres'
+    container_name: "postgres-server2"
+    ports:
+      - "15432:5432"
+  my-python: # Override settings for service 'my-python'
+    container_name: "python-postgres2"

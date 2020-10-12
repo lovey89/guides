@@ -1,0 +1,18 @@
+version: '3'
+services:
+  postgres:
+    container_name: "postgres-server"
+    image: postgres:11.2
+    environment:
+      - POSTGRES_DB=postgresdb
+      - POSTGRES_USER=postgresuser
+      - POSTGRES_PASSWORD=postgrespassword
+    restart: always
+  my-python:
+    build: . # We don't use an image here. We depend on the Dockerfile in the same directory as the docker-compose file
+    container_name: "python-postgres"
+    environment:
+      - POSTGRES_LOCATION=postgres # This environment variable is used in the python script
+      - PYTHONUNBUFFERED=1 # https://tarunlalwani.com/post/why-delayed-output-python-docker/
+    depends_on: # What services needs to be started before this one. Note: This is only container level up, not application level up
+      - postgres

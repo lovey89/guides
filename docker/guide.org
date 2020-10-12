@@ -31,6 +31,7 @@
 - [[#docker-compose][Docker compose]]
   - [[#hello-world][Hello world]]
   - [[#running-two-containers-with-python-and-postgresql][Running two containers with python and postgresql]]
+  - [[#multiple-projects-and-overriding-the-docker-composeyml-file][Multiple projects and overriding the ~docker-compose.yml~ file]]
 - [[#other-commands-1][Other commands]]
   - [[#remove-all-images][Remove all images]]
   - [[#remove-all-containers][Remove all containers]]
@@ -826,12 +827,13 @@ This will stop and remove the service and also remove the network.
 
 ** Running two containers with python and postgresql
 
-The file [[06_docker-compose-python-postgresql/docker-compose.yml]] will start up
+The file [[file:06_docker-compose-python-postgresql/docker-compose.yml][06_docker-compose-python-postgresql/docker-compose.yml]] will start up
 two containers that will be able to communicate with each other. See the
 comments inside that file for details.
 
-It depends on [[06_docker-compose-python-postgresql/Dockerfile]] which in turn
-depends on [[06_docker-compose-python-postgresql/postgresprog.py]].
+It depends on [[file:06_docker-compose-python-postgresql/Dockerfile][06_docker-compose-python-postgresql/Dockerfile]] which in turn
+depends on [[file:06_docker-compose-python-postgresql/postgresprog.py][06_docker-compose-python-postgresql/postgresprog.py]]. You can ignore
+[[file:06_docker-compose-python-postgresql/docker-compose.exampleoverride.yml][06_docker-compose-python-postgresql/docker-compose.exampleoverride.yml]] fow now.
 
 When running
 
@@ -881,6 +883,110 @@ docker-compose down
 This will stop and remove the services and also remove the network. If you start
 the containers again you will see that all the data in the database has been
 lost.
+
+** Multiple projects and overriding the ~docker-compose.yml~ file
+
+[[https://docs.docker.com/compose/reference/overview/][Overview of docker-compose CLI]]
+
+When running the ~docker-compose~ command the containers will be run under a
+specific project name (by default the directory name). This can be overridden
+with the ~-p~ option. In the previous section you wont see 4 containers running
+just because you run ~docker-compose up -d~ two times.
+
+If you navigate to the ~06_docker-compose-python-postgresql~ directory and run
+
+#+BEGIN_SRC bash
+docker-compose up -d
+#+END_SRC
+
+followed by
+
+#+BEGIN_SRC bash
+docker-compose -p new-project-name up -d
+#+END_SRC
+
+you will see that it tries to start the containers but will soon complain that
+the container names are already taken (they are defined in the
+~docker-compose.yml~ file). We need to override them. I have already created the
+file [[file:06_docker-compose-python-postgresql/docker-compose.exampleoverride.yml][06_docker-compose-python-postgresql/docker-compose.exampleoverride.yml]] (the
+name ~docker-compose.override.yml~ is found by default and that would have
+broken the example in the previous section).
+
+An overriding file will replace or extend values. Single values (like
+~container_name~) will replace the old value. Multi value options like ports are
+concatenated (unless the mapping is replaced). With the ~-f~ option you can
+choose compose file (instead of the default ~docker-compose.yml~). You can use
+the option multiple times. The first file will be the primary file and the rest
+will override the previous files.
+
+Now run
+
+#+BEGIN_SRC bash
+docker-compose -p new-project-name -f docker-compose.yml -f docker-compose.exampleoverride.yml up -d
+#+END_SRC
+
+At this point I learned the hard way that the old port mapping is not removed
+for the postgres container. The resulting mapping for ~new-project-name~ looks
+like this:
+
+#+BEGIN_SRC Dockerfile
+ports:
+  - "5432:5432"
+  - "15432:5432"
+#+END_SRC
+
+You can check what the result of the overriding would be by running
+
+#+BEGIN_SRC bash
+docker-compose -f docker-compose.yml -f docker-compose.exampleoverride.yml config
+#+END_SRC
+
+So the original mapping was never removed.
+
+*** New try
+
+According to [[https://github.com/docker/compose/issues/3729][this]] discussion it's best practive to not include anythine in your
+~docker-compose.yml~ file that you might now want to have in another
+environment. We will instead add the port mapping in the default override file.
+The files [[file:07_docker-compose-python-postgresql-new-try/docker-compose.yml][docker-compose.yml]] and [[file:07_docker-compose-python-postgresql-new-try/docker-compose.override.yml][docker-compose.override.yml]] are created under
+the ~07_docker-compose-python-postgresql-new-try~ directory. Run
+
+#+BEGIN_SRC bash
+docker-compose config
+#+END_SRC
+
+to see the resulting file. Then run
+
+#+BEGIN_SRC bash
+docker-compose up -d
+#+END_SRC
+
+to start the containers. I have also created another override file called
+[[file:07_docker-compose-python-postgresql-new-try/docker-compose.overrride.new.yml][docker-compose.overrride.new.yml]] where I have overrided the container names
+and defined another port mapping. To see the resulting file, run:
+
+#+BEGIN_SRC bash
+docker-compose -f docker-compose.yml -f docker-compose.override.new.yml config
+#+END_SRC
+
+and start it using
+
+#+BEGIN_SRC bash
+docker-compose -p new-project-name -f docker-compose.yml -f docker-compose.override.new.yml up -d
+#+END_SRC
+
+Note that in order to run any ~docker-compose~ commands for the new project you
+will always have to refer to it using the ~-p~ flag. E.g.
+
+#+BEGIN_SRC bash
+docker-compose -p new-project-name ps
+docker-compose -p new-project-name logs -f
+docker-compose -p new-project-name down
+#+END_SRC
+
+Connect to each of the databases (one running on port ~5432~ and the other on
+~15432~) and add different entries to each of them and verify the logs to see
+that the python script have different outputs.
 
 * Other commands
 ** Remove all images

@@ -32,6 +32,7 @@
   - [[#hello-world][Hello world]]
   - [[#running-two-containers-with-python-and-postgresql][Running two containers with python and postgresql]]
   - [[#multiple-projects-and-overriding-the-docker-composeyml-file][Multiple projects and overriding the ~docker-compose.yml~ file]]
+- [[#monitor][Monitor]]
 - [[#other-commands-1][Other commands]]
   - [[#remove-all-images][Remove all images]]
   - [[#remove-all-containers][Remove all containers]]
@@ -917,7 +918,7 @@ An overriding file will replace or extend values. Single values (like
 concatenated (unless the mapping is replaced). With the ~-f~ option you can
 choose compose file (instead of the default ~docker-compose.yml~). You can use
 the option multiple times. The first file will be the primary file and the rest
-will override the previous files.
+will override (or extend) the previous files.
 
 Now run
 
@@ -988,7 +989,32 @@ Connect to each of the databases (one running on port ~5432~ and the other on
 ~15432~) and add different entries to each of them and verify the logs to see
 that the python script have different outputs.
 
+* Monitor
+
+Start a container and give it a name ~container_name~. Run
+
+#+BEGIN_SRC bash
+docker container stats container_name
+#+END_SRC
+
+To format the output try these commands
+
+#+BEGIN_SRC bash
+docker container stats --format "{{.Container}}: {{.CPUPerc}}" container_name
+docker container stats --format "table {{.Name}}\t {{.CPUPerc}}\t{{.MemUsage}}" container_name
+#+END_SRC
+
+Usually docker will update the data for you. If you only want a snapshot of the
+information you can run
+
+#+BEGIN_SRC bash
+docker container stats container_name --no-stream
+#+END_SRC
+
 * Other commands
+
+[[https://linuxize.com/post/how-to-remove-docker-images-containers-volumes-and-networks/]]
+
 ** Remove all images
 
 #+BEGIN_SRC bash
@@ -1004,3 +1030,11 @@ docker container rm -f $(docker container ls -aq)
 * To investigate
 
 vad gör ~docker run --restart always~?
+
+docker service inspect container-name
+
+docker service ps container-name # Kanske bara intressant för swarms med
+replicas?
+
+ssh -NL localhost:2374:/var/run/docker.sock user@host
+docker -H localhost:2374 info

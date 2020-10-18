@@ -30,7 +30,7 @@
   - [[#tags][Tags]]
 - [[#stateful-containers][Stateful containers]]
   - [[#implicit-per-container-storage][Implicit per-container storage]]
-  - [[#implicit-per-container-storage-1][Implicit per-container storage]]
+  - [[#explicit-per-container-storage][Explicit per-container storage]]
   - [[#per-host-storage][Per host storage]]
 - [[#docker-compose][Docker compose]]
   - [[#hello-world][Hello world]]
@@ -771,12 +771,128 @@ ocker container run helloworld # latest which is version 2
 - Becomes unavailable if the container crashes or is deleted or host crashes
 - Can't be shared with other containers
 
-** Implicit per-container storage
+*** Implicit container storage example
+
+Run
+
+#+BEGIN_SRC bash
+docker container run -it --name volumetest1 ubuntu bash
+#+END_SRC
+
+to create a container. The command
+
+#+BEGIN_SRC bash
+docker container inspect --format '{{json .Mounts}}' volumetest1
+#+END_SRC
+
+returns no volume information.
+
+Navigate to ~08_implicit_volume~ where I have prepared a [[file:08_implicit_volume/Dockerfile][Dockerfile]] and run
+
+#+BEGIN_SRC bash
+docker image build -t implicit_volume_image .
+#+END_SRC
+
+Then launch it
+
+#+BEGIN_SRC bash
+docker container run -it --name volumetest2 implicit_volume_image bash
+#+END_SRC
+
+and run the command
+
+#+BEGIN_SRC bash
+docker container inspect --format '{{json .Mounts}}' volumetest2
+#+END_SRC
+
+Now we will see the place where the volume is mapped under
+~/var/lib/docker/volumes~. In your container run:
+
+#+BEGIN_SRC bash
+echo "File content" > /my/test/dir/filename.txt
+#+END_SRC
+
+You will see that the file ~filename.txt~ was created under the directory given
+by the ~inspect~ command.
+
+Remove the containers
+
+#+BEGIN_SRC bash
+docker container rm -v volumetest1 volumetest2
+#+END_SRC
+
+The ~-v~ option also removes the volumes associated with the container.
+Otherwise they will stay.
+
+To see what volumes exists you can run
+
+#+BEGIN_SRC bash
+docker volume ls
+#+END_SRC
+
+TODO: What if I stop and start the container? Will the mapping stay?
+
+** Explicit per-container storage
 
 - Volumes are explicitly created (using the ~volume~ command)
 - Named directory found under ~/var/lib/docker/volumes~ on the host
 - Becomes unavailable if the container crashes or is deleted or host crashes
 - Can't be shared with other containers
+
+*** Explicit container storage example
+
+Create a named volume
+
+#+BEGIN_SRC bash
+docker volume create my_named_volume
+#+END_SRC
+
+You will see it show up both when you run
+
+#+BEGIN_SRC bash
+docker volume ls
+#+END_SRC
+
+and
+
+#+BEGIN_SRC bash
+ls /var/lib/docker/volumes
+#+END_SRC
+
+We reuse the container that we created [[*Implicit container storage example][previously]]. Mount the volume using the
+~-v~ option
+
+#+BEGIN_SRC bash
+docker container run -it --name volumetest3 -v my_named_volume:/my/test/dir implicit_volume_image bash
+#+END_SRC
+
+In another terminal run:
+
+#+BEGIN_SRC bash
+docker container inspect --format '{{json .Mounts}}' volumetest3
+#+END_SRC
+
+and you will see that the directory is mounted correctly.
+
+When we run
+
+#+BEGIN_SRC bash
+docker container rm -v volumetest3
+#+END_SRC
+
+the volume is for some reason not removed. We have to remove it explicitly
+
+#+BEGIN_SRC bash
+docker volume rm my_named_volume
+#+END_SRC
+
+Run
+
+#+BEGIN_SRC bash
+docker volume ls
+#+END_SRC
+
+to verify that it was removed
 
 ** Per host storage
 
@@ -785,6 +901,45 @@ ocker container run helloworld # latest which is version 2
 - Unavailable if the host crashes
 - Multiple containers can read/write to the volume
 - Any changes to the volume are not part of the container
+
+*** Example
+
+Navigate to any directory and create a directory called ~my_test_dir~ and
+create a file ~my_file.txt~ inside it. Without navigating to that directory run
+
+#+BEGIN_SRC bash
+docker container run -it --name volumetest4 -v "$(pwd)/my_test_dir":/my/test/dir implicit_volume_image bash
+#+END_SRC
+
+In your container check the content of ~/my/test/dir/~:
+
+#+BEGIN_SRC
+root@bcdf351a0414:/# ll /my/test/dir/
+total 12
+drwxrwxr-x. 2 1000 1000 4096 Oct 18 21:23 ./
+drwxr-xr-x. 3 root root 4096 Oct 18 21:21 ../
+-rw-rw-r--. 1 1000 1000    9 Oct 18 21:23 my_file.txt
+root@bcdf351a0414:/#
+#+END_SRC
+
+Try creating and removing files both from the container and host machine and see
+how the content changes.
+
+Also try running
+
+#+BEGIN_SRC bash
+docker container inspect --format '{{json .Mounts}}' volumetest4
+#+END_SRC
+
+and you will see the current mapping.
+
+Detach from the container and remove it
+
+#+BEGIN_SRC bash
+docker container rm -v volumetest4
+#+END_SRC
+
+The directory is not removed
 
 * Docker compose
 

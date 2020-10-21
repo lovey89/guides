@@ -29,9 +29,11 @@
 - [[#sorting-photos][Sorting photos]]
   - [[#exiftool][Exiftool]]
   - [[#rapid-photo-downloader][rapid-photo-downloader]]
+  - [[#what-to-do-when-backing-up-photos][What to do when backing up photos]]
 - [[#rsync][rsync]]
   - [[#copy-locally-eg-to-an-external-hard-drive][Copy locally (e.g. to an external hard drive)]]
   - [[#use-slash-in-the-end-or-not][Use slash in the end or not?]]
+  - [[#example-2][Example]]
 - [[#grub2-and-related][grub2 and related]]
 #+END_QUOTE
 
@@ -612,6 +614,53 @@ Was recommended this tool as well but haven't tested it myself
 sudo dnf install rapid-photo-downloader
 #+END_SRC
 
+** What to do when backing up photos
+
+Put all the pictures you want to backup in a directory. To see what the files
+will be called run:
+
+#+BEGIN_SRC bash
+exiftool -r '-FileName<CreateDate' -d '%Y-%m-%d/%Y_%m_%d-%H_%M_%S%%-c.%%le' dir_name
+# If you want to, you can run
+#  exiftool -r '-TestName<CreateDate' -d '%Y-%m-%d/%Y_%m_%d-%H_%M_%S%%-c.%%le' dir_name
+# To first see the result without doing any updates
+#+END_SRC
+
+Rearrange photos or rename if you want to. Then to remove empty directories you
+can run
+
+#+BEGIN_SRC bash
+find . -type d -empty -delete
+# If you want to, you can run
+#  find . -type d -empty -delete
+# To first see which empty directories we can find
+#+END_SRC
+
+Find and remove duplicates in the resulting files. The following command will
+not remove anything from the ~backup_dir~.
+
+#+BEGIN_SRC bash
+rmlint dir_name // backup_dir -k
+#+END_SRC
+
+To see which files that will be removed run
+
+#+BEGIN_SRC bash
+grep "remove_cmd " rmlint.sh | sort | less
+#+END_SRC
+
+Then run the script
+
+#+BEGIN_SRC bash
+./rmlint.sh -p -c
+#+END_SRC
+
+#+BEGIN_SRC bash
+rsync -avhW --no-compress --progress ./ dst/
+# for dry-run:
+#  rsync -avhWn --no-compress --progress ./ dst/
+#+END_SRC
+
 * rsync
 
 [[https://www.thegeekstuff.com/2011/01/rsync-exclude-files-and-folders/?utm_source=feedburner]]
@@ -624,7 +673,21 @@ From [[https://serverfault.com/a/505758][this]] answer:
 rsync -avhW --no-compress --progress src/ dst/
 #+END_SRC
 
+#+BEGIN_SRC
+-a is for archive, which preserves ownership, permissions etc.
+-v is for verbose, so I can see what's happening (optional)
+-h is for human-readable, so the transfer rate and file sizes are easier to read (optional)
+-W is for copying whole files only, without delta-xfer algorithm which should reduce CPU load
+--no-compress as there's no lack of bandwidth between local devices
+--progress so I can see the progress of large files (optional)
+#+END_SRC
+
 ~-n~ to dry run
+
+Rsync finds files that need to be transferred using a "quick check" algorithm
+(by default) that looks for files that have changed in size or in last-modified
+time. If you want it to also compare content (with a checksum) you can include
+the ~-c~ option
 
 ** Use slash in the end or not?
 
@@ -634,6 +697,46 @@ A trailing slash on the destination doesn't matter but it does for the source.
 If you don't include a slash the directory and it's content is copied to the
 destination folder. If you use a slash only the content of the source directory
 will be copied to the destination directory
+
+** Example
+
+#+BEGIN_SRC bash
+mkdir -p rsync_test/from/no_changes_dir
+mkdir -p rsync_test/to/no_changes_dir
+mkdir -p rsync_test/from/file_name_change_dir
+mkdir -p rsync_test/to/file_name_change_dir
+mkdir -p rsync_test/from/file_content_change_dir
+mkdir -p rsync_test/to/file_content_change_dir
+mkdir -p rsync_test/from/file_added_dir
+mkdir -p rsync_test/to/file_added_dir
+mkdir -p rsync_test/from/file_removed_dir
+mkdir -p rsync_test/to/file_removed_dir
+echo a > rsync_test/from/no_changes_dir/a.txt
+echo a > rsync_test/to/no_changes_dir/a.txt
+echo b > rsync_test/from/no_changes_dir/b.txt
+echo b > rsync_test/to/no_changes_dir/b.txt
+echo c > rsync_test/from/file_name_change_dir/c.txt
+echo c > rsync_test/to/file_name_change_dir/c.txt
+echo d > rsync_test/from/file_name_change_dir/d2.txt
+echo d > rsync_test/to/file_name_change_dir/d.txt
+echo e > ./rsync_test/from/file_content_change_dir/e.txt
+echo e > ./rsync_test/to/file_content_change_dir/e.txt
+echo g > ./rsync_test/from/file_content_change_dir/f_to_g.txt
+echo f > ./rsync_test/to/file_content_change_dir/f_to_g.txt
+echo h > ./rsync_test/from/file_added_dir/h.txt
+echo h > ./rsync_test/to/file_added_dir/h.txt
+echo i > ./rsync_test/from/file_added_dir/i.txt
+echo j > ./rsync_test/from/file_removed_dir/j.txt
+echo j > ./rsync_test/to/file_removed_dir/j.txt
+echo k > ./rsync_test/to/file_removed_dir/k.txt
+cd rsync_dir
+rsync -avhW --no-compress --progress from/ to/
+#+END_SRC
+
+Running without ~-c~ will not copy the file ~f_to_g.txt~ since the size and
+mod-time is the same (unless the mod-time has changed). Including the ~-c~
+option will only look at content and ignore size and mod-time. Then that file
+will be transferred.
 
 * grub2 and related
 

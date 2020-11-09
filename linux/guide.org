@@ -621,6 +621,7 @@ will be called run:
 
 #+BEGIN_SRC bash
 exiftool -r '-FileName<CreateDate' -d '%Y-%m-%d/%Y_%m_%d-%H_%M_%S%%-c.%%le' dir_name
+exiftool -r '-FileName<CreateDate' -d '%Y-%m-%d/%Y_%m_%d-%H_%M_%S_m%%-c.%%le' dir_name # if you want to append an m
 # If you want to, you can run
 #  exiftool -r '-TestName<CreateDate' -d '%Y-%m-%d/%Y_%m_%d-%H_%M_%S%%-c.%%le' dir_name
 # To first see the result without doing any updates
@@ -659,6 +660,8 @@ Then run the script
 rsync -avhW --no-compress --progress ./ dst/
 # for dry-run:
 #  rsync -avhWn --no-compress --progress ./ dst/
+# or if you want to see the reason files are transferred (https://stackoverflow.com/questions/4493525/what-does-f-mean-in-rsync-logs)
+#  rsync -avhWn --itemize-changes --no-compress --progress ./ dst/
 #+END_SRC
 
 * rsync
@@ -719,17 +722,18 @@ echo c > rsync_test/from/file_name_change_dir/c.txt
 echo c > rsync_test/to/file_name_change_dir/c.txt
 echo d > rsync_test/from/file_name_change_dir/d2.txt
 echo d > rsync_test/to/file_name_change_dir/d.txt
-echo e > ./rsync_test/from/file_content_change_dir/e.txt
-echo e > ./rsync_test/to/file_content_change_dir/e.txt
-echo g > ./rsync_test/from/file_content_change_dir/f_to_g.txt
-echo f > ./rsync_test/to/file_content_change_dir/f_to_g.txt
-echo h > ./rsync_test/from/file_added_dir/h.txt
-echo h > ./rsync_test/to/file_added_dir/h.txt
-echo i > ./rsync_test/from/file_added_dir/i.txt
-echo j > ./rsync_test/from/file_removed_dir/j.txt
-echo j > ./rsync_test/to/file_removed_dir/j.txt
-echo k > ./rsync_test/to/file_removed_dir/k.txt
-cd rsync_dir
+echo e > rsync_test/from/file_content_change_dir/e.txt
+echo e > rsync_test/to/file_content_change_dir/e.txt
+echo g > rsync_test/from/file_content_change_dir/f_to_g.txt
+echo f > rsync_test/to/file_content_change_dir/f_to_g.txt
+echo h > rsync_test/from/file_added_dir/h.txt
+echo h > rsync_test/to/file_added_dir/h.txt
+echo i > rsync_test/from/file_added_dir/i.txt
+echo j > rsync_test/from/file_removed_dir/j.txt
+echo j > rsync_test/to/file_removed_dir/j.txt
+echo k > rsync_test/to/file_removed_dir/k.txt
+cd rsync_test
+rsync -avhWcn --itemize-changes --no-compress --progress from/ to/ # dry run
 rsync -avhW --no-compress --progress from/ to/
 #+END_SRC
 

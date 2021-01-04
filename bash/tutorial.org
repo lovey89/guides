@@ -608,7 +608,7 @@ done
 | ~command 1> file~ | Same as above                                           |
 | ~command < file~  | The content of ~file~ the command is reading from stdin |
 | ~command 0< file~ | Same as above                                           |
-| ~command 2> file~ | stderr ro ~file~                                        |
+| ~command 2> file~ | stderr to ~file~                                        |
 
 If the file already exists it will be emptied, otherwise it will be created. You
 can use ~>>~ or ~2>>~ if you want to append on the file instead. Remember that
@@ -627,6 +627,8 @@ If you want to redirect stdout and stderr to the same file you will have to use
 
 #+BEGIN_SRC bash :results output
 grep proud file 'not a file' > proud.log 2>&1
+# or just
+grep proud file 'not a file' &> proud.log
 #+END_SRC
 
 stderr will now point to where stdout is pointing. The order is important. If

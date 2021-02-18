@@ -21,6 +21,8 @@ maven with the option ~-Denforcer.skip=true~. E.g.
 
 #+BEGIN_SRC bash
 mvn clean install -Denforcer.skip=true
+# OR
+mvn install -P-enforcer
 #+END_SRC
 
 I have seen occurences when this didn't work. That time I had to add this to my

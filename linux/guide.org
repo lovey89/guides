@@ -760,6 +760,10 @@ echo k > rsync_test/to/file_removed_dir/k.txt
 cd rsync_test
 rsync -avhWcn --itemize-changes --no-compress --progress from/ to/ # dry run
 rsync -avhW --no-compress --progress from/ to/
+#or
+rsync -avhW --itemize-changes --no-compress --delete --backup --backup-dir=bak --progress from/ to/
+# This needs a bit more testing but it looks like it moves deleted files to a dir called 'bak'
+# in the 'to' directory
 #+END_SRC
 
 Running without ~-c~ will not copy the file ~f_to_g.txt~ since the size and

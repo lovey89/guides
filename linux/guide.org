@@ -23,6 +23,8 @@
 - [[#disk-and-partition-info][Disk and partition info]]
   - [[#mounted-file-systems][Mounted file systems]]
   - [[#display-disk-information][Display disk information]]
+  - [[#see-if-a-file-system-exists-on-a-disk-before-mounting][See if a file system exists on a disk before mounting]]
+  - [[#mount-a-file-system][Mount a file system]]
 - [[#rmlint][rmlint]]
   - [[#tagged-directories][Tagged directories]]
   - [[#finding-and-deleting-empty-directories][Finding and deleting empty directories]]
@@ -290,6 +292,29 @@ lsblk -f
 #+BEGIN_SRC bash
 fdisk -l /dev/sda
 #+END_SRC
+
+** See if a file system exists on a disk before mounting
+
+#+BEGIN_SRC bash
+sudo file -s /dev/sda
+#+END_SRC
+
+If it returns ~/dev/sda: data~, then no file system exists
+
+*** How to create a file system (at least in AWS)
+
+#+BEGIN_SRC bash
+sudo mkfs -t ext4 /dev/sda
+#+END_SRC
+
+** Mount a file system
+
+#+BEGIN_SRC bash
+sudo mount /dev/sda1 /mountpoint
+#+END_SRC
+
+To mount it automatically you need to add it to ~fstab~ (does this apply to
+fedora?)
 
 * rmlint
 

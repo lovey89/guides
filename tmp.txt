@@ -1,3 +1,5 @@
 https://medium.com/jungletronics/raspberry-pi-first-boot-3ac7f0d7a37b
 https://www.raspberrypi.org/documentation/configuration/security.md
 https://superuser.com/questions/1220867/dd-function-seems-to-freeze-when-done
+https://www.digitalocean.com/community/tutorials/how-to-edit-the-sudoers-file
+https://linuxize.com/post/how-to-list-groups-in-linux/

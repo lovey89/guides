@@ -1,0 +1,18 @@
+version: "3.3"
+services:
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=pass12345
+    volumes:
+      - mongodb-data:/data/db
+      - mongodb-configdb:/data/configdb
+    ports:
+      - 27017:27017
+    restart: unless-stopped
+
+volumes:
+  mongodb-data:
+  mongodb-configdb:

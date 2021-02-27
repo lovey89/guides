@@ -1,0 +1,37 @@
+* Get started
+
+In the same directory as this document I have prepared a [[./docker-compose.yml][docker-compose.yml]] file
+which you can start with:
+
+#+BEGIN_SRC bash
+docker-compose up -d
+# You can later remove it with "docker-compose down"
+#+END_SRC
+
+When the container is running you can connect to it with:
+
+#+BEGIN_SRC bash
+docker exec -it mongodb bash
+#+END_SRC
+
+followed by (inside the container)
+
+#+BEGIN_SRC bash
+mongo -u root -p pass12345 --authenticationDatabase admin
+#+END_SRC
+
+Alternatively you can just run
+
+#+BEGIN_SRC bash
+docker exec -it mongodb mongo -u root -p pass12345 --authenticationDatabase admin
+#+END_SRC
+
+* Overview commands
+
+| Command             | Description                                         |
+|---------------------+-----------------------------------------------------|
+| ~show databases~    | Show the available databases                        |
+| ~use <database>~    | Switch to ~<database>~                              |
+| ~db.getName()~      | Show the name of the currently selected database    |
+| ~show collections~  | Show collections in the currently selected database |
+| ~db.dropDatabase()~ | Drops the currently selected database               |

@@ -1,3 +1,8 @@
+* Links
+
+- [[https://robomongo.org/]]
+- [[https://docs.mongodb.com/manual/]]
+
 * Get started
 
 In the same directory as this document I have prepared a [[./docker-compose.yml][docker-compose.yml]] file
@@ -28,10 +33,97 @@ docker exec -it mongodb mongo -u root -p pass12345 --authenticationDatabase admi
 
 * Overview commands
 
-| Command             | Description                                         |
-|---------------------+-----------------------------------------------------|
-| ~show databases~    | Show the available databases                        |
-| ~use <database>~    | Switch to ~<database>~                              |
-| ~db.getName()~      | Show the name of the currently selected database    |
-| ~show collections~  | Show collections in the currently selected database |
-| ~db.dropDatabase()~ | Drops the currently selected database               |
+| Command                | Description                                         |
+|------------------------+-----------------------------------------------------|
+| ~show databases~       | Show the available databases                        |
+| ~use <database>~       | Switch to ~<database>~                              |
+| ~db.getName()~ or ~db~ | Show the name of the currently selected database    |
+| ~show collections~     | Show collections in the currently selected database |
+| ~db.dropDatabase()~    | Drops the currently selected database               |
+
+* Get started
+
+Logon to the mongodb instance as explained above. Switch to the ~examples~
+database:
+
+#+BEGIN_SRC
+use examples
+#+END_SRC
+
+The database will be created when we store data in this database (such as
+creating our first collection). To verify that we are in the correct database,
+type ~db~.
+
+If a collection does not exist, MongoDB creates the collection when you first
+store data for that collection. We will use ~db.collection.insertMany()~ to
+insert new documents (data records) into a collection we will call ~inventory~.
+You can run ~show collections~ to verify that it doesn't exists before inserting
+the documents. Insert the documents:
+
+#+BEGIN_SRC js
+db.inventory.insertMany([
+   { item: "journal", qty: 25, status: "A", size: { h: 14, w: 21, uom: "cm" }, tags: [ "blank", "red" ] },
+   { item: "notebook", qty: 50, status: "A", size: { h: 8.5, w: 11, uom: "in" }, tags: [ "red", "blank" ] },
+   { item: "paper", qty: 10, status: "D", size: { h: 8.5, w: 11, uom: "in" }, tags: [ "red", "blank", "plain" ] },
+   { item: "planner", qty: 0, status: "D", size: { h: 22.85, w: 30, uom: "cm" }, tags: [ "blank", "red" ] },
+   { item: "postcard", qty: 45, status: "A", size: { h: 10, w: 15.25, uom: "cm" }, tags: [ "blue" ] }
+]);
+
+// MongoDB adds an _id field with an ObjectId value if the field is not present in the document
+#+END_SRC
+
+The operation returns a document that contains the acknowledgement indicator and
+an array that contains the _id of each successfully inserted documents.
+
+To look at the data we just inserted we can run the following command:
+
+#+BEGIN_SRC
+db.inventory.find({})
+# or
+db.inventory.find()
+# or for pretty print
+db.inventory.find({}).pretty()
+#+END_SRC
+
+For an equality match (i.e. ~<field>~ equals ~<value>~), specify ~<field>: <value>~
+in the /query filter document/ and pass to the ~db.collection.find()~. Run the
+following queries and see what happens (add ~.pretty()~ in the end for better
+readability):
+
+#+BEGIN_SRC
+db.inventory.find( { status: "D" } );
+db.inventory.find( { qty: 0 } );
+# In the following query both statements must be true
+db.inventory.find( { qty: 0, status: "D" } );
+# You can query for a field nested inside the "size" document
+db.inventory.find( { "size.uom": "in" } )
+# You can check the equality of the whole size field object
+# Note that everything must match including field order
+# Compare these (only the first one will match):
+db.inventory.find( { size: { h: 14, w: 21, uom: "cm" } } )
+db.inventory.find( { size: { w: 21, h: 14, uom: "cm" } } )
+# Look if the tags array contains "red"
+db.inventory.find( { tags: "red" } )
+# Look if the tags array is exactly equal to (including order)
+db.inventory.find( { tags: [ "red", "blank" ] } )
+#+END_SRC
+
+The queries above returns all fields in each document. We can limit that by
+passing a /projection document/ to the ~db.collection.find()~ query. In the
+projection document, specify:
+
+- ~<field>: 1~ to include a field in the returned document
+- ~<field>: 0~ to exclude a field in the returned document
+
+The ~_id~ field is included by default but we can exclude it if we want to. In
+the following example the first parameter is the /query filter document/ and the
+second parameter is the /projection document/.
+
+#+BEGIN_SRC
+# Return _id, item and status
+db.inventory.find( { }, { item: 1, status: 1 } );
+# Return item, status and size.h
+db.inventory.find( { }, { _id: 0, item: 1, status: 1, "size.h": 1 } );
+# Return item, status and size.h where the status is D
+db.inventory.find( {status: "D"} , { _id: 0, item: 1, status: 1, "size.h": 1 } );
+#+END_SRC

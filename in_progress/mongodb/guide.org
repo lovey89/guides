@@ -77,11 +77,11 @@ an array that contains the _id of each successfully inserted documents.
 
 To look at the data we just inserted we can run the following command:
 
-#+BEGIN_SRC
+#+BEGIN_SRC js
 db.inventory.find({})
-# or
+// or
 db.inventory.find()
-# or for pretty print
+// or for pretty print
 db.inventory.find({}).pretty()
 #+END_SRC
 
@@ -90,21 +90,21 @@ in the /query filter document/ and pass to the ~db.collection.find()~. Run the
 following queries and see what happens (add ~.pretty()~ in the end for better
 readability):
 
-#+BEGIN_SRC
+#+BEGIN_SRC js
 db.inventory.find( { status: "D" } );
 db.inventory.find( { qty: 0 } );
-# In the following query both statements must be true
+// In the following query both statements must be true
 db.inventory.find( { qty: 0, status: "D" } );
-# You can query for a field nested inside the "size" document
+// You can query for a field nested inside the "size" document
 db.inventory.find( { "size.uom": "in" } )
-# You can check the equality of the whole size field object
-# Note that everything must match including field order
-# Compare these (only the first one will match):
+// You can check the equality of the whole size field object
+// Note that everything must match including field order
+// Compare these (only the first one will match):
 db.inventory.find( { size: { h: 14, w: 21, uom: "cm" } } )
 db.inventory.find( { size: { w: 21, h: 14, uom: "cm" } } )
-# Look if the tags array contains "red"
+// Look if the tags array contains "red"
 db.inventory.find( { tags: "red" } )
-# Look if the tags array is exactly equal to (including order)
+// Look if the tags array is exactly equal to (including order)
 db.inventory.find( { tags: [ "red", "blank" ] } )
 #+END_SRC
 
@@ -119,11 +119,11 @@ The ~_id~ field is included by default but we can exclude it if we want to. In
 the following example the first parameter is the /query filter document/ and the
 second parameter is the /projection document/.
 
-#+BEGIN_SRC
-# Return _id, item and status
+#+BEGIN_SRC js
+// Return _id, item and status
 db.inventory.find( { }, { item: 1, status: 1 } );
-# Return item, status and size.h
+// Return item, status and size.h
 db.inventory.find( { }, { _id: 0, item: 1, status: 1, "size.h": 1 } );
-# Return item, status and size.h where the status is D
+// Return item, status and size.h where the status is D
 db.inventory.find( {status: "D"} , { _id: 0, item: 1, status: 1, "size.h": 1 } );
 #+END_SRC

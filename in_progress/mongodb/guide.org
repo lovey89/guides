@@ -3,6 +3,8 @@
 - [[https://robomongo.org/]]
 - [[https://docs.mongodb.com/manual/]]
 
+- Data types: https://docs.mongodb.com/manual/reference/bson-types/
+
 * Get started
 
 In the same directory as this document I have prepared a [[./docker-compose.yml][docker-compose.yml]] file
@@ -40,6 +42,21 @@ docker exec -it mongodb mongo -u root -p pass12345 --authenticationDatabase admi
 | ~db.getName()~ or ~db~ | Show the name of the currently selected database    |
 | ~show collections~     | Show collections in the currently selected database |
 | ~db.dropDatabase()~    | Drops the currently selected database               |
+
+** Help
+
+To see the list of help for methods you can use on the ~db~ object, call the
+~db.help()~ method.
+
+To see the list of help for methods you can use on the ~db.collection~ object,
+call the ~db.collection.help()~ method.
+
+To see the implementation of a method in the shell, type the method name without
+the parenthesis. E.g.
+
+#+BEGIN_SRC js
+db.collection.count
+#+END_SRC
 
 * Get started
 
@@ -127,3 +144,79 @@ db.inventory.find( { }, { _id: 0, item: 1, status: 1, "size.h": 1 } );
 // Return item, status and size.h where the status is D
 db.inventory.find( {status: "D"} , { _id: 0, item: 1, status: 1, "size.h": 1 } );
 #+END_SRC
+
+* Documents
+** Data types
+
+https://docs.mongodb.com/manual/reference/bson-types/
+
+** Field names
+
+The field name ~_id~ is reserved for use as a primary key; its value must be
+unique in the collection, is immutable, and may be of any type other than an
+array.
+
+Field names *cannot* contain the ~null~ character.
+
+Top-level field names *cannot* start with the dollar sign (~$~) character.
+
+** Dot notation
+*** Arrays
+
+To specify or access an element of an array by the zero-based index position,
+concatenate the array name with the dot (~.~) and zero-based index position, and
+enclose in quotes.
+
+#+BEGIN_SRC js
+"<array>.<index>"
+// or
+"tags.1" // for the second tag
+#+END_SRC
+
+*** Embedded Documents
+
+To specify or access a field of an embedded document with dot notation,
+concatenate the embedded document name with the dot (~.~) and the field name,
+and enclose in quotes:
+
+#+BEGIN_SRC js
+"<embedded document>.<field>"
+// or
+"size.h" // for the h field in the size document
+#+END_SRC
+
+** Limitations
+*** Size limit
+
+The maximum BSON document size is 16 megabytes.
+
+*** Document field order
+
+MongoDB preserves the order of the document fields following write operations
+except for the following cases:
+
+- The ~_id~ field is always the first field in the document.
+- Updates that include renaming of field names may result in the reordering of fields in the document.
+
+** Query Filter Documents
+
+Query filter documents specify the conditions that determine which records to
+select for read, update, and delete operations.
+
+** Update Specification Documents
+
+Update specification documents use update operators to specify the data
+modifications to perform on specific fields during an db.collection.update()
+operation.
+
+#+BEGIN_SRC
+{
+  <operator1>: { <field1>: <value1>, ... },
+  <operator2>: { <field2>: <value2>, ... },
+  ...
+}
+#+END_SRC
+
+** Index Specification Documents
+
+Index specification documents define the field to index and the index type.

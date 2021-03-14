@@ -12,7 +12,10 @@ which you can start with:
 
 #+BEGIN_SRC bash
 docker-compose up -d
-# You can later remove it with "docker-compose down"
+# You can later remove it with:
+docker-compose down
+# or if you also want to remove all data until next time
+docker-compose down -v
 #+END_SRC
 
 When the container is running you can connect to it with:

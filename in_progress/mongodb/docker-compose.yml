@@ -6,9 +6,11 @@ services:
     environment:
       - MONGO_INITDB_ROOT_USERNAME=root
       - MONGO_INITDB_ROOT_PASSWORD=pass12345
+      - MONGO_INITDB_DATABASE=guidedb
     volumes:
       - mongodb-data:/data/db
       - mongodb-configdb:/data/configdb
+      - ./setup-scripts-for-docker:/docker-entrypoint-initdb.d
     ports:
       - 27017:27017
     restart: unless-stopped

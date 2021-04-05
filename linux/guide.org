@@ -367,7 +367,7 @@ You can also add the ~-m~ option (must-match-tagged). In this case we will only
 look for duplicates of which at least one is in one of the tagged paths
 
 #+BEGIN_SRC bash
-rmlint paths/to/remove // paths/to/keep -k
+rmlint paths/to/remove // paths/to/keep -m
 #+END_SRC
 
 *** Examples
@@ -658,7 +658,7 @@ can run
 #+BEGIN_SRC bash
 find . -type d -empty -delete
 # If you want to, you can run
-#  find . -type d -empty -delete
+#  find . -type d -empty -print
 # To first see which empty directories we can find
 #+END_SRC
 

@@ -204,7 +204,15 @@ except for the following cases:
 ** Query Filter Documents
 
 Query filter documents specify the conditions that determine which records to
-select for read, update, and delete operations.
+select for read, update, and delete operations. E.g:
+
+#+BEGIN_SRC
+{
+  <field1>: <value1>,
+  <field2>: { <operator>: <value> },
+  ...
+}
+#+END_SRC
 
 ** Update Specification Documents
 
@@ -223,3 +231,47 @@ operation.
 ** Index Specification Documents
 
 Index specification documents define the field to index and the index type.
+
+* CRUD
+** Insert documents
+
+Mainly two methods:
+
+- [[https://docs.mongodb.com/manual/reference/method/db.collection.insertOne/#db.collection.insertOne][db.collection.insertOne()]]: Inserts single document
+- [[https://docs.mongodb.com/manual/reference/method/db.collection.insertMany/#db.collection.insertMany][db.collection.insertMany()]]: Inserts multiple documents
+
+Insert one document:
+
+#+BEGIN_SRC js
+use insertsexample
+db.inventory.insertOne(
+   { item: "canvas", qty: 100, tags: ["cotton"], size: { h: 28, w: 35.5, uom: "cm" } }
+)
+#+END_SRC
+
+Query that document:
+
+#+BEGIN_SRC js
+db.inventory.find( { item: "canvas" } )
+#+END_SRC
+
+Insert multiple documents:
+
+#+BEGIN_SRC js
+db.inventory.insertMany([
+   { item: "journal", qty: 25, tags: ["blank", "red"], size: { h: 14, w: 21, uom: "cm" } },
+   { item: "mat", qty: 85, tags: ["gray"], size: { h: 27.9, w: 35.5, uom: "cm" } },
+   { item: "mousepad", qty: 25, tags: ["gel", "blue"], size: { h: 19, w: 22.85, uom: "cm" } }
+])
+#+END_SRC
+
+To get all inserted documents back pretty printed:
+
+#+BEGIN_SRC js
+db.inventory.find().pretty()
+#+END_SRC
+
+* To check
+
+- Write concerns
+

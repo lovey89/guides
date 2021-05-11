@@ -1,3 +1,130 @@
 https://javascript.info/
-
+https://www.javascripttutorial.net/
 https://developer.mozilla.org/en-US/docs/Learn
+
+* Typical structure
+
+#+BEGIN_SRC
+my_project
++-- index.html
++-- images
+|   `-- image.jpg
++-- styles
+|   `-- style.css
+`-- scripts
+    `-- script.js
+#+END_SRC
+
+* Fonts
+
+https://fonts.google.com/specimen/Texturina?sidebar.open=true&selection.family=Texturina:wght@200
+
+* HTML
+
+** Skeleton
+
+#+BEGIN_SRC html
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>My test page</title>
+    <!-- Fonts -->
+  </head>
+  <body>
+    <img src="images/firefox-icon.png" alt="My test image">
+  </body>
+</html>
+#+END_SRC
+
+** Block and inline elements
+
+Block element takes up space on the page. A block element can have margin and
+other spacing values applied to it. In contrast, there are inline elements. It
+is not possible to apply margin or spacing values to inline elements. So to
+apply margins to e.g. an image (which is an inline element), we must give the
+image block-level behavior using ~display: block;~.
+
+** Elements
+
+*** headings
+
+~<h1>~ to ~<h6>~
+
+*** img
+
+[[https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img][Mozilla about img tag]]
+
+Use both ~width~ and ~height~ to set the intrinsic size of the image, allowing
+it to take up space before it loads, to mitigate content layout shifts.
+
+*** Lists
+
+Ordered list (~<ol>~) or unordered lists (~<ul>~) with list elements (~<li>~)
+inside
+
+* CSS
+
+** Format
+
+#+BEGIN_SRC
+/* Comment */
+selector {
+  property1: value1;
+  property2: value2;
+}
+#+END_SRC
+
+You can also select multiple elements and apply a single ruleset to all of them
+
+#+BEGIN_SRC
+selector1, selector2, selector3 {
+  property1: value1;
+  property2: value2;
+}
+#+END_SRC
+
+Nested elements to the selected elements will inherit the rules
+
+*** Different types of selectors
+
+[[https://developer.mozilla.org/en-US/docs/Learn/CSS/Building_blocks/Selectors][Mozilla about selectors]]
+
+| Selector name         | Description                                                                                | Example            |
+|-----------------------+--------------------------------------------------------------------------------------------+--------------------|
+| Element selector      | All HTML elements of the specified type.                                                   | ~p~, selects ~<p>~ |
+| ID selector           | The element on the page with the specified ID (should be unique)                           | ~#my-id~           |
+| Class selector        | The element(s) on the page with the specified class (can be multiple)                      | ~.my-class~        |
+| Attribute selector    | The element(s) on the page with the specified attribute set (value is not considered)      | ~img[src]~         |
+| Pseudo-class selector | The specified element(s), but only when in the specified state. (E.g cursor hovers a link) | ~a:hover~          |
+
+** Layout
+
+- Padding: The space around the content
+- Border: The solid line that is just outside the padding
+- Margin: The space around the outside of the border
+
+*** Margin and padding syntax
+
+[[https://developer.mozilla.org/en-US/docs/Web/CSS/margin#Syntax][Mozilla about margin syntax]] and [[https://developer.mozilla.org/en-US/docs/Web/CSS/padding#Syntax][Mozilla about padding syntax]]
+
+- When one value is specified, it applies the same margin to all four sides.
+- When two values are specified, the first margin applies to the top and bottom, the second to the left and right.
+- When three values are specified, the first margin applies to the top, the second to the right and left, the third to the bottom.
+- When four values are specified, the margins apply to the top, right, bottom, and left in that order (clockwise).
+
+** Glossary
+
+*** Replaced element
+
+[[https://developer.mozilla.org/en-US/docs/Web/CSS/Replaced_element][Mozilla about replaced elements]]
+
+* JavaScript
+
+** Include JavaScript in html file
+
+#+BEGIN_SRC html
+<script type="text/javascript" src="path/to/script.js"></script>
+#+END_SRC
+
+Always use a separate closing tag for some reason

@@ -1,0 +1,136 @@
+https://developer.mozilla.org/docs/Web
+https://frontendmasters.com/learn/
+https://www.freecodecamp.org/
+https://css-tricks.com/
+https://developer.mozilla.org/en-US/docs/Web
+https://developer.mozilla.org/en-US/docs/Learn
+smashingmagazine.com
+https://dev.to/
+https://www.freecodecamp.org/
+
+
+
+https://lab.github.com/githubtraining/first-week-on-github
+
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Public_class_fields
+https://learnjavascript.online/
+
+* Visual studio code extensions
+
+- ESLint
+- Prettier
+- JavaScript (ES6) code snippets
+
+* Variables
+
+** Declare variables
+
+#+BEGIN_SRC js
+let babyAge = 1;
+let isBirthday = true;
+
+if (isBirthday) {
+	let babyAge = 2;
+}
+
+console.log(babyAge); // Hmmmm. This prints 1
+#+END_SRC
+
+#+BEGIN_SRC js
+var babyAge = 1;
+var isBirthday = true;
+
+if (isBirthday) {
+	var babyAge = 2;
+}
+
+console.log(babyAge); // Ah! This prints 2
+#+END_SRC
+
+** Const
+
+#+BEGIN_SRC js
+const PI = 3;
+PI = 4; // not allowed
+#+END_SRC
+
+#+BEGIN_SRC js
+const obj = { a: 3 };
+obj = { b: 5 } // not allowed
+#+END_SRC
+
+#+BEGIN_SRC js
+const obj = { a: 3 };
+obj.a = 5;  // allowed
+console.log(obj)
+#+END_SRC
+
+** Data types
+
+There are 6 primitive data types: ~string~, ~number~, ~bigint~, ~boolean~,
+~undefined~, and ~symbol~
+
+*** Numbers
+
+Variables can store all types of numbers, including decimals or negative numbers.
+
+**** Arithmetic
+
+#+BEGIN_SRC js
+console.log(200 + 80); // 280
+console.log(200 - 80); // 120
+console.log(200 * 80); // 16000
+console.log(200 / 80); // 2.5 . Returns a 'float' even though both inputs are 'integers'
+console.log(200 % 80); // 40
+#+END_SRC
+
+*** Strings
+
+Strings are sets of characters that reside between single or double quotes.
+
+**** Formatting
+
+#+BEGIN_SRC js
+let myString1 = "Hello";
+let myString2 = "World";
+
+console.log(myString1 + myString2 + "!"); //HelloWorld!
+console.log(myString1 + "  " + myString2 + "!"); //Hello  World!
+console.log(myString1 + ", " + myString2 + "!"); //Hello, World!
+#+END_SRC
+
+Template literals are another way to format strings, except instead of quotes,
+the backtick is used. Anything that is not plain text must be placed inside
+placeholders ~${ }~. This includes any variables that may be strings.
+
+#+BEGIN_SRC js
+let myString1 = "Hello";
+let myString2 = "World";
+
+let concatResult = `${myString1} ${myString2}!`; //Hello World!
+// You can also use newlines in with template literals
+let withNewLine = `${myString1}
+${myString2}!`; //Hello\nWorld!
+
+console.log(concatResult);
+console.log();
+console.log(withNewLine);
+#+END_SRC
+
+*** booleans
+
+Is either ~true~ or ~false~. [[https://developer.mozilla.org/en-US/docs/Glossary/Truthy][All values are considered truthy unless defined as falsy]].
+There are 8 falsy values:
+
+| Value       | Description                       |
+|-------------+-----------------------------------|
+| ~false~     | The keyword ~false~               |
+| ~0~         | The number zero                   |
+| ~-0~        | The number negative zero          |
+| ~0n~        | BigInt zero                       |
+| ~""~        | Empty string                      |
+| ~null~      | ~null~, the abscence of any value |
+| ~undefined~ | ~undefined~                       |
+| ~NaN~       | ~NaN~, not a number               |
+
+* Gotchas

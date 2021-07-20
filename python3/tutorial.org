@@ -1836,6 +1836,114 @@ f(5, 1)
 You can also use them for documentation if you want. E.g. what kind of data you
 expect or the types of the arguments.
 
+*** Data classes
+
+Old way that doesn't really do what we want
+
+#+BEGIN_SRC python :python python3 :results output
+class Person:
+    name: str
+    job: str
+    age: int
+
+    def __init__(self, name, job, age):
+        self.name = name
+        self.job = job
+        self.age = age
+
+person1 = Person("Geralt", "Witcher", 30)
+person2 = Person("Yennefer", "Sorceress", 25)
+person3 = Person("Yennefer", "Sorceress", 25)
+
+print(id(person2))
+print(id(person3))
+print(person1)
+
+print(person3 == person2)
+#+END_SRC
+
+Data class aproach:
+
+#+BEGIN_SRC python :python python3 :results output
+from dataclasses import dataclass
+
+@dataclass
+class Person:
+    name: str
+    job: str
+    age: int
+
+person1 = Person("Geralt", "Witcher", 30)
+person2 = Person("Yennefer", "Sorceress", 25)
+person3 = Person("Yennefer", "Sorceress", 25)
+
+print(id(person2))
+print(id(person3))
+print(person1)
+
+print(person3 == person2)
+#+END_SRC
+
+To make a class sortable:
+
+#+BEGIN_SRC python :python python3 :results output
+from dataclasses import dataclass, field
+
+@dataclass(order=True)
+class Person:
+    sort_index: int = field(init=False, repr=False)
+    name: str
+    job: str
+    age: int
+    # default values
+    strength: int = 100
+
+    def __post_init__(self):
+        self.sort_index = self.age
+
+person1 = Person("Geralt", "Witcher", 30, 99)
+person2 = Person("Yennefer", "Sorceress", 25)
+person3 = Person("Yennefer", "Sorceress", 25)
+
+print(id(person2))
+print(id(person3))
+print(person1)
+
+print(person1 > person2)
+#+END_SRC
+
+To make the data read-only you can use the ~frozen~ keyword:
+
+#+BEGIN_SRC python :python python3 :results output
+from dataclasses import dataclass, field
+
+@dataclass(order=True, frozen=True)
+class Person:
+    sort_index: int = field(init=False, repr=False)
+    name: str
+    job: str
+    age: int
+    # default values
+    strength: int = 100
+
+    def __post_init__(self):
+        # To get around the read-only restriction
+        object.__setattr__(self, 'sort_index', self.age)
+
+    def __str__(self):
+        return f'{self.name}, {self.job} ({self.age})'
+
+person1 = Person("Geralt", "Witcher", 30, 99)
+person2 = Person("Yennefer", "Sorceress", 25)
+person3 = Person("Yennefer", "Sorceress", 25)
+
+print(id(person2))
+print(id(person3))
+print(person1)
+
+print(person1 > person2)
+#+END_SRC
+
 * The ~map~, ~filter~ and ~reduce~ functions
 
 In this section we will use [[*Lambda Expressions][lambda expressions]] together with ~map~, ~filter~ and

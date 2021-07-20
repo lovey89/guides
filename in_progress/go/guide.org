@@ -1,0 +1,759 @@
+* Table of Contents :TOC:QUOTE:
+#+BEGIN_QUOTE
+- [[#tour][Tour]]
+  - [[#hello-world][Hello world]]
+  - [[#packages-and-imports][Packages and imports]]
+  - [[#exported-names][Exported names]]
+  - [[#functions][Functions]]
+  - [[#variables][Variables]]
+  - [[#basic-types][Basic types]]
+  - [[#loops][Loops]]
+  - [[#if-statement][If statement]]
+  - [[#switch-statement][Switch statement]]
+  - [[#defer][Defer]]
+- [[#other-sample-programs][Other sample programs]]
+- [[#links][Links]]
+- [[#questions][Questions]]
+#+END_QUOTE
+
+* Tour
+
+To run [[https://tour.golang.org/][the official golang tour]] locally run:
+
+#+BEGIN_SRC bash
+go install golang.org/x/website/tour@latest
+
+# The call above should have created a binary called 'tour' in the GOPATH bin directory.
+# My GOPTH variable wasn't set and I could find it under $HOME/go/bin/tour
+$HOME/go/bin/tour
+#+END_SRC
+
+** Hello world
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("Hello, world")
+}
+#+END_SRC
+
+** Packages and imports
+
+Every Go program is made up of packages. Programs start running in package
+~main~.
+
+By convention, the package name is the same as the last element of the import
+path. For instance, the ~math/rand~ package comprises files that begin with the
+statement package ~rand~.
+
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+	"time"
+	"math/rand"
+)
+
+func main() {
+	// If you don't enter a seed yourself it will be treated as if it was rand.Seed(1)
+	rand.Seed(time.Now().UTC().UnixNano())
+	fmt.Println("My favorite number is", rand.Intn(10))
+}
+#+END_SRC
+
+In the example above the imports are grouped into a /factored/ import statement.
+You can also write multiple import statements like:
+
+#+BEGIN_SRC go
+import "fmt"
+import "time"
+import "math/rand"
+#+END_SRC
+
+But it is good style to use the factored import statement.
+
+** Exported names
+
+A name is only exported if it begins with a capital letter. In a package, the
+name ~Pizza~ would be exported while ~pasta~ wouldn't be exported.
+
+So when importing a package you can only refer to the exported names.
+
+So names with beginning with a capital letter are public while all other are
+private.
+
+** Functions
+
+A function can take zero or more arguments. Unlike java the types of the
+arguments are placed after the variable name, and the return type after the
+arguments.
+
+For more information about the declaration syntax:
+https://blog.golang.org/declaration-syntax
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func add(x int, y int) int {
+	return x + y
+}
+
+func main() {
+	fmt.Println(add(42, 13))
+}
+#+END_SRC
+
+If multiple consecutive arguments have the same type you can omit the type for
+all variable but the last. The example above now looks like:
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func add(x, y int) int { // <-- Look here
+	return x + y
+}
+
+func main() {
+	fmt.Println(add(42, 13))
+}
+#+END_SRC
+
+Like python a function can return multiple results:
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func swap(x, y string) (string, string) {
+	return y, x
+}
+
+func main() {
+	a, b := swap("hello", "world")
+	fmt.Println(a, b)
+}
+#+END_SRC
+
+Go supports naming the return values. Then you define them as variables at the
+top of the function.
+
+A ~return~ statement without arguments returns the named return values. This is
+known as a "naked" return.
+
+Naked return statements should be used only in short functions.
+
+If you provide an argument to the return statement it looks like as if the named
+return values are ignored.
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func split(sum int) (x, y int) {
+	x = sum * 4 / 9
+	y = sum - x
+	return
+	//return 1, 2
+}
+
+func main() {
+	fmt.Println(split(17))
+}
+#+END_SRC
+
+** Variables
+
+The ~var~ statement declares a list of variables; as in function argument lists,
+the type is last.
+
+A ~var~ statement can be at package or function level. In the example below it
+looks like as if booleans are initialized to ~false~ and ints to ~0~.
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+var c, python, java bool
+
+func main() {
+	var i int
+	fmt.Println(i, c, python, java)
+}
+#+END_SRC
+
+You can initilize them manually during declaration as well. If an initializer is
+present, the type can be omitted; the variable will take the type of the
+initializer.
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+// Declaration with type
+var i, j int = 1, 2
+
+func main() {
+	// Declaration without type
+	var c, python, java = true, false, "no!"
+	fmt.Println(i, j, c, python, java)
+}
+#+END_SRC
+
+Go also supports /short variable declarations/ inside functions. You can then
+use ~:=~ in place of a ~var~ declaration with implicit type. Note that this
+can't be used outside a function!
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func main() {
+	var i, j int = 1, 2
+	k := 3
+	c, python, java := true, false, "no!"
+
+	fmt.Println(i, j, k, c, python, java)
+}
+#+END_SRC
+
+** Basic types
+
+| Type         | Alias  | Comment                                                                   |
+|--------------+--------+---------------------------------------------------------------------------|
+| ~bool~       |        |                                                                           |
+| ~string~     |        |                                                                           |
+| ~int~        |        | Usually 32 bits wide on 32-bit systems and 64 bits wide on 64-bit systems |
+| ~int8~       |        |                                                                           |
+| ~int16~      |        |                                                                           |
+| ~int32~      | ~rune~ | ~rune~ represents a Unicode code point.                                   |
+| ~int64~      |        |                                                                           |
+| ~uint~       |        | Usually 32 bits wide on 32-bit systems and 64 bits wide on 64-bit systems |
+| ~uint8~      | ~byte~ |                                                                           |
+| ~uint16~     |        |                                                                           |
+| ~uint32~     |        |                                                                           |
+| ~uint64~     |        |                                                                           |
+| ~uintptr~    |        | Usually 32 bits wide on 32-bit systems and 64 bits wide on 64-bit systems |
+| ~float32~    |        |                                                                           |
+| ~float64~    |        |                                                                           |
+| ~complex64~  |        |                                                                           |
+| ~complex128~ |        |                                                                           |
+
+When you need an integer value you should use int unless you have a specific
+reason to use a sized or unsigned integer type.
+
+In the example below you can see how also variable declarations can be factored
+like imports. You also see that you can print the type of a variable in the
+~Printf~ statement.
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+	"math/cmplx"
+)
+
+var (
+	ToBe   bool       = false
+	MaxInt uint64     = 1<<64 - 1
+	z      complex128 = cmplx.Sqrt(-5 + 12i)
+)
+
+func main() {
+	fmt.Printf("Type: %T Value: %v\n", ToBe, ToBe)
+	fmt.Printf("Type: %T Value: %v\n", MaxInt, MaxInt)
+	fmt.Printf("Type: %T Value: %v\n", z, z)
+}
+#+END_SRC
+
+Variable declarations without an explicit initial value are given their ~zero~
+value.
+
+| Type          | Zero value |
+|---------------+------------|
+| Numeric types | ~0~        |
+| ~bool~        | ~false~    |
+| ~string~      | ~""~       |
+
+*** Type conversions
+
+The expression ~T(v)~ converts the value ~v~ to the type ~T~.
+
+Unlike in C, in Go assignment between items of different type requires an
+explicit conversion. Try removing the ~float64~ or ~uint~ conversions in the
+example and see what happens.
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+	"math"
+)
+
+func main() {
+	var x, y int = 3, 4
+	var f float64 = math.Sqrt(float64(x*x + y*y))
+	var z uint = uint(f)
+	fmt.Println(x, y, z)
+}
+#+END_SRC
+
+*** Type inference
+
+When declaring a variable without specifying an explicit type the variable's
+type is inferred from the value on the right hand side.
+
+This is easy when the right hand side is a variable with already a type but when
+the right hand side contains an untyped numeric constant, the new variable may be
+an ~int~, ~float64~, or ~complex128~ depending on the precision of the constant:
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func main() {
+	v0 := 42
+	v1 := 3.142
+	v2 := 0.867 + 0.5i
+	// The following variable would fit in an uint64 but returns an error that it overflows int
+	//v3 := 9223372036854775808
+	//var v3 uint64 = 9223372036854775808
+	fmt.Printf("v0 is of type %T\n", v0)
+	fmt.Printf("v1 is of type %T\n", v1)
+	fmt.Printf("v2 is of type %T\n", v2)
+	//fmt.Printf("v3 is of type %T\n", v3)
+}
+#+END_SRC
+
+*** Constants
+
+Constants are declared like variables, but with the ~const~ keyword instead of
+~var~ (and can't use the ~:=~ syntax). Constants can be character, string,
+boolean, or numeric values (TODO: No structs?)
+
+TODO: Constants starts with capital letter? What about exported names?
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+const Pi = 3.14
+
+func main() {
+	const Name = "World"
+	fmt.Println("Hello", Name)
+	fmt.Println("Happy", Pi, "Day")
+
+	const Truth = true
+	fmt.Println("Go rules?", Truth)
+}
+#+END_SRC
+
+Numeric constants are high-precision values. An untyped constant takes the type
+needed by its context. It looks like as if the contant doesn't have a type until
+it is used. In the example below you can try to print the type of ~Small~ and
+~Big~. ~Small~ will return ~int~ (I guess it get's the type by the ~Printf~
+functions) while ~Big~ will return an overflow error.
+
+Constant declarations can be factored like variables and imports.
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+const (
+	// Create a huge number by shifting a 1 bit left 100 places.
+	// In other words, the binary number that is 1 followed by 100 zeroes.
+	Big = 1 << 100
+	// Shift it right again 99 places, so we end up with 1<<1, or 2.
+	Small = Big >> 99
+)
+
+func needInt(x int) int { return x*10 + 1 }
+func needFloat(x float64) float64 {
+	return x * 0.1
+}
+
+func main() {
+	fmt.Println(needInt(Small))
+	fmt.Println(needFloat(Small))
+	fmt.Println(needFloat(Big))
+	fmt.Printf("%T", Small)
+	//fmt.Printf("%T", Big)
+}
+#+END_SRC
+
+** Loops
+
+In go the only looping construct that exists is the ~for~ loop.
+
+You don't parentheses around the three components of the ~for~ statement and
+the braces are always required.
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func main() {
+	sum := 0
+	for i := 0; i < 10; i++ {
+		sum += i
+	}
+	fmt.Println(sum)
+}
+#+END_SRC
+
+The init and post statements are optional (effectively making this a ~while~
+loop):
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func main() {
+	sum := 1
+	for ; sum < 1000; {
+		sum += sum
+	}
+	fmt.Println(sum)
+}
+#+END_SRC
+
+If you do this you can drop the semicolons:
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func main() {
+	sum := 1
+	for sum < 1000 {
+		sum += sum
+	}
+	fmt.Println(sum)
+}
+#+END_SRC
+
+To loop something forever you can drop the loop condition completely:
+
+#+BEGIN_SRC go
+package main
+
+import "fmt"
+
+func main() {
+	for {
+		fmt.Println("Hello")
+	}
+}
+#+END_SRC
+
+** If statement
+
+Like the ~for~ statement, the expression need not be surrounded by parentheses
+but the braces are required.
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+	"math"
+)
+
+func sqrt(x float64) string {
+	if x < 0 {
+		return sqrt(-x) + "i"
+	}
+	return fmt.Sprint(math.Sqrt(x))
+}
+
+func main() {
+	fmt.Println(sqrt(2), sqrt(-4))
+}
+#+END_SRC
+
+In go you can also have a /short statement/ to execute before the condition.
+Variables declared by the statement are only in scope until the end of the ~if~.
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+	"math"
+)
+
+func pow(x, n, lim float64) float64 {
+	if v := math.Pow(x, n); v < lim {
+		return v
+	}
+	return lim
+}
+
+func main() {
+	fmt.Println(
+		pow(3, 2, 10),
+		pow(3, 3, 20),
+	)
+}
+#+END_SRC
+
+Variables declared inside an ~if~ short statement are also available inside any
+of the ~else~ blocks.
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+	"math"
+)
+
+func pow(x, n, lim float64) float64 {
+	if v := math.Pow(x, n); v < lim {
+		return v
+	} else {
+		fmt.Printf("%g >= %g\n", v, lim)
+	}
+	// can't use v here, though
+	return lim
+}
+
+func main() {
+	fmt.Println(
+		pow(3, 2, 10),
+		pow(3, 3, 20),
+	)
+}
+#+END_SRC
+
+Calculate the square root of a number using [[https://en.wikipedia.org/wiki/Newton%27s_method][Newton's method]]:
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+	"math"
+)
+
+func MySqrt(x float64) float64 {
+	z := 1.0
+
+	for i := 0; i < 10; i++ {
+		z -= (z*z - x) / (2*z)
+	}
+	return z
+}
+
+func main() {
+	number := 99.0
+	fmt.Println(MySqrt(number))
+	fmt.Println(math.Sqrt(number))
+}
+
+#+END_SRC
+
+** Switch statement
+
+Go's ~switch~ is like the one in Java except that Go only runs the selected
+case, not all the cases that follow. In effect, the ~break~ statement that is
+needed at the end of each case in those languages is provided automatically in
+Go. Another important difference is that Go's ~switch~ cases need not be
+constants, and the values involved need not be integers.
+
+In the example below you can also see the use of a /short statement/ like in the
+~if~ statement.
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+	"runtime"
+)
+
+var linuxOs = "linux"
+
+func main() {
+	fmt.Print("Go runs on ")
+	switch os := runtime.GOOS; os {
+	case "darwin":
+		fmt.Println("OS X.")
+	case linuxOs: // A variable instead of a constant
+		fmt.Println("Linux.")
+	default:
+		// freebsd, openbsd,
+		// plan9, windows...
+		fmt.Printf("%s.\n", os)
+	}
+}
+#+END_SRC
+
+As expected, cases are evaluated from top to bottom, stopping when a case
+succeeds:
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+func main() {
+	fmt.Println("When's Saturday?")
+	today := time.Now().Weekday()
+	switch time.Saturday {
+	case today + 0:
+		fmt.Println("Today.")
+	case today + 1:
+		fmt.Println("Tomorrow.")
+	case today + 2:
+		fmt.Println("In two days.")
+	default:
+		fmt.Println("Too far away.")
+	}
+}
+#+END_SRC
+
+You can also make match against the result of function call:
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+)
+
+func myFunc() int {
+	return 2
+}
+
+func main() {
+	myVar := 2
+	switch myVar {
+	case 0:
+		fmt.Println("It's 0")
+	case myFunc():
+		fmt.Println("Function matched!")
+	default:
+		fmt.Println("Something else")
+	}
+}
+#+END_SRC
+
+If you don't provide a switch condition it is the same as ~switch true~. This
+can be used as a clean way to write long if-then-else chains:
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+func main() {
+	t := time.Now()
+	switch {
+	case t.Hour() < 12:
+		fmt.Println("Good morning!")
+	case t.Hour() < 17:
+		fmt.Println("Good afternoon.")
+	default:
+		fmt.Println("Good evening.")
+	}
+}
+#+END_SRC
+
+** Defer
+
+A ~defer~ statement defers the execution of a function until the surrounding
+function returns.
+
+The deferred call's arguments are evaluated immediately, but the function call
+is not executed until the surrounding function returns.
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func main() {
+	defer fmt.Println("world")
+
+	fmt.Println("hello")
+}
+
+#+END_SRC
+
+Deferred function calls are pushed onto a stack. When a function returns, its
+deferred calls are executed in last-in-first-out order.
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("counting")
+
+	for i := 0; i < 10; i++ {
+		defer fmt.Println(i)
+	}
+
+	fmt.Println("done")
+}
+#+END_SRC
+
+TODO: When can this be used?
+
+#+BEGIN_SRC go :results output
+
+#+END_SRC
+
+* Other sample programs
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+	"math"
+)
+
+func main() {
+	fmt.Printf("Now you have %g problems.\n", math.Sqrt(7))
+}
+#+END_SRC
+
+* Links
+
+- https://blog.golang.org/defer-panic-and-recover
+
+* Questions
+
+- Equality. Floats and strings

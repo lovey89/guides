@@ -1,4 +1,4 @@
-// Run this script with:
+// Run this program with:
 //go run . | cut -c 7- | base64 -d > pic.png; xdg-open pic.png
 
 package main

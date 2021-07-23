@@ -2815,6 +2815,13 @@ var fetcher = fakeFetcher{
 - https://pkg.go.dev/std
 - https://golang.org/ref/spec#Composite_literals (https://stackoverflow.com/questions/39804861/what-is-a-concise-way-to-create-a-2d-slice-in-go)
 
+- https://golang.org/doc/effective_go
+- https://golang.org/doc/
+- https://golangbot.com/learn-golang-series/
+- https://gobyexample.com/
+- https://www.educative.io/courses/mastering-concurrency-in-go?affiliate_id=5088579051061248
+- https://quii.gitbook.io/learn-go-with-tests/
+
 * Questions
 
 - Equality. Floats and strings

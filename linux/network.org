@@ -1,0 +1,115 @@
+* Table of Contents :TOC:QUOTE:
+#+BEGIN_QUOTE
+- [[#basic][Basic]]
+  - [[#check-current-ip-addresses-on-your-device][Check current ip addresses on your device]]
+  - [[#add-an-ip-address-to-an-interface][Add an IP address to an interface]]
+  - [[#remove-an-ip-address-from-an-interface][Remove an IP address from an interface]]
+  - [[#check-configured-routes][Check configured routes]]
+  - [[#add-new-entry-to-routing-table][Add new entry to routing table]]
+- [[#arp-scan][Arp-scan]]
+- [[#nmap][Nmap]]
+- [[#arp][arp]]
+  - [[#list-entries-in-the-arp-table][List entries in the arp table]]
+  - [[#add-temporary-entry-in-the-arp-table][Add temporary entry in the arp table]]
+  - [[#remove-an-entry-from-the-arp-table][Remove an entry from the arp table]]
+#+END_QUOTE
+
+* Basic
+** Check current ip addresses on your device
+
+#+BEGIN_SRC bash
+ip -br a
+#+END_SRC
+
+** Add an IP address to an interface
+
+To add the ip ~192.168.1.1~ to interface ~wlp2s0~:
+
+#+BEGIN_SRC bash
+ip a add 192.168.1.1/32 dev wlp2s0:0
+#+END_SRC
+
+The old address will also be assigned to the same interface. Check that
+everything is correct with:
+
+#+BEGIN_SRC bash
+ip -br a
+#+END_SRC
+
+** Remove an IP address from an interface
+
+To remove the ip ~192.168.1.1~ from interface ~wlp2s0~:
+
+#+BEGIN_SRC bash
+ip a del 192.168.1.1/32 dev wlp2s0:0
+#+END_SRC
+
+** Check configured routes
+
+#+BEGIN_SRC bash
+ip route
+# or
+ip r
+#+END_SRC
+
+** Add new entry to routing table
+
+To associate the route ~192.168.1.0/24~ to the interface
+
+#+BEGIN_SRC bash
+sudo ip r add 192.168.1.0/24 dev wlp2s0
+#+END_SRC
+
+Check that the route is added correctly with:
+
+#+BEGIN_SRC bash :results output
+ip route
+#+END_SRC
+
+* Arp-scan
+
+To scan the subnet ~192.168.1.0/24~ on the interface ~wlp2s0~:
+
+#+BEGIN_SRC bash :results output
+arp-scan --interface=wlp2s0 192.168.1.0/24
+#+END_SRC
+
+* Nmap
+
+Check info about machines and which ports are open. ~-PN~ means that we won't
+ping the machine first. ~-A~ enables OS and version detection, script scanning,
+and traceroute and ~-T4~ for faster execution.
+
+#+BEGIN_SRC bash
+sudo nmap -PN -A -T4 192.168.1.1
+#+END_SRC
+
+Scan a full network. ~-sn~ will disable port scanning and will only perform a
+"ping scan" (host discovery so not only ICMP messages).
+
+#+BEGIN_SRC bash
+sudo nmap -sn 192.168.1.1-255
+#+END_SRC
+
+You can also use the option ~--send-ip~ to not sending ARP requests when
+scanning a local network. Then you can enter entries in the arp table manually
+to force which host you want to scan (in case of ip collisions).
+
+* arp
+** List entries in the arp table
+
+#+BEGIN_SRC bash
+arp
+#+END_SRC
+
+** Add temporary entry in the arp table
+
+#+BEGIN_SRC bash
+arp -s "1.2.3.4" "11:22:33:44:55:66" temp
+#+END_SRC
+
+** Remove an entry from the arp table
+
+#+BEGIN_SRC bash
+arp -d "1.2.3.4"
+#+END_SRC

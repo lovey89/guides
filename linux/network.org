@@ -6,6 +6,7 @@
   - [[#remove-an-ip-address-from-an-interface][Remove an IP address from an interface]]
   - [[#check-configured-routes][Check configured routes]]
   - [[#add-new-entry-to-routing-table][Add new entry to routing table]]
+- [[#get-my-public-ip-on-the-command-line][Get my public IP on the command line]]
 - [[#arp-scan][Arp-scan]]
 - [[#nmap][Nmap]]
 - [[#arp][arp]]
@@ -64,6 +65,22 @@ Check that the route is added correctly with:
 
 #+BEGIN_SRC bash :results output
 ip route
+#+END_SRC
+
+* Get my public IP on the command line
+
+#+BEGIN_SRC bash
+dig +short myip.opendns.com @resolver1.opendns.com
+# or
+dig TXT +short o-o.myaddr.l.google.com @ns1.google.com | awk -F'"' '{ print $2}'
+# or
+host myip.opendns.com resolver1.opendns.com | grep "myip.opendns.com has" | awk '{print $4}'
+# or
+curl ifconfig.me
+# or
+curl icanhazip.com
+# or
+curl https://ipecho.net/plain
 #+END_SRC
 
 * Arp-scan

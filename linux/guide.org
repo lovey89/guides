@@ -1,5 +1,6 @@
 * Table of Contents :TOC:QUOTE:
 #+BEGIN_QUOTE
+- [[#print-each-line-with-a-timestamp][Print each line with a timestamp]]
 - [[#journalctl][journalctl]]
 - [[#tar][tar]]
   - [[#main-operation-modes][Main operation modes]]
@@ -38,6 +39,21 @@
   - [[#example-2][Example]]
 - [[#grub2-and-related][grub2 and related]]
 #+END_QUOTE
+
+* Print each line with a timestamp
+
+First install ~moreutils~:
+
+#+BEGIN_SRC bash
+dnf install moreutils
+#+END_SRC
+
+Then use the ~ts~ command:
+
+#+BEGIN_SRC bash :results output
+echo -e "foo\nbar\nbaz" | ts '[%Y-%m-%d %H:%M:%S]'  # Second
+echo -e "foo\nbar\nbaz" | ts '[%Y-%m-%d %H:%M:%.S]' # Seconds and milli seconds
+#+END_SRC
 
 * journalctl
 

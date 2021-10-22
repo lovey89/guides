@@ -1,6 +1,8 @@
 * Table of Contents :TOC:QUOTE:
 #+BEGIN_QUOTE
 - [[#print-each-line-with-a-timestamp][Print each line with a timestamp]]
+- [[#generate-passwords-on-command-line][Generate passwords on command line]]
+- [[#desktop-entries-in-fedora][Desktop entries in fedora]]
 - [[#journalctl][journalctl]]
 - [[#tar][tar]]
   - [[#main-operation-modes][Main operation modes]]
@@ -21,6 +23,9 @@
   - [[#handling-keys][Handling keys]]
 - [[#dnf][dnf]]
   - [[#adding-a-repo][Adding a repo]]
+- [[#rpm][rpm]]
+  - [[#install-a-local-rpm][Install a local rpm]]
+  - [[#remove-rpm][Remove rpm]]
 - [[#disk-and-partition-info][Disk and partition info]]
   - [[#mounted-file-systems][Mounted file systems]]
   - [[#display-disk-information][Display disk information]]
@@ -54,6 +59,37 @@ Then use the ~ts~ command:
 echo -e "foo\nbar\nbaz" | ts '[%Y-%m-%d %H:%M:%S]'  # Second
 echo -e "foo\nbar\nbaz" | ts '[%Y-%m-%d %H:%M:%.S]' # Seconds and milli seconds
 #+END_SRC
+
+* Generate passwords on command line
+
+From https://unix.stackexchange.com/questions/230673/how-to-generate-a-random-string:
+
+#+BEGIN_SRC bash
+LC_ALL=C tr -dc 'A-Za-z0-9!"#$%&'\''()*+,-./:;<=>?@[\]^_`{|}~' </dev/urandom | head -c 13 ; echo
+#+END_SRC
+
+The above command gives you a 13 character long password which may include any
+of the characters in the string given to ~tr~. This is another way, but I don't
+know which way is better:
+
+#+BEGIN_SRC bash :results output
+head -c 4096 /dev/urandom | LC_CTYPE=C tr -cd 'A-Za-z0-9' | head -c 64
+#+END_SRC
+
+And
+
+#+BEGIN_SRC bash
+openssl rand -base64 12
+# or
+openssl rand -hex 12
+#+END_SRC
+
+Uses ~openssl~ which I guess is good but ~base64~ have predictable padding and
+~hex~ may be too limiting.
+
+* Desktop entries in fedora
+
+They are stored in ~/usr/share/applications~ and ~$HOME/.local/share/applications~
 
 * journalctl
 
@@ -264,23 +300,24 @@ ssh user@host -t 'tmux a || tmux || /bin/bash'
 
 [[https://www.rootusers.com/25-useful-dnf-command-examples-for-package-management-in-linux/]]
 
-| Command                                   | Description                                                                                           |
-|-------------------------------------------+-------------------------------------------------------------------------------------------------------|
-| ~dnf check-update~                        | Check for available updates for packages in enabled repositories                                      |
-| ~dnf update package_name~                 | Update a specific package                                                                             |
-| ~dnf update~                              | Update all packages                                                                                   |
-| ~dnf update -x package_name~              | Update all packages except ~package_name~                                                             |
-| ~dnf updateinfo list sec~                 | Install security updates only                                                                         |
-| ~dnf install rpm-file.rpm~                | Install a ~.rpm~ file. Will also install dependencies (the ~rpm~ command won't do that)               |
-| ~dnf remove package_name~                 | Uninstall package. Packages that depend on ~package_name~ will also be removed (you will be prompted) |
-| ~dnf reinstall package_name~              | Reinstall a package. Similar to removing and then installing again                                    |
-| ~dnf repolist~                            | View enabled repositories                                                                             |
-| ~dnf repolist all~                        | View enabled and disabled repositories                                                                |
-| ~dnf list installed~                      | List installed packages                                                                               |
-| ~dnf clean all~                           | Clear cached information (the cached information is only used to speed up dnf)                        |
-| ~dnf info package_name~                   | Shows detailed information about ~package_name~                                                       |
-| ~dnf provides */iscsiadm~                 | Shows which package that provides the command ~iscsiadm~                                              |
-| ~dnf provides /etc/httpd/conf/httpd.conf~ | Shows which package that provides a file                                                              |
+| Command                                   | Description                                                                                                                  |
+|-------------------------------------------+------------------------------------------------------------------------------------------------------------------------------|
+| ~dnf check-update~                        | Check for available updates for packages in enabled repositories                                                             |
+| ~dnf update package_name~                 | Update a specific package                                                                                                    |
+| ~dnf update~                              | Update all packages                                                                                                          |
+| ~dnf update -x package_name~              | Update all packages except ~package_name~                                                                                    |
+| ~dnf updateinfo list sec~                 | Install security updates only                                                                                                |
+| ~dnf install rpm-file.rpm~                | Install a ~.rpm~ file. Will also install dependencies (the ~rpm~ command won't do that)                                      |
+| ~dnf upgrade package_name rpm-file.rpm~   | Upgrade a ~.rpm~ file. You have to provide both the package name for the currently installed package and the new ~.rpm~ file |
+| ~dnf remove package_name~                 | Uninstall package. Packages that depend on ~package_name~ will also be removed (you will be prompted)                        |
+| ~dnf reinstall package_name~              | Reinstall a package. Similar to removing and then installing again                                                           |
+| ~dnf repolist~                            | View enabled repositories                                                                                                    |
+| ~dnf repolist all~                        | View enabled and disabled repositories                                                                                       |
+| ~dnf list installed~                      | List installed packages                                                                                                      |
+| ~dnf clean all~                           | Clear cached information (the cached information is only used to speed up dnf)                                               |
+| ~dnf info package_name~                   | Shows detailed information about ~package_name~                                                                              |
+| ~dnf provides */iscsiadm~                 | Shows which package that provides the command ~iscsiadm~                                                                     |
+| ~dnf provides /etc/httpd/conf/httpd.conf~ | Shows which package that provides a file                                                                                     |
 
 ** Adding a repo
 
@@ -293,6 +330,27 @@ dnf config-manager --add-repo="https://mirror.aarnet.edu.au/pub/centos/7"
 #+END_SRC
 
 Which will create the file ~/etc/yum.repos.d/mirror.aarnet.edu.au_pub_centos_7.repo~
+
+* rpm
+** Install a local rpm
+
+#+BEGIN_SRC bash :results output
+sudo rpm -i file.rpm
+#+END_SRC
+
+** Remove rpm
+
+First extract the package name from the ~.rpm~ file
+
+#+BEGIN_SRC bash :results output
+rpm -qp file.rpm
+#+END_SRC
+
+Followed by
+
+#+BEGIN_SRC bash :results output
+rpm -e <result_from_command_above>
+#+END_SRC
 
 * Disk and partition info
 ** Mounted file systems

@@ -13,6 +13,7 @@
   - [[#example][Example]]
 - [[#tcpdump][tcpdump]]
   - [[#example-1][Example]]
+  - [[#pipe-result-directly-to-wireshark][Pipe result directly to wireshark]]
 - [[#docker][Docker]]
   - [[#view-stdout-from-container][View stdout from container]]
 - [[#ssh][ssh]]
@@ -268,6 +269,45 @@ tcpdump -c 2000 -s 0 -i eth0 -A -w dump.pcap 'tcp port 80'
 
 More information about tcpdum and the filter can be found on the man pages for
 [[https://www.tcpdump.org/manpages/tcpdump.1.html][tcpdump]] and [[https://www.tcpdump.org/manpages/pcap-filter.7.html][pcap-filter]].
+
+** Pipe result directly to wireshark
+
+E.g.
+
+#+BEGIN_SRC bash :results output
+tcpdump -i eth0 -U -w - | wireshark -k -i -
+#+END_SRC
+
+If you want to run analyze the data in a kubernetes pod you can run something
+similar to this
+
+#+BEGIN_SRC bash :results output
+kubectl exec pod_name -n namespace_name -- tcpdump -i eth0 -U -w - | wireshark -k -i -
+#+END_SRC
+
+First time I ran this I got the following message:
+
+#+BEGIN_SRC
+Couldn't run /usr/bin/dumpcap in child process: Permission denied
+Are you a member of the 'wireshark' group? Try running
+'usermod -a -G wireshark _your_username_' as root.
+#+END_SRC
+
+I tried to follow the instructions but it didn't work. I checked the file with
+~ls -l~:
+
+#+BEGIN_SRC bash :results output
+$ ls -l /usr/bin/dumpcap
+-rwxr-x---. 1 root wireshark 125616 Mar 16  2021 /usr/bin/dumpcap
+#+END_SRC
+
+I ran this instead:
+
+#+BEGIN_SRC bash :results output
+sudo chmod a+x /usr/bin/dumpcap
+#+END_SRC
+
+Then it worked
 
 * Docker
 ** View stdout from container

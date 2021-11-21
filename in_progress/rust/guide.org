@@ -1,0 +1,216 @@
+* Table of Contents :TOC:QUOTE:
+#+BEGIN_QUOTE
+- [[#links][Links]]
+  - [[#tutorials][Tutorials]]
+  - [[#cargo][Cargo]]
+  - [[#api][API]]
+- [[#other-things-to-look-at][Other things to look at]]
+- [[#getting-started][Getting started]]
+  - [[#installation][Installation]]
+  - [[#hello-world][Hello, World]]
+  - [[#hello-cargo][Hello, Cargo]]
+- [[#documentation][Documentation]]
+- [[#misc][Misc]]
+#+END_QUOTE
+
+* Links
+** Tutorials
+
+- https://lborb.github.io/
+- https://doc.rust-lang.org/book/
+- https://github.com/rust-lang/rustlings/
+- https://doc.rust-lang.org/stable/rust-by-example/
+
+** Cargo
+
+- https://doc.rust-lang.org/cargo/
+- https://crates.io/
+
+** API
+
+- https://doc.rust-lang.org/std/index.html
+
+* Other things to look at
+
+- ~rustfmt~ command
+- The prelude: https://doc.rust-lang.org/std/prelude/index.html
+
+* Getting started
+** Installation
+
+https://doc.rust-lang.org/book/ch01-01-installation.html
+
+Or on fedora linux:
+
+#+BEGIN_SRC bash :noeval
+sudo dnf install rust
+rustc --version
+sudo dnf install cargo # Rust's package manager and build tool
+cargo --version
+sudo dnf install rustfmt # Rust formatting
+cargo install rust-script # Run rust files as scripts. Needed for emacs babel
+                          # Make sure the script is on your path afterwards!
+rust-script --version
+#+END_SRC
+
+** Hello, World
+
+Files in rust are on the format ~programname.rs~. Words should be separated with ~_~.
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    println!("Hello, world!");
+}
+#+END_SRC
+
+*** Compile it
+
+Add the code from the file above in a file called ~hello_world.rs~, compile it
+with ~rustc~ and execute the produced file, ~~hello_world~:
+
+#+BEGIN_SRC bash :noeva
+rustc hello_world.rs
+./hello_world
+#+END_SRC
+
+*** Things to note
+
+1. The main ~function~ is special: it is always the first code that runs in
+   every executable Rust program. The first line declares a function named main
+   that has no parameters and returns nothing. If there were parameters, they
+   would go inside the parentheses, ~()~.
+2. ~println!~ calls a Rust macro. If it called a function instead, it would be
+   entered as ~println~ (without the ~!~).
+3. Rust style is to indent with four spaces, not a tab. Run
+   ~rustfmt hello_world.rs~ to format code according to the standard.
+
+** Hello, Cargo
+
+Cargo handles a lot of tasks for you, such as building your code, downloading
+the libraries your code depends on, and building those libraries.
+
+All code in this section is available in the [[file:001_hello_cargo][001_hello_cargo]] directory.
+
+*** Creating a project
+
+In a directory where you want to create a project, run:
+
+#+BEGIN_SRC bash :noeval
+cargo new hello_cargo
+cd hello_cargo
+#+END_SRC
+
+This created the following file structure:
+
+#+BEGIN_SRC
+.
+`-- hello_cargo
+    |-- Cargo.toml
+    `-- src
+        `-- main.rsl
+#+END_SRC
+
+The ~Cargo.toml~ file looks like this:
+
+#+BEGIN_SRC toml
+[package]
+name = "hello_cargo"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+#+END_SRC
+
+The ~[package]~ heading, is a section heading that indicates that the following
+statements are configuring a package.
+
+The next three lines set the configuration information Cargo needs to compile
+your program: the name, the version, and the edition of Rust to use.
+
+The ~[dependencies]~ heading, is the start of a section for you to list any of
+your project’s dependencies (known as /crates/ in Rust).
+
+Cargo expects your source files to live inside the src directory. The top-level
+project directory is just for README files, license information, configuration
+files, and anything else not related to your code.
+
+*** Building and Running a Cargo Project
+
+To build the project, run the followin command while standing in the
+~hello_cargo~ directory:
+
+#+BEGIN_SRC bash :noeval
+cargo build
+#+END_SRC
+
+A file is then created in ~target/debug/hello_cargo~. Run it by running the
+following command:
+
+#+BEGIN_SRC bash :noeval
+./target/debug/hello_cargo
+#+END_SRC
+
+You may notice that ~cargo build~ also creates a ~Cargo.lock~ in the top level
+directory. This file keeps track of the exact versions of dependencies in your
+project. Cargo understands [[https://semver.org/][Semantic Versioning]]. If you specify the version
+~0.8.3~ this is actually a shorthand for ~^0.8.3~, meaning any version that is
+at least ~0.8.3~ but below ~0.9.0~. Between builds the ~Cargo.lock~ file will
+guarantee that the same version is used until you explicitly upgrade the
+version. You should never need to update this file manually. If you want to make
+cargo to reevaluate the version (finding a suitable version at least ~0.8.3~ but
+below ~0.9.0~) you can run:
+
+#+BEGIN_SRC bash :noeval
+cargo update
+#+END_SRC
+
+You can both compile and run the project in one step by running:
+
+#+BEGIN_SRC bash :noeval
+cargo run
+#+END_SRC
+
+Cargo will automatically what needs to be recompiled and what doesn't.
+
+If you only want to make sure that the project compiles but not actually compile
+the project you can run:
+
+#+BEGIN_SRC bash :noeval
+cargo check
+#+END_SRC
+
+This is much faster than actually compiling the code during development.
+
+*** Building for release
+
+You maybe noticed that the compile binary ended up in ~target/debug~. This is
+a development build. They are faster to compile but are not optimized. In order
+to optimize the build (which will also increase the build time) you should run
+the following command:
+
+#+BEGIN_SRC bash :noeval
+cargo build --release
+# --release can be used with run as well
+cargo run --release
+#+END_SRC
+
+This result will end up in ~target/release~ now.
+
+* Documentation
+
+Another neat feature of Cargo is that you can run the command below, which will
+build documentation provided by all of your dependencies locally and open it in
+your browser.
+
+#+BEGIN_SRC bash :noeval
+cargo doc --open
+#+END_SRC
+
+* Misc
+
+#+BEGIN_SRC rust :noeval
+let apples = 5; // immutable
+let mut bananas = 5; // mutable
+#+END_SRC

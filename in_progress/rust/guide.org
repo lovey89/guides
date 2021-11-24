@@ -9,6 +9,8 @@
   - [[#installation][Installation]]
   - [[#hello-world][Hello, World]]
   - [[#hello-cargo][Hello, Cargo]]
+- [[#common-programming-concepts][Common Programming Concepts]]
+  - [[#variable-and-mutability][Variable and Mutability]]
 - [[#documentation][Documentation]]
 - [[#misc][Misc]]
 #+END_QUOTE
@@ -197,6 +199,107 @@ cargo run --release
 #+END_SRC
 
 This result will end up in ~target/release~ now.
+
+* Common Programming Concepts
+** Variable and Mutability
+
+By default variables are immutable. The code below won't compile since you are
+trying to reassign the value of an immutable variable.
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let x = 5;
+    println!("The value of x is: {}", x);
+    x = 6;
+    println!("The value of x is: {}", x);
+}
+#+END_SRC
+
+But mutability can be very useful. Variables are immutable only by default and
+you can make them mutable by adding ~mut~ in front of the variable name. In
+addition to allowing this value to change, ~mut~ conveys intent to future
+readers of the code by indicating that other parts of the code will be changing
+this variable’s value.
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let mut x = 5;
+    println!("The value of x is: {}", x);
+    x = 6;
+    println!("The value of x is: {}", x);
+}
+#+END_SRC
+
+*** Constants
+
+Rust also supports constants using the ~const~ keyword. An immutable variable
+and a constant are not exactly the same in Rust.
+
+- You aren’t allowed to use ~mut~ with constants, they're always mutable.
+- You declare constants using the ~const~ keyword instead of the ~let~ keyword
+- The type of the value /must/ be annotated
+- Constants can be declared in any scope, including the global scope
+- Constants may be set only to a constant expression, not the result of a value
+  that could only be computed at runtime
+
+Rust’s naming convention for constants is to use all uppercase with underscores
+between words.
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    const THREE_HOURS_IN_SECONDS: u32 = 60 * 60 * 3;
+    println!("{}", THREE_HOURS_IN_SECONDS)
+}
+#+END_SRC
+
+*** Shadowing
+
+You can declare a new variable with the same name as a previous variable.
+Rustaceans say that the first variable is /shadowed/ by the second, which means
+that the second variable’s value is what the program sees when the variable is
+used.
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let x = 5;
+
+    // This is allowed even though the previous 'x' isn't mutable since this
+    // actually creates a new variable 'x' that shadows the previous one
+    let x = x + 1;
+
+    {
+        // Also this 'x' will shadow the previous 'x'
+        let x = x * 2;
+        println!("The value of x in the inner scope is: {}", x); // 12
+    }
+
+    // The inner shadowing end and 'x' returns to bering 6
+    println!("The value of x is: {}", x);
+}
+#+END_SRC
+
+A shadowing variable can also use a different type. E.g. maybe we want to store
+a string with spaces (e.g. for indentation) as an integer instead, the following
+code would be allowed:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let spaces = "   ";
+    let spaces = spaces.len();
+    println!("{}", spaces)
+}
+#+END_SRC
+
+Using a mutable variable to achieve the same wouldn't work as that would change
+the type of the variable:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let mut spaces = "   ";
+    spaces = spaces.len();
+    println!("{}", spaces)
+}
+#+END_SRC
 
 * Documentation
 

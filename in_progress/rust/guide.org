@@ -11,6 +11,10 @@
   - [[#hello-cargo][Hello, Cargo]]
 - [[#common-programming-concepts][Common Programming Concepts]]
   - [[#variable-and-mutability][Variable and Mutability]]
+  - [[#data-types][Data Types]]
+  - [[#functions][Functions]]
+  - [[#comments][Comments]]
+  - [[#control-flow][Control Flow]]
 - [[#documentation][Documentation]]
 - [[#misc][Misc]]
 #+END_QUOTE
@@ -300,6 +304,390 @@ fn main() {
     println!("{}", spaces)
 }
 #+END_SRC
+
+** Data Types
+
+Rust is a statically typed language, meaning that all values in Rust is of a
+certain data type and that they must be known at compile time. The compiler can
+usually infer what type we want to use based on the value and how we use it. In
+cases when many types are possible, we must add a type annotation, like this:
+
+#+BEGIN_SRC rust :noeval
+let guess: u32 = "42".parse().expect("Not a number!");
+#+END_SRC
+
+*** Scalar Types
+
+A scalar type represents a single value. Rust has four primary scalar types:
+- integers
+- floating-point numbers
+- booleans
+- characters
+
+**** Integer Types
+
+Integer types in Rust:
+
+| Length  | Signed  | Unsigned |
+|---------+---------+----------|
+| 8-bit   | ~i8~    | ~u8~     |
+| 16-bit  | ~i16~   | ~u16~    |
+| 32-bit  | ~i32~   | ~u32~    |
+| 64-bit  | ~i64~   | ~u64~    |
+| 128-bit | ~i128~  | ~u128~   |
+| arch    | ~isize~ | ~usize~  |
+
+the ~isize~ and ~usize~ types depend on the kind of computer your program is
+running on: 64 bits if you’re on a 64-bit architecture and 32 bits if you’re on
+a 32-bit architecture.
+
+You can write integer literals in any of the forms shown in the table below.
+Note that number literals that can be multiple numeric types allow a type suffix,
+such as ~57u8~, to designate the type. Number literals can also use ~_~ as a
+visual separator to make the number easier to read, such as ~1_000~, which will
+have the same value as if you had specified ~1000~.
+
+| Number literals  | Example       |
+|------------------+---------------|
+| Decimal          | ~98_222~      |
+| Hex              | ~0xff~        |
+| Octal            | ~0o77~        |
+| Binary           | ~0b1111_0000~ |
+| Byte (~u8~ only) | ~b'A'~        |
+
+Integer types default to ~i32~. The primary situation in which you’d use ~isize~
+or ~usize~ is when indexing some sort of collection.
+
+***** Overflow
+
+Compiling in debug mode will cause the program to /panic/ at runtime if
+overflow occurs. When compiling with the ~--release~ flag, no such checks are
+included and Rust will perform /two's complement wrapping/. Relying on integer
+overflow’s wrapping behavior is considered an error.
+
+To explicitly handle the possibility of overflow, you can use these families of
+methods that the standard library provides on primitive numeric types:
+
+- Wrap in all modes with the ~wrapping_*~ methods, such as ~wrapping_add~
+- Return the ~None~ value if there is overflow with the ~checked_*~ methods
+- Return the value and a boolean indicating whether there was overflow with the
+  ~overflowing_*~ methods
+- Saturate at the value’s minimum or maximum values with ~saturating_*~ methods
+
+**** Floating-Point Types
+
+Rust’s floating-point types are ~f32~ and ~f64~, which are 32 bits and 64 bits
+in size, respectively. The default type is ~f64~ because on modern CPUs it’s
+roughly the same speed as ~f32~ but is capable of more precision.
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let x = 2.0; // f64
+    let y: f32 = 3.0; // f32
+
+    println!("x: {}", x);
+    println!("y: {}", y)
+}
+#+END_SRC
+
+**** The Boolean Type
+
+Boolean type in Rust has two possible values: ~true~ and ~false~. Booleans are
+one byte in size. The boolean type in Rust is specified using ~bool~. For
+example:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let t = true;
+    let f: bool = false; // with explicit type annotation
+
+    println!("t: {}", t);
+    println!("f: {}", f)
+}
+#+END_SRC
+
+**** The Character Type
+
+Rust’s ~char~ type is the language’s most primitive alphabetic type. ~char~
+literals are specified with single quotes, as opposed to string literals, which
+use double quotes.
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let c = 'z';
+    let z = 'ℤ';
+    let heart_eyed_cat = '😻';
+
+    println!("c: {}", c);
+    println!("z: {}", z);
+    println!("heart_eyed_cat: {}", heart_eyed_cat);
+}
+#+END_SRC
+
+Rust’s ~char~ type is four bytes in size and represents a Unicode Scalar Value,
+which means it can represent a lot more than just ASCII.
+
+*** Compbound types
+
+Compound types can group multiple values into one type. Rust has two primitive
+compound types: tuples and arrays.
+
+**** The Tuple Type
+
+Tuples have a fixed length: once declared, they cannot grow or shrink in size.
+We create a tuple by writing a comma-separated list of values inside
+parentheses. Each position in the tuple has a type, and the types of the
+different values in the tuple don’t have to be the same. Type annotation is
+optional:
+
+#+BEGIN_SRC rust :noeval
+fn main() {
+    let annotated_tup: (i32, f64, u8) = (500, 6.4, 1);
+    let unannotated_tup = (500, 6.4, 1);
+}
+#+END_SRC
+
+To get the individual values out of a tuple, we can use pattern matching to
+destructure a tuple value, like this:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let tup = (500, 6.4, 1);
+    let (x, y, z) = tup;
+
+    println!("The value of y is: {}", y);
+}
+#+END_SRC
+
+In addition to destructuring through pattern matching, we can access a tuple
+element directly by using a period (~.~) followed by the index of the value we
+want to access. For example:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let x: (i32, f64, u8) = (500, 6.4, 1);
+    let five_hundred = x.0;
+    let six_point_four = x.1;
+    let one = x.2;
+
+    println!("five_hundred:   {}", five_hundred);
+    println!("six_point_four: {}", six_point_four);
+    println!("one:            {}", one);
+}
+#+END_SRC
+
+The tuple without any values, ~()~, is a special type that has only one value,
+also written ~()~. The type is called the /unit type/ and the value is called
+the /unit value/. Expressions implicitly return the unit value if they don’t
+return any other value.
+
+**** The Array Type
+
+Unlike a tuple, every element of an array must have the same type. Arrays in
+Rust are different from arrays in some other languages because arrays in Rust
+have a fixed length, like tuples.
+
+In Rust, the values going into an array are written as a comma-separated list
+inside square brackets:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let a = [1, 2, 3, 4, 5];
+}
+#+END_SRC
+
+You would write an array’s type by using square brackets, and within the
+brackets include the type of each element, a semicolon, and then the number of
+elements in the array, like so:
+
+#+BEGIN_SRC rust :noeval
+let a: [i32; 5] = [1, 2, 3, 4, 5];
+#+END_SRC
+
+Writing an array’s type this way looks similar to an alternative syntax for
+initializing an array: if you want to create an array that contains the same
+value for each element, you can specify the initial value, followed by a
+semicolon, and then the length of the array in square brackets, as shown here:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+  let a = [3; 5];
+  let b = [3i64; 5]; // To define the type of the elements (in this case i64)
+}
+#+END_SRC
+
+***** Accessing elements
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let a = [1, 2, 3, 4, 5];
+    let first = a[0];
+    let second = a[1];
+
+    println!("first:  {}", first);
+    println!("second: {}", second);
+}
+#+END_SRC
+
+If Rust knows at compile time that you are trying to access elements outside the
+valid range, the compile will fail and you will get an error message. But checks
+are done during run time as well so if you try to access an element outside the
+valid range, the program will panic instead of allowing the program to access
+the memory. Run the program in [[file:003_invalid_index][003_invalid_index]] for an example.
+
+** Functions
+
+Rust code uses snake case as the conventional style for function and variable
+names. In snake case, all letters are lowercase and underscores separate words.
+Here’s a program that contains an example function definition:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    println!("Hello, world!");
+    another_function();
+}
+
+fn another_function() {
+    println!("Another function.");
+}
+#+END_SRC
+
+Function definitions in Rust start with ~fn~ and have a set of parentheses after
+the function name. The curly brackets tell the compiler where the function body
+begins and ends. Note that we defined ~another_function~ after the ~main~
+function in the source code; we could have defined it before as well. Rust
+doesn’t care where you define your functions, only that they’re defined
+somewhere.
+
+*** Function parameters
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    another_function(5);
+}
+
+fn another_function(x: i32) {
+    println!("The value of x is: {}", x);
+}
+#+END_SRC
+
+In function signatures, you /must/ declare the type of each parameter. This is a
+deliberate decision in Rust’s design: requiring type annotations in function
+definitions means the compiler almost never needs you to use them elsewhere in
+the code to figure out what type you mean.
+
+Function with multiple paramaters:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    print_labeled_measurement(5, 'h');
+}
+
+fn print_labeled_measurement(value: i32, unit_label: char) {
+    println!("The measurement is: {}{}", value, unit_label);
+}
+#+END_SRC
+
+*** Function Bodies Contain Statements and Expressions
+
+/Statements/ are instructions that perform some action and do not return a
+value. /Expressions/ evaluate to a resulting value. Let’s look at some examples.
+
+Creating a variable and assigning a value to it with the ~let~ keyword is a
+statement. ~let y = 6;~ is a statement.
+
+Statements do not return values. Therefore, you can’t assign a let statement to
+another variable. E.g:
+
+#+BEGIN_SRC rust :noeval
+let x = (let y = 6); // Not valid code!
+#+END_SRC
+
+Expressions can be part of statements: the ~6~ in the statement ~let y = 6;~ is
+an expression that evaluates to the value ~6~. Calling a function is an
+expression. Calling a macro is an expression. The block that we use to create
+new scopes, ~{}~, is an expression, for example:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let x = 5;
+    let y = {
+        let x = x + 3;
+        x + 1
+    };
+    println!("The value of y is: {}", y);
+}
+#+END_SRC
+
+The expression
+
+#+BEGIN_SRC rust :noeval
+let y = {
+    let x = x + 3;
+    x + 1
+};
+#+END_SRC
+
+is a block that, in this case, evaluates to ~9~. That value gets bound to ~y~ as
+part of the ~let~ statement. Note the ~x + 1~ line without a semicolon at the
+end. Expressions do not include ending semicolons. If you add a semicolon to the
+end of an expression, you turn it into a statement, which will then not return a
+value. Keep this in mind as you explore function return values and expressions
+next.
+
+*** Functions with Return Values
+
+Functions can return values to the code that calls them. We declare their type
+after an arrow (~->~). In Rust, the return value of the function is synonymous
+with the value of the final expression in the block of the body of a function.
+You can return early from a function by using the ~return~ keyword and
+specifying a value, but most functions return the last expression implicitly.
+
+#+BEGIN_SRC rust :results output
+fn five() -> i32 {
+    5 // Note that there's no semi colon here
+}
+
+fn main() {
+    let x = five();
+    println!("The value of x is: {}", x);
+}
+#+END_SRC
+
+Another example:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let x = plus_one(5);
+    println!("The value of x is: {}", x);
+    let y = plus_two(5);
+    println!("The value of y is: {}", y);
+}
+
+fn plus_one(x: i32) -> i32 {
+    x + 1;
+}
+
+fn plus_two(x: i32) -> i32 {
+    // You are allowed to use 'return' to return early
+    return x + 2 // Seems like the semi colon is optional here
+}
+#+END_SRC
+
+** Comments
+
+[[https://doc.rust-lang.org/reference/comments.html][Comments reference]]
+
+Like in Java:
+
+- Single line comments with ~//~
+- Multi line comments starting with ~/*~ and ending with ~*/~
+
+** Control Flow
+
+*** ~if~ expressions
+
+test
 
 * Documentation
 

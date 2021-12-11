@@ -25,6 +25,7 @@
   - [[#errors][Errors]]
   - [[#readers][Readers]]
   - [[#concurrency][Concurrency]]
+- [[#naming-conventions][Naming conventions]]
 - [[#links][Links]]
 - [[#questions][Questions]]
 #+END_QUOTE
@@ -61,7 +62,6 @@ Every Go program is made up of packages. Programs start running in package
 By convention, the package name is the same as the last element of the import
 path. For instance, the ~math/rand~ package comprises files that begin with the
 statement package ~rand~.
-
 
 #+BEGIN_SRC go :results output
 package main
@@ -158,7 +158,8 @@ func main() {
 #+END_SRC
 
 Go supports naming the return values. Then you define them as variables at the
-top of the function.
+top of the function. Note that they are defined here. You don't use ~var~ or
+~:=~ to define them later.
 
 A ~return~ statement without arguments returns the named return values. This is
 known as a "naked" return.
@@ -182,6 +183,37 @@ func split(sum int) (x, y int) {
 
 func main() {
 	fmt.Println(split(17))
+}
+#+END_SRC
+
+See this example which defines a higher order function and defines a slice as a
+return value at the top of the function:
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+	"strings"
+)
+
+// Note that ret is already a defined slice when the function starts
+func filter(ss []string, test func(string) bool) (ret []string) {
+    for _, s := range ss {
+        if test(s) {
+            ret = append(ret, s)
+        }
+    }
+    return
+}
+
+func main() {
+	ss := []string{"foo_1", "asdf", "loooooooong", "nfoo_1", "foo_2"}
+	// Define a helper function
+	mytest := func(s string) bool { return !strings.HasPrefix(s, "foo_") && len(s) <= 7 }
+	s2 := filter(ss, mytest)
+
+	fmt.Println(s2)
 }
 #+END_SRC
 
@@ -403,8 +435,12 @@ const (
 	Small = Big >> 99
 )
 
-func needInt(x int) int { return x*10 + 1 }
+func needInt(x int) int {
+	fmt.Printf("%T\n", x)
+	return x*10 + 1
+}
 func needFloat(x float64) float64 {
+	fmt.Printf("%T\n", x)
 	return x * 0.1
 }
 
@@ -850,6 +886,10 @@ func main() {
 	p := &v
 	p.X = 1e9
 	fmt.Println(v)
+	// You can dereference the pointer as well
+	// of course but the result is the same
+	(*p).Y = 1e5
+	fmt.Println(v)
 }
 #+END_SRC
 
@@ -873,6 +913,7 @@ var (
 	v2 = Vertex{X: 1}  // Y:0 is implicit
 	v3 = Vertex{}      // X:0 and Y:0
 	p  = &Vertex{1, 2} // has type *Vertex
+	//illegal  = Vertex{1} // You can't create with too few unnamed values
 )
 
 func main() {
@@ -1191,7 +1232,7 @@ values to append to the slice.
 The resulting value of append is a slice containing all the elements of the
 original slice plus the provided values.
 
-If the backing array of s is too small to fit all the given values a bigger
+If the backing array of ~s~ is too small to fit all the given values a bigger
 array will be allocated. The returned slice will point to the newly allocated
 array. When this happens, the updates to the slice will no longer be backed by
 the old array.
@@ -1407,6 +1448,29 @@ func main() {
 	fmt.Println("The value:", v, "Present?", ok)
 }
 #+END_SRC
+
+*** Allowed Key types in a Map
+
+The map key can be any type that is comparable. Some of the comparable types as
+defined by go specification are:
+
+- boolean
+- numeric
+- string
+- pointer
+- channel
+- interface types
+- structs – if all it’s field type is comparable
+- array – if the type of value of array element is comparable
+
+Some of the types which are not comparable as per go specification and which
+cannot be used as a key in a map are:
+
+- Slice
+- Map
+- Function
+
+See https://go.dev/ref/spec#Comparison_operators
 
 ** Function values
 
@@ -1761,9 +1825,10 @@ _functions_ doesn't.
 There are two reasons to use a pointer receiver.
 
 - So that the method can modify the value that its receiver points to.
-- To avoid copying the value on each method call. This can be more efficient if the receiver is a large struct, for example.
+- To avoid copying the value on each method call. This can be more efficient if
+  the receiver is a large struct, for example.
 
-In this example, both Scale and Abs are with receiver type ~*Vertex~, even
+In this example, both ~Scale~ and ~Abs~ are with receiver type ~*Vertex~, even
 though the ~Abs~ method needn't modify its receiver.
 
 In general, all methods on a given type should have either value or pointer
@@ -1801,7 +1866,7 @@ func main() {
 ** Interfaces
 
 An /interface/ type is defined as a set of method signatures. A value of
-interface type can hold any value that implements those methods.
+an interface type can hold any value that implements those methods.
 
 #+BEGIN_SRC go :results output
 package main
@@ -2003,7 +2068,7 @@ interface{}
 #+END_SRC
 
 An empty interface may hold values of any type. (Every type implements at least
-zero methods.) Empty interfaces are used by code that handles values of unknown
+zero methods). Empty interfaces are used by code that handles values of unknown
 type. For example, ~fmt.Print~ takes any number of arguments of type
 ~interface{}~.
 
@@ -2121,7 +2186,57 @@ func main() {
 }
 #+END_SRC
 
-TODO: Casting between interfaces
+Casting between interfaces also works. Note below that it's ~*I~ that
+implements the interfaces, not ~I~.
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+type Incrementor interface {
+	Increment()
+}
+
+type Decrementor interface {
+	Decrement()
+}
+
+type Counter interface {
+	// You can list other interfaces in an interface
+	Incrementor
+	Decrementor
+}
+
+type I int
+
+func (i *I) Increment() {
+	*i++
+}
+
+func (i *I) Decrement() {
+	*i--
+}
+
+func do(i interface{}) {
+	if s, ok := i.(Incrementor); ok {
+		fmt.Println(s)
+		s.Increment()
+		fmt.Println(s)
+	} else {
+		fmt.Println("other value")
+	}
+}
+
+func main() {
+	var i I = 0
+	var ip *I = &i
+	do(ip)
+	fmt.Println(i)
+	do("hello")
+	do(true)
+}
+#+END_SRC
 
 *** Stringer interface
 
@@ -2808,6 +2923,21 @@ var fetcher = fakeFetcher{
 }
 #+END_SRC
 
+* Naming conventions
+
+- A name must begin with a letter, and can have any number of additional letters
+  and numbers.
+- A function name cannot start with a number.
+- A function name cannot contain spaces.
+- If the functions with names that start with an uppercase letter will be
+  exported to other packages. If the function name starts with a lowercase
+  letter, it won't be exported to other packages, but you can call this function
+  within the same package.
+- If a name consists of multiple words, each word after the first should be
+  capitalized like this: empName, EmpAddress, etc.
+- Function names are case-sensitive (car, Car and CAR are three different
+  variables).
+
 * Links
 
 - https://blog.golang.org/defer-panic-and-recover
@@ -2815,6 +2945,7 @@ var fetcher = fakeFetcher{
 - https://pkg.go.dev/std
 - https://golang.org/ref/spec#Composite_literals (https://stackoverflow.com/questions/39804861/what-is-a-concise-way-to-create-a-2d-slice-in-go)
 
+- https://go.dev/doc/tutorial/
 - https://golang.org/doc/effective_go
 - https://golang.org/doc/
 - https://golangbot.com/learn-golang-series/
@@ -2831,3 +2962,9 @@ var fetcher = fakeFetcher{
 - varargs
 - enums https://stackoverflow.com/questions/14426366/what-is-an-idiomatic-way-of-representing-enums-in-go
 - Tail call recursion?
+- Higher order functions (https://www.golangprograms.com/higher-order-functions-in-golang.html)
+- Generators and iterators http://www.golangpatterns.info/concurrency/generators
+- No overloading?
+- Mutate map key if key is of struct type?
+- About reveiver types: https://github.com/golang/go/wiki/CodeReviewComments#receiver-type
+- ~new~ keyword? https://forum.golangbridge.org/t/how-to-cast-interface-to-a-given-interface/13997

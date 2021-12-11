@@ -485,7 +485,8 @@ return any other value.
 
 Unlike a tuple, every element of an array must have the same type. Arrays in
 Rust are different from arrays in some other languages because arrays in Rust
-have a fixed length, like tuples.
+have a fixed length, like tuples. The length is defined at compile time. The
+length of an array is part of its type.
 
 In Rust, the values going into an array are written as a comma-separated list
 inside square brackets:
@@ -826,6 +827,20 @@ fn main() {
 
 **** The ~while~ loop
 
+A ~while~ loop works as one would expect. ~break~ and ~continue~ are also allowed.
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let mut number = 3;
+
+    while number != 0 {
+        println!("{}!", number);
+        number -= 1;
+    }
+
+    println!("LIFTOFF!!!");
+}
+#+END_SRC
 
 **** The ~for~ loop
 

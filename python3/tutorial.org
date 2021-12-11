@@ -1685,6 +1685,14 @@ d = {"voltage": "four million", "state": "bleedin' demised", "action": "VOOM"}
 parrot(**d)
 #+END_SRC
 
+or
+
+#+BEGIN_SRC python :python python3 :results output
+s = "'{a_var}' and '{b_var}' and '{c_var}'"
+input_vars = {'a_var': 'first var', 'b_var': 'second var', 'c_var': 'third_var', 'd_var': 'unused_var'}
+print(s.format(**input_vars))
+#+END_SRC
+
 ** Return multiple values
 
 Python returns exactly one object. If you need to return multiple these can be

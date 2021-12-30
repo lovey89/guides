@@ -1,4 +1,4 @@
-* Table of Contents :TOC:QUOTE:
+* Table of Contents :TOC_2:QUOTE:
 #+BEGIN_QUOTE
 - [[#tour][Tour]]
   - [[#hello-world][Hello world]]
@@ -25,8 +25,18 @@
   - [[#errors][Errors]]
   - [[#readers][Readers]]
   - [[#concurrency][Concurrency]]
+- [[#projects-modules-and-packages][Projects, modules and packages]]
+- [[#other][Other]]
+  - [[#empty-struct][Empty struct]]
+  - [[#implement-a-set-with-map-and-empty-struct][Implement a set with map and empty struct]]
+  - [[#usage-of-pointers-for-arrays-slices-and-maps-in-functionmethod-calls][Usage of pointers for arrays, slices and maps in function/method calls]]
+  - [[#tail-recursion][Tail recursion]]
+  - [[#variadic-functions][Variadic functions]]
+  - [[#enums][Enums]]
 - [[#naming-conventions][Naming conventions]]
 - [[#links][Links]]
+- [[#pitfalls][Pitfalls]]
+  - [[#pointers-to-objects-in-a-slice][Pointers to objects in a slice]]
 - [[#questions][Questions]]
 #+END_QUOTE
 
@@ -453,6 +463,44 @@ func main() {
 }
 #+END_SRC
 
+*** Strings
+
+There are two different ways to represent string literals
+
+**** Raw strings
+
+Raw strings are enclosed in back-ticks ~`~. Here, ~\t~ and ~\n~ has no special
+meaning, they are considered as backslash with ~t~ and backslash with ~n~. If
+you need to include backslashes, double quotes or newlines in your string, use a
+raw string literal.
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func main() {
+	s := `Go\tJava\nPython`
+	fmt.Println(s)
+}
+#+END_SRC
+
+**** Interpreted string
+
+Interpreted strings are enclosed in quotes ~"~. Hence ~\t~ would be interpreted
+ as tab and ~\n~ as new line.
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func main() {
+	s := "Go\tJava\nPython"
+	fmt.Println(s)
+}
+#+END_SRC
+
 ** Loops
 
 In go the only looping construct that exists is the ~for~ loop.
@@ -517,6 +565,29 @@ import "fmt"
 func main() {
 	for {
 		fmt.Println("Hello")
+	}
+}
+#+END_SRC
+
+*** ~break~ and ~continue~
+
+~break~ and ~continue~ works as you would expect:
+
+#+BEGIN_SRC go
+package main
+
+import "fmt"
+
+func main() {
+	i := 0
+	for {
+		i++
+		if i > 10 {
+			break
+		} else if i % 2 == 0 {
+			continue
+		}
+		fmt.Println(i)
 	}
 }
 #+END_SRC
@@ -738,6 +809,52 @@ func main() {
 	default:
 		fmt.Println("Good evening.")
 	}
+}
+#+END_SRC
+
+*** ~fallthrough~
+
+If you want to execute ~case~ statement that follows when the current ~case~
+code is executed you can use the ~fallthrough~ keyword. It may be used only as
+the final non-empty statement in such a clause and cannot be used in the final
+~case~.
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+)
+
+func switchWFallthrough(v int) {
+	switch v {
+	case 1:
+		fmt.Println("one")
+		fallthrough
+	case 2:
+		fmt.Println("two")
+		fallthrough
+  default:
+		fmt.Println("Other")
+	}
+}
+
+func switchWoFallthrough(v int) {
+	switch v {
+	case 1:
+		fmt.Println("one")
+	case 2:
+		fmt.Println("two")
+  default:
+		fmt.Println("Other")
+	}
+}
+
+func main() {
+	fmt.Println("With fallthrough")
+	switchWFallthrough(1)
+	fmt.Println("\nWithout fallthrough")
+	switchWoFallthrough(1)
 }
 #+END_SRC
 
@@ -2923,6 +3040,442 @@ var fetcher = fakeFetcher{
 }
 #+END_SRC
 
+* Projects, modules and packages
+
+* Other
+** Empty struct
+
+An empty struct consumes no space.
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+	"unsafe"
+)
+
+func main() {
+	var s struct{}
+	fmt.Println(unsafe.Sizeof(s))
+}
+#+END_SRC
+
+It can hold the value ~struct{}{}~.
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+	"unsafe"
+)
+
+func main() {
+	var s struct{} = struct{}{}
+	fmt.Println(unsafe.Sizeof(s))
+}
+#+END_SRC
+
+You can of course put it in a separate type
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+	"unsafe"
+)
+
+type Empty struct{}
+
+func main() {
+	var s Empty = Empty{}
+	fmt.Println(unsafe.Sizeof(s))
+}
+#+END_SRC
+
+As of writing this I can think of two reasons to use an empty struct:
+
+1. To implment a set using a map
+2. Create a ~chan struct{}~ for signaling between go routines
+
+** Implement a set with map and empty struct
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+)
+
+type Set map[interface{}]struct{}
+
+func (s Set) Add(elem interface{}) {
+	s[elem] = struct{}{}
+}
+
+func (s Set) Delete(elem interface{}) {
+	delete(s, elem)
+}
+
+func (s Set) Size() int {
+	return len(s)
+}
+
+func (s Set) Exists(elem interface{}) bool {
+	_, exists := s[elem]
+	return exists
+}
+
+func (s Set) PrintContent() {
+	for elem := range s { // Each key in the map
+		fmt.Print(elem, ", ") // I know it's ugly but I don't care
+	}
+	fmt.Println()
+}
+
+func main() {
+	set := make(Set)
+	set.Add(2)
+	set.Add("Hello")
+	set.PrintContent()
+	fmt.Println(set.Size())
+	fmt.Println(set.Exists(3))
+	fmt.Println(set.Exists(2))
+	set.Delete(2)
+	set.PrintContent()
+	fmt.Println(set.Size())
+	fmt.Println(set.Exists(3))
+	fmt.Println(set.Exists(2))
+}
+#+END_SRC
+
+** Usage of pointers for arrays, slices and maps in function/method calls
+*** Arrays
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func mutatorWoPointer(input [3]int) {
+	input[0] = 8
+}
+
+func mutatorWPointer(input *[3]int) {
+	input[0] = 8
+}
+
+func main() {
+	a0 := [...]int{1, 2, 3}
+	a1 := [...]int{1, 2, 3}
+	fmt.Println("a0:", a0) // a0: [1 2 3]
+	fmt.Println("a1:", a1) // a1: [1 2 3]
+	mutatorWoPointer(a0)
+	mutatorWPointer(&a1)
+	fmt.Println("a0:", a0) // a0: [1 2 3]
+	fmt.Println("a1:", a1) // a1: [8 2 3]
+}
+#+END_SRC
+
+The test above shows that if you don't use a pointer, the array will be copied
+and the changes will not be visible in the original array when the function
+returns.
+
+*** Slice
+**** Modify existing elements
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func mutatorWoPointer(input []int) {
+	input[0] = 8
+}
+
+func mutatorWPointer(input *[]int) {
+	(*input)[0] = 8
+}
+
+func main() {
+	a0 := []int{1, 2, 3}
+	a1 := []int{1, 2, 3}
+	fmt.Println("a0:", a0) // a0: [1 2 3]
+	fmt.Println("a1:", a1) // a1: [1 2 3]
+	mutatorWoPointer(a0)
+	mutatorWPointer(&a1)
+	fmt.Println("a0:", a0) // a0: [8 2 3]
+	fmt.Println("a1:", a1) // a1: [8 2 3]
+}
+#+END_SRC
+
+In this test we see that mutating existing elements seems to be fine using
+pointers or not.
+
+**** Add new elements
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func printSlice(name string, s []int) {
+	fmt.Printf("%s: len=%d cap=%d %v\n", name, len(s), cap(s), s)
+}
+
+func mutatorWoPointer(input []int) {
+	input = append(input, 8)
+}
+
+func mutatorWPointer(input *[]int) {
+	,*input = append(*input, 8)
+}
+
+func main() {
+	a0 := []int{1, 2, 3}
+	a1 := []int{1, 2, 3}
+	printSlice("a0", a0) // a0: len=3 cap=3 [1 2 3]
+	printSlice("a1", a1) // a1: len=3 cap=3 [1 2 3]
+	mutatorWoPointer(a0)
+	mutatorWPointer(&a1)
+	printSlice("a0", a0) // a0: len=3 cap=3 [1 2 3]
+	printSlice("a1", a1) // a1: len=4 cap=6 [1 2 3 8]
+	// Try add an element to a1 using no pointer (there is capacity for it)
+	mutatorWoPointer(a1)
+	printSlice("a1", a1) // a1: len=4 cap=6 [1 2 3 8]
+	// Try add an element using a pointer to see that the array is not resized
+	mutatorWPointer(&a1)
+	printSlice("a1", a1) // a1: len=5 cap=6 [1 2 3 8 8] 
+}
+#+END_SRC
+
+Adding an element to a slice clearly needs to be done using a pointer. Even if
+there is capacity in the underlying array.
+
+*** Maps
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func mutatorWoPointer(input map[int]string) {
+	input[4] = "four"
+}
+
+func mutatorWPointer(input *map[int]string) {
+	(*input)[4] = "four"
+}
+
+func main() {
+	a0 := map[int]string{
+		1: "one",
+		2: "two",
+		3: "three", // Looks like the trailing "," is needed
+	}
+	a1 := map[int]string{
+		1: "one",
+		2: "two",
+		3: "three",
+	}
+	fmt.Println("a0:", a0) // a0: map[1:one 2:two 3:three]
+	fmt.Println("a1:", a1) // a1: map[1:one 2:two 3:three]
+	mutatorWoPointer(a0)
+	mutatorWPointer(&a1)
+	fmt.Println("a0:", a0) // a0: map[1:one 2:two 3:three 4:four]
+	fmt.Println("a1:", a1) // a1: map[1:one 2:two 3:three 4:four]
+}
+#+END_SRC
+
+From the above test it looks like both ways works fine.
+
+** Tail recursion
+
+Seems not to be supported: https://github.com/golang/go/issues/22624
+
+Can maybe be implemented with a [[https://go.dev/ref/spec#Goto_statements][goto statement]]?
+
+** Variadic functions
+
+If the last parameter of a function has type ~...T~ it can be called with any
+number of trailing arguments of type ~T~.
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+	"strings"
+)
+
+func MyVariadicFunction(args ...string) {
+	fmt.Println(strings.Join(args, " "))
+}
+
+func main() {
+	MyVariadicFunction("Hello", "World", "!")
+}
+#+END_SRC
+
+*** Convert a slice to an variadic argument
+
+If you append ~...~ after the slice you can pass it to a variadic function.
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+	"strings"
+)
+
+func MyVariadicFunction(args ...string) {
+	fmt.Println(strings.Join(args, " "))
+}
+
+func main() {
+	var stringSlice []string = []string{"Hello", "World", "!"}
+	MyVariadicFunction(stringSlice...)
+}
+#+END_SRC
+
+*** Add all elements from one slice to another using ~append~
+
+~append~ is a variadic function. Using this we can easily add all elements from
+one slice to another:
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+)
+
+func main() {
+	var slice0 []int = []int{1, 2, 3}
+	var slice1 []int = []int{4, 5, 6}
+	fmt.Println(slice0) // [1 2 3]
+	fmt.Println(slice1) // [4 5 6]
+	slice0 = append(slice0, slice1...)
+	fmt.Println(slice0) // [1 2 3 4 5 6]
+	fmt.Println(slice1) // [4 5 6]
+}
+#+END_SRC
+
+** Enums
+
+Enums like in Java doesn't exist in Go. You can define it like something below
+
+#+BEGIN_SRC go :results output
+// from https://www.sohamkamani.com/golang/enums/
+package main
+
+import (
+	"fmt"
+)
+
+type Season int64
+
+const (
+	// since iota starts with 0, the first value
+	// defined here will be the default (the zero value)
+	// Now you can compare with Undefined to see if a
+	// variable has been set or not
+	Undefined Season = iota
+	Summer
+	Autumn
+	Winter
+	Spring
+)
+
+func (s Season) String() string {
+	switch s {
+	case Summer:
+		return "summer"
+	case Autumn:
+		return "autumn"
+	case Winter:
+		return "winter"
+	case Spring:
+		return "spring"
+	}
+	return "unknown"
+}
+
+
+func main() {
+	var season Season
+	fmt.Println(season)
+	fmt.Println(Summer)
+	fmt.Println(Autumn)
+	fmt.Println(Winter)
+	fmt.Println(Spring)
+}
+#+END_SRC
+
+*** What is ~iota~?
+
+From https://go.dev/ref/spec#Iota:
+
+Within a constant declaration, the predeclared identifier ~iota~ represents
+successive untyped integer constants. Its value is the index of the respective
+ConstSpec in that constant declaration, starting at zero. It can be used to
+construct a set of related constants:
+
+#+BEGIN_SRC go :noeval
+const (
+	c0 = iota  // c0 == 0
+	c1 = iota  // c1 == 1
+	c2 = iota  // c2 == 2
+)
+
+const (
+	a = 1 << iota  // a == 1  (iota == 0)
+	b = 1 << iota  // b == 2  (iota == 1)
+	c = 3          // c == 3  (iota == 2, unused)
+	d = 1 << iota  // d == 8  (iota == 3)
+)
+
+const (
+	u         = iota * 42  // u == 0     (untyped integer constant)
+	v float64 = iota * 42  // v == 42.0  (float64 constant)
+	w         = iota * 42  // w == 84    (untyped integer constant)
+)
+
+const x = iota  // x == 0
+const y = iota  // y == 0
+#+END_SRC
+
+By definition, multiple uses of ~iota~ in the same ConstSpec all have the same
+value:
+
+#+BEGIN_SRC go :noeval
+const (
+	bit0, mask0 = 1 << iota, 1<<iota - 1  // bit0 == 1, mask0 == 0  (iota == 0)
+	bit1, mask1                           // bit1 == 2, mask1 == 1  (iota == 1)
+	_, _                                  //                        (iota == 2, unused)
+	bit3, mask3                           // bit3 == 8, mask3 == 7  (iota == 3)
+)
+#+END_SRC
+
+This last example exploits the implicit repetition of the last non-empty
+expression list. A cleaner example of implicit repetition would be:
+
+#+BEGIN_SRC go :noeval
+const (
+	Sunday = iota
+	Monday
+	Tuesday
+	Wednesday
+	Thursday
+	Friday
+	Partyday
+	numberOfDays  // this constant is not exported
+)
+#+END_SRC
+
 * Naming conventions
 
 - A name must begin with a letter, and can have any number of additional letters
@@ -2953,18 +3506,68 @@ var fetcher = fakeFetcher{
 - https://www.educative.io/courses/mastering-concurrency-in-go?affiliate_id=5088579051061248
 - https://quii.gitbook.io/learn-go-with-tests/
 
+* Pitfalls
+** Pointers to objects in a slice
+
 * Questions
 
+- https://www.sohamkamani.com/golang/type-assertions-vs-type-conversions/
+- https://talks.golang.org/2012/10things.slide#1
 - Equality. Floats and strings
 - Exception handling?
-- For loops: break and continue
+- Embedding https://go.dev/doc/effective_go#embedding
 - Packages
-- varargs
-- enums https://stackoverflow.com/questions/14426366/what-is-an-idiomatic-way-of-representing-enums-in-go
-- Tail call recursion?
 - Higher order functions (https://www.golangprograms.com/higher-order-functions-in-golang.html)
 - Generators and iterators http://www.golangpatterns.info/concurrency/generators
 - No overloading?
 - Mutate map key if key is of struct type?
 - About reveiver types: https://github.com/golang/go/wiki/CodeReviewComments#receiver-type
 - ~new~ keyword? https://forum.golangbridge.org/t/how-to-cast-interface-to-a-given-interface/13997
+- default implementations interface
+  - https://www.reddit.com/r/golang/comments/28garc/what_is_the_preferred_way_to_provide_a_default/
+  - https://go.dev/play/p/9l68IatydV
+  - https://go.dev/play/p/ByoUzfqOpn
+- https://yourbasic.org/golang/switch-statement/
+- https://yourbasic.org/golang/for-loop-range-array-slice-map-channel/
+- Reflect package?
+- printf. Document placeholders
+- Pointer escape analysis: https://stackoverflow.com/questions/13715237/return-pointer-to-local-struct
+- Full slice expression: https://go.dev/ref/spec#Slice_expressions
+- Varargs (~...~) both as argument and deconstruct array (given to as an argument)
+- ~GOPATH~
+- Strings, bytes, runes and characters in Go: https://go.dev/blog/strings
+- AoC dag 13. Varöfr behövs pekare?!
+- https://pkg.go.dev/container/heap#Interface PriorityQueue. Hur kan interfacet implementeras som en mix?
+- https://pkg.go.dev/fmt
+- loop over map
+- loop over channel
+- write to channel and then read directly after
+- https://yourbasic.org/golang/concurrent-programming/
+- https://yourbasic.org/golang/gotcha-why-nil-error-not-equal-nil/
+
+Values are returned by value:
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+type Foo struct {
+	num int
+}
+
+func NewFoo() (Foo, *Foo) {
+	f := Foo{33}
+	p := &f
+	p.num = 77 // Updates both values
+	return f, p
+}
+
+func main() {
+	// p is _NOT_ pointing a f
+	f, p := NewFoo()
+	fmt.Printf("f: %d p: %d\n", f.num, p.num) // f: 77 p: 77
+	p.num = 44 // f is not updated
+	fmt.Printf("f: %d p: %d\n", f.num, p.num) // f: 77 p: 44
+}
+#+END_SRC

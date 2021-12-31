@@ -36,6 +36,7 @@
 - [[#naming-conventions][Naming conventions]]
 - [[#links][Links]]
 - [[#pitfalls][Pitfalls]]
+  - [[#overuse-of-declaration-][Overuse of declaration (~:=~)]]
   - [[#pointers-to-objects-in-a-slice][Pointers to objects in a slice]]
 - [[#questions][Questions]]
 #+END_QUOTE
@@ -1193,8 +1194,6 @@ func main() {
 }
 #+END_SRC
 
-TODO: When do I want to use a slice literal instead of an array literal?
-
 *** Slice length and capacity
 
 A slice has both a /length/ and a /capacity/.
@@ -1374,6 +1373,33 @@ func main() {
 	// We can add more than one element at a time.
 	s = append(s, 2, 3, 4)
 	printSlice(s)
+}
+
+func printSlice(s []int) {
+	fmt.Printf("len=%d cap=%d %v\n", len(s), cap(s), s)
+}
+#+END_SRC
+
+*** Slice a slice beyond it's length
+
+You can create a slice from a slice which is longer than the original slice if
+the underlying array has capacity for it.
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func main() {
+	originalArray := [...]int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+
+	s := originalArray[0:2] // Backed by original array
+	printSlice(s)
+
+	for cap(s) > 2 { // As long as we have capacity to extend beyond our length
+		s = s[1:3]
+		printSlice(s)
+	}
 }
 
 func printSlice(s []int) {
@@ -3222,7 +3248,7 @@ package main
 import "fmt"
 
 func printSlice(name string, s []int) {
-	fmt.Printf("%s: len=%d cap=%d %v\n", name, len(s), cap(s), s)
+	fmt.Printf("%s: len=%d cap=%d slice=%v full_underlying_array=%v\n", name, len(s), cap(s), s, s[:cap(s)])
 }
 
 func mutatorWoPointer(input []int) {
@@ -3230,24 +3256,25 @@ func mutatorWoPointer(input []int) {
 }
 
 func mutatorWPointer(input *[]int) {
-	,*input = append(*input, 8)
+	*input = append(*input, 8)
 }
 
 func main() {
 	a0 := []int{1, 2, 3}
 	a1 := []int{1, 2, 3}
-	printSlice("a0", a0) // a0: len=3 cap=3 [1 2 3]
-	printSlice("a1", a1) // a1: len=3 cap=3 [1 2 3]
+	printSlice("a0", a0) // a0: len=3 cap=3 slice=[1 2 3] full_underlying_array=[1 2 3]
+	printSlice("a1", a1) // a1: len=3 cap=3 slice=[1 2 3] full_underlying_array=[1 2 3]
 	mutatorWoPointer(a0)
 	mutatorWPointer(&a1)
-	printSlice("a0", a0) // a0: len=3 cap=3 [1 2 3]
-	printSlice("a1", a1) // a1: len=4 cap=6 [1 2 3 8]
+	printSlice("a0", a0) // a0: len=3 cap=3 slice=[1 2 3] full_underlying_array=[1 2 3]
+	printSlice("a1", a1) // a1: len=4 cap=6 slice=[1 2 3 8] full_underlying_array=[1 2 3 8 0 0]
 	// Try add an element to a1 using no pointer (there is capacity for it)
 	mutatorWoPointer(a1)
-	printSlice("a1", a1) // a1: len=4 cap=6 [1 2 3 8]
+	printSlice("a1", a1) // a1: len=4 cap=6 slice=[1 2 3 8] full_underlying_array=[1 2 3 8 8 0]
+	// The underlaying array was updated, but the length wasn't so the slice looks identical
 	// Try add an element using a pointer to see that the array is not resized
 	mutatorWPointer(&a1)
-	printSlice("a1", a1) // a1: len=5 cap=6 [1 2 3 8 8] 
+	printSlice("a1", a1) // a1: len=5 cap=6 slice=[1 2 3 8 8] full_underlying_array=[1 2 3 8 8 0]
 }
 #+END_SRC
 
@@ -3507,6 +3534,65 @@ const (
 - https://quii.gitbook.io/learn-go-with-tests/
 
 * Pitfalls
+** Overuse of declaration (~:=~)
+
+Using ~:=~ to declare and assign a new variable while ~=~ is for assignment
+only. If you use ~:=~ in an inner scope and use a name already defined in an
+outer scope you will shadow the outer variable.
+
+Here is a modified example used earlier in this guide. In the ~for~ loop we use
+~:=~ which will redefine ~s~ instead of assigning a new value to ~s~. This code
+will never terminate as the inner ~s~ will always get a value based on the other
+~s~ (~[1,2]~) and the outer ~s~ will never change. The exit condition will never
+be reached.
+
+#+BEGIN_SRC go :noeval
+package main
+
+import "fmt"
+
+func main() {
+	originalArray := [...]int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+
+	s := originalArray[0:2] // Backed by original array
+	printSlice(s)
+
+	for cap(s) > 2 { // As long as we have capacity to extend beyond our length
+		s := s[1:3] // THIS LINE DEFINES A NEW VARIABLE
+		printSlice(s)
+	}
+}
+
+func printSlice(s []int) {
+	fmt.Printf("len=%d cap=%d %v\n", len(s), cap(s), s)
+}
+#+END_SRC
+
+Changing ~:=~ to ~=~ will make the example work as we now will start assigning
+new values to ~s~ (inner ~s~ and outer ~s~ is the same variable).
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func main() {
+	originalArray := [...]int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+
+	s := originalArray[0:2] // Backed by original array
+	printSlice(s)
+
+	for cap(s) > 2 { // As long as we have capacity to extend beyond our length
+		s = s[1:3] // THIS LINE ASSIGNS A NEW VALUE TO s
+		printSlice(s)
+	}
+}
+
+func printSlice(s []int) {
+	fmt.Printf("len=%d cap=%d %v\n", len(s), cap(s), s)
+}
+#+END_SRC
+
 ** Pointers to objects in a slice
 
 * Questions
@@ -3536,7 +3622,6 @@ const (
 - Varargs (~...~) both as argument and deconstruct array (given to as an argument)
 - ~GOPATH~
 - Strings, bytes, runes and characters in Go: https://go.dev/blog/strings
-- AoC dag 13. Varöfr behövs pekare?!
 - https://pkg.go.dev/container/heap#Interface PriorityQueue. Hur kan interfacet implementeras som en mix?
 - https://pkg.go.dev/fmt
 - loop over map

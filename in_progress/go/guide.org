@@ -26,6 +26,7 @@
   - [[#readers][Readers]]
   - [[#concurrency][Concurrency]]
 - [[#projects-modules-and-packages][Projects, modules and packages]]
+- [[#the-go-command][The ~go~ command]]
 - [[#other][Other]]
   - [[#empty-struct][Empty struct]]
   - [[#implement-a-set-with-map-and-empty-struct][Implement a set with map and empty struct]]
@@ -3068,6 +3069,8 @@ var fetcher = fakeFetcher{
 
 * Projects, modules and packages
 
+* The ~go~ command
+
 * Other
 ** Empty struct
 
@@ -3532,6 +3535,7 @@ const (
 - https://gobyexample.com/
 - https://www.educative.io/courses/mastering-concurrency-in-go?affiliate_id=5088579051061248
 - https://quii.gitbook.io/learn-go-with-tests/
+- https://go.dev/doc/faq#closures_and_goroutines
 
 * Pitfalls
 ** Overuse of declaration (~:=~)
@@ -3595,18 +3599,87 @@ func printSlice(s []int) {
 
 ** Pointers to objects in a slice
 
+Using pointers to elements in a slice which may be resized is dangerous. When
+the slice is resized a new array may be allocated (depending on the capacity)
+and then your pointer will still point to the value in the old array.
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func main() {
+	s := []int{0, 1, 2, 3, 4}
+	p := &s[1]
+	printSlice(s) // len=5 cap=5 [0 1 2 3 4]
+	*p = 9
+	printSlice(s) // len=5 cap=5 [0 9 2 3 4]
+	// len == cap which will force go to create a new underlying array
+	s = append(s, 5)
+	printSlice(s) // len=6 cap=10 [0 9 2 3 4 5]
+	fmt.Println(*p) // 9
+	*p = 2
+	printSlice(s) // len=6 cap=10 [0 9 2 3 4 5] <-- NO CHANGE
+	fmt.Println(*p) // 2
+}
+
+func printSlice(s []int) {
+	fmt.Printf("len=%d cap=%d %v\n", len(s), cap(s), s)
+}
+#+END_SRC
+
+To come around this you can create a slice of pointers instead:
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func main() {
+	s := make([]*int, 5, 5) // len=5 cap=5 [ <nil> <nil> <nil> <nil> <nil>]
+	printSlice(s)
+	for i := 0; i < 5; i++ {
+		v := i
+		s[i] = &v
+	}
+	p := s[1]
+	printSlice(s) // len=5 cap=5 [ 0 1 2 3 4]
+	*p = 9
+	printSlice(s) // len=5 cap=5 [ 0 9 2 3 4]
+	v := 5
+	// len == cap which will force go to create a new underlying array
+	s = append(s, &v)
+	printSlice(s) // len=6 cap=10 [ 0 9 2 3 4 5]
+	fmt.Println(*p) // 9
+	*p = 2
+	printSlice(s) // len=6 cap=10 [ 0 2 2 3 4 5] <-- SUCCESSFULLY UPDATED
+	fmt.Println(*p) // 2
+}
+
+func printSlice(s []*int) {
+	fmt.Printf("len=%d cap=%d [", len(s), cap(s))
+	for _, v := range s {
+		if v == nil {
+			fmt.Printf(" <nil>")
+		} else {
+			fmt.Printf(" %v", *v)
+		}
+	}
+	fmt.Println("]")
+}
+#+END_SRC
+
 * Questions
 
 - https://www.sohamkamani.com/golang/type-assertions-vs-type-conversions/
 - https://talks.golang.org/2012/10things.slide#1
 - Equality. Floats and strings
+- Equality. Pointers
 - Exception handling?
 - Embedding https://go.dev/doc/effective_go#embedding
 - Packages
 - Higher order functions (https://www.golangprograms.com/higher-order-functions-in-golang.html)
 - Generators and iterators http://www.golangpatterns.info/concurrency/generators
-- No overloading?
-- Mutate map key if key is of struct type?
 - About reveiver types: https://github.com/golang/go/wiki/CodeReviewComments#receiver-type
 - ~new~ keyword? https://forum.golangbridge.org/t/how-to-cast-interface-to-a-given-interface/13997
 - default implementations interface

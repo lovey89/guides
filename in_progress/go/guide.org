@@ -28,6 +28,7 @@
 - [[#projects-modules-and-packages][Projects, modules and packages]]
 - [[#the-go-command][The ~go~ command]]
 - [[#other][Other]]
+  - [[#the-fmt-package-and-printf][The ~fmt~ package and ~printf~]]
   - [[#empty-struct][Empty struct]]
   - [[#implement-a-set-with-map-and-empty-struct][Implement a set with map and empty struct]]
   - [[#usage-of-pointers-for-arrays-slices-and-maps-in-functionmethod-calls][Usage of pointers for arrays, slices and maps in function/method calls]]
@@ -35,7 +36,9 @@
   - [[#variadic-functions-varargs-ellipsis][Variadic functions (varargs, ellipsis)]]
   - [[#enums][Enums]]
   - [[#embedding][Embedding]]
-- [[#naming-conventions][Naming conventions]]
+- [[#code][Code]]
+  - [[#naming-conventions][Naming conventions]]
+  - [[#code-review][Code review]]
 - [[#links][Links]]
 - [[#pitfalls][Pitfalls]]
   - [[#overuse-of-declaration-][Overuse of declaration (~:=~)]]
@@ -901,7 +904,31 @@ func main() {
 }
 #+END_SRC
 
-TODO: When can this be used?
+Defer is used to ensure that a function call is performed later in a program's
+execution, usually for purposes of cleanup. In other words, defer statement
+defers the execution of a function until the surrounding function returns.
+
+Deferred function call is guaranteed to run in every case including panic.
+
+Deferred functions may read and assign to the returning function’s named return
+values.
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func c() (i int) {
+    defer func() { i++ }()
+    return 1
+}
+
+func main() {
+	fmt.Println(c()) // 2
+}
+#+END_SRC
+
+This is convenient for modifying the error return value of a function.
 
 ** Pointers
 
@@ -3245,6 +3272,10 @@ var fetcher = fakeFetcher{
 * The ~go~ command
 
 * Other
+** The ~fmt~ package and ~printf~
+
+- https://pkg.go.dev/fmt
+
 ** Empty struct
 
 An empty struct consumes no space.
@@ -3861,7 +3892,8 @@ func main() {
 }
 #+END_SRC
 
-* Naming conventions
+* Code
+** Naming conventions
 
 - A name must begin with a letter, and can have any number of additional letters
   and numbers.
@@ -3876,13 +3908,17 @@ func main() {
 - Function names are case-sensitive (car, Car and CAR are three different
   variables).
 
+** Code review
+
+- https://github.com/golang/go/wiki/CodeReviewComments#receiver-type
+
 * Links
 
-- https://blog.golang.org/defer-panic-and-recover
 - https://blog.golang.org/slices-intro
 - https://pkg.go.dev/std
 - https://golang.org/ref/spec#Composite_literals (https://stackoverflow.com/questions/39804861/what-is-a-concise-way-to-create-a-2d-slice-in-go)
-
+- https://www.bogotobogo.com/GoLang/GoLang_Panic_and_Recover.php
+- https://zchee.github.io/golang-wiki/
 - https://go.dev/doc/tutorial/
 - https://golang.org/doc/effective_go
 - https://golang.org/doc/
@@ -4031,20 +4067,20 @@ func printSlice(s []*int) {
 - Equality. Floats and strings
 - Equality. Pointers
 - Exception handling?
+  - https://blog.golang.org/defer-panic-and-recover
+  - https://go.dev/blog/go1.13-errors
+  - https://golangbyexample.com/wrapping-and-unwrapping-error-golang/
 - Packages
 - Higher order functions (https://www.golangprograms.com/higher-order-functions-in-golang.html)
 - Generators and iterators http://www.golangpatterns.info/concurrency/generators
-- About reveiver types: https://github.com/golang/go/wiki/CodeReviewComments#receiver-type
 - ~new~ keyword? https://forum.golangbridge.org/t/how-to-cast-interface-to-a-given-interface/13997
 - https://yourbasic.org/golang/switch-statement/
 - https://yourbasic.org/golang/for-loop-range-array-slice-map-channel/
 - Reflect package?
-- printf. Document placeholders
 - Pointer escape analysis: https://stackoverflow.com/questions/13715237/return-pointer-to-local-struct
 - Full slice expression: https://go.dev/ref/spec#Slice_expressions
 - ~GOPATH~
 - Strings, bytes, runes and characters in Go: https://go.dev/blog/strings
-- https://pkg.go.dev/fmt
 - loop over channel
 - write to channel and then read directly after
 - https://yourbasic.org/golang/concurrent-programming/

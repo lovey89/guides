@@ -32,7 +32,7 @@
   - [[#implement-a-set-with-map-and-empty-struct][Implement a set with map and empty struct]]
   - [[#usage-of-pointers-for-arrays-slices-and-maps-in-functionmethod-calls][Usage of pointers for arrays, slices and maps in function/method calls]]
   - [[#tail-recursion][Tail recursion]]
-  - [[#variadic-functions][Variadic functions]]
+  - [[#variadic-functions-varargs-ellipsis][Variadic functions (varargs, ellipsis)]]
   - [[#enums][Enums]]
 - [[#naming-conventions][Naming conventions]]
 - [[#links][Links]]
@@ -1410,9 +1410,9 @@ func printSlice(s []int) {
 
 ** Range
 
-The ~range~ form of the ~for~ loop iterates over a slice or map. When ranging
-over a slice, two values are returned for each iteration. The first is the
-index, and the second is a copy of the element at that index.
+The ~range~ form of the ~for~ loop iterates over a slice, array or map. When
+ranging over a slice or array, two values are returned for each iteration. The
+first is the index, and the second is a copy of the element at that index.
 
 #+BEGIN_SRC go :results output
 package main
@@ -1431,7 +1431,7 @@ func main() {
 If you for some reason don't care about the index or the element you can
 replace the variable with a ~_~. E.g.
 
-#+BEGIN_SRC go :results output
+#+BEGIN_SRC go :noeval
 for i, _ := range pow
 for _, value := range pow
 
@@ -1590,6 +1590,50 @@ func main() {
 
 	v, ok := m["Answer"]
 	fmt.Println("The value:", v, "Present?", ok)
+}
+#+END_SRC
+
+*** Looping over a map
+
+Just like arrays and slices you can loop over it using the ~range~ keyword.
+
+#+BEGIN_SRC go :noeval
+for key, value := range yourMap
+#+END_SRC
+
+If you for some reason don't care about the key or value you can replace the
+variable with a ~_~. E.g.
+
+#+BEGIN_SRC go :noeval
+for key, _ := range yourMap
+for _, value := range yourMap
+
+// If you only want the key you can completely omit the second variable
+for key := range yourMap
+#+END_SRC
+
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+var intToStringMap = map[int]string{
+	1: "one",
+	2: "two",
+	3: "three",
+	4: "four",
+	5: "five",
+}
+
+func main() {
+	for k, v := range intToStringMap {
+		fmt.Printf("%v = %v\n", k, v)
+	}
+	fmt.Println()
+	for k := range intToStringMap {
+		fmt.Printf("%v = %v\n", k, intToStringMap[k])
+	}
 }
 #+END_SRC
 
@@ -1809,7 +1853,6 @@ With a value receiver, the Scale method operates on a copy of the original
 Vertex value. (This is the same behavior as for any other function argument.)
 The Scale method must have a pointer receiver to change the Vertex value
 declared in the main function.
-
 
 #+BEGIN_SRC go :results output
 package main
@@ -2382,11 +2425,140 @@ func main() {
 }
 #+END_SRC
 
+*** A note about method sets and interfaces
+
+From https://github.com/golang/go/wiki/MethodSets and
+https://go.dev/ref/spec#Method_sets:
+
+#+BEGIN_QUOTE
+A type has a (possibly empty) /method set/ associated with it. The method set of
+an interface type is its interface. The method set of any other type ~T~
+consists of all methods declared with receiver type ~T~. The method set of the
+corresponding pointer type ~*T~ is the set of all methods declared with receiver
+~*T~ or ~T~ (that is, it also contains the method set of T).
+#+END_QUOTE
+
+This means that if ~T~ implements the interface ~I~, ~*T~ is also implementing
+interface ~I~. The other way does not hold! In the example below you can see how
+~*C2~ implements ~CarWithStereo~ with methods defined with a mix of value and
+pointer receivers.
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+type Car interface {
+	Honk()
+}
+
+type Radio interface {
+	PlayMusic()
+}
+
+type CarWithStereo interface {
+	// You can list other interfaces in an interface
+	Car
+	Radio
+}
+
+// With value receivers
+type C0 struct{}
+func (c C0) Honk() {
+	fmt.Println("C0: Honk!")
+}
+func (c C0) PlayMusic() {
+	fmt.Println("C0: ♪♪♪♪")
+}
+
+// With pointer receivers
+type C1 struct{}
+func (c *C1) Honk() {
+	fmt.Println("C1: Honk!")
+}
+func (c *C1) PlayMusic() {
+	fmt.Println("C1: ♪♪♪♪")
+}
+
+// Mix value and pointer receivers
+type C2 struct{}
+func (c *C2) Honk() {
+	fmt.Println("C2: Honk!")
+}
+func (c C2) PlayMusic() {
+	fmt.Println("C2: ♪♪♪♪")
+}
+
+func do(info string, cws CarWithStereo) {
+	fmt.Println(info)
+	cws.Honk()
+	cws.PlayMusic()
+}
+
+func main() {
+	var c0 C0
+	do("Value receiver", c0)
+	// C0 is implementing CarWithStereo, so *CO must also implement CarWithStereo
+	do("Pointer receiver", &c0)
+
+	var c1 C1
+	// Just because *C1 implements CarWithStereo, doesn't mean that C1 is implementing it
+	//do("Value receiver", c1) // Doesn't compile (C1 does not implement CarWithStereo (Honk method has pointer receiver))
+	do("Pointer receiver", &c1)
+
+	// From the looks of it, it looks like as if neither C2 nor *C2 is implementing CarWithStereo
+  // but since the method set of *C2 includes the method set of C2, *C2 will actually implement
+	// the interface
+	var c2 C2
+	//do("Value receiver", c2) // Doesn't compile (C2 does not implement CarWithStereo (Honk method has pointer receiver))
+	do("Pointer receiver", &c2)
+}
+#+END_SRC
+
+The spec also says that:
+
+#+BEGIN_QUOTE
+In a method set, each method must have a unique non-blank method name.
+#+END_QUOTE
+
+Which means that you can't implement two methods for the same name for a type
+and it's pointer. So the code below will not compile:
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+type Car interface {
+	Honk()
+}
+
+// With value receivers
+type C struct{}
+func (c C) Honk() {
+	fmt.Println("Value: Honk!")
+}
+
+func (c *C) Honk() {
+	fmt.Println("Pointer: ♪♪♪♪")
+}
+
+func do(info string, c Car) {
+	cws.Honk()
+}
+
+func main() {
+	var c C
+	c.Honk()
+	(&c).Honk()
+}
+#+END_SRC
+
 *** Stringer interface
 
 One of the most ubiquitous interfaces is ~Stringer~ defined by the ~fmt~ package.
 
-#+BEGIN_SRC go
+#+BEGIN_SRC go :noeval
 type Stringer interface {
     String() string
 }
@@ -3327,7 +3499,7 @@ Seems not to be supported: https://github.com/golang/go/issues/22624
 
 Can maybe be implemented with a [[https://go.dev/ref/spec#Goto_statements][goto statement]]?
 
-** Variadic functions
+** Variadic functions (varargs, ellipsis)
 
 If the last parameter of a function has type ~...T~ it can be called with any
 number of trailing arguments of type ~T~.
@@ -3692,12 +3864,9 @@ func printSlice(s []*int) {
 - printf. Document placeholders
 - Pointer escape analysis: https://stackoverflow.com/questions/13715237/return-pointer-to-local-struct
 - Full slice expression: https://go.dev/ref/spec#Slice_expressions
-- Varargs (~...~) both as argument and deconstruct array (given to as an argument)
 - ~GOPATH~
 - Strings, bytes, runes and characters in Go: https://go.dev/blog/strings
-- https://pkg.go.dev/container/heap#Interface PriorityQueue. Hur kan interfacet implementeras som en mix?
 - https://pkg.go.dev/fmt
-- loop over map
 - loop over channel
 - write to channel and then read directly after
 - https://yourbasic.org/golang/concurrent-programming/

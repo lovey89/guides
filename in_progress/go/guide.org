@@ -34,6 +34,7 @@
   - [[#tail-recursion][Tail recursion]]
   - [[#variadic-functions-varargs-ellipsis][Variadic functions (varargs, ellipsis)]]
   - [[#enums][Enums]]
+  - [[#embedding][Embedding]]
 - [[#naming-conventions][Naming conventions]]
 - [[#links][Links]]
 - [[#pitfalls][Pitfalls]]
@@ -3678,6 +3679,188 @@ const (
 )
 #+END_SRC
 
+** Embedding
+
+- https://go.dev/doc/effective_go#embedding
+- https://go.dev/ref/spec#Struct_types
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+type Car struct {
+	Brand  string
+}
+func (c Car) Honk() {
+	fmt.Printf("%s car goes \"Honk!\"\n", c.Brand)
+}
+
+type CarWithRadio struct {
+	Car
+	Music  string
+}
+func (c CarWithRadio) PlayMusic() {
+	fmt.Printf("%s car plays: ♪♪♪ %s ♪♪♪\n", c.Car.Brand, c.Music)
+}
+
+func main() {
+	var c Car = Car{"Volvo"}
+	c.Honk()
+	var cwr CarWithRadio = CarWithRadio{c, "Rock"}
+	cwr.Honk()
+	cwr.PlayMusic()
+}
+#+END_SRC
+
+*** Embedding with interfaces
+
+A struct will inherit all interfaces from an embedded struct
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+type Car interface {
+	Honk()
+	Drive()
+}
+
+type TypicalCar struct {
+	Brand  string
+}
+func (c TypicalCar) Honk() {
+	fmt.Printf("%s car goes \"Honk!\"\n", c.Brand)
+}
+func (c TypicalCar) Drive() {
+	fmt.Printf("%s car goes \"Vroom!\"\n", c.Brand)
+}
+
+// A TypicalCar is a Car, and because we are embedding a TypicalCar in
+// TypicalCarWithRadio, a TypicalCarWithRadio is a Car
+type TypicalCarWithRadio struct {
+	TypicalCar
+	Music  string
+}
+func (c TypicalCarWithRadio) PlayMusic() {
+	fmt.Printf("%s car plays: ♪♪♪ %s ♪♪♪\n", c.TypicalCar.Brand, c.Music)
+}
+
+func do(c Car) {
+	c.Honk()
+	c.Drive()
+}
+
+func main() {
+	var c0 Car = TypicalCar{"Volvo"}
+	do(c0)
+	var c1 TypicalCarWithRadio = TypicalCarWithRadio{TypicalCar{"Saab"}, "Rock"}
+	do(c1)
+}
+#+END_SRC
+
+The previous example can be rewritten so that ~TypicalCarWithRadio~ embeds the
+~Car~ interface instead of the stuct ~TypicalCar~:
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+type Car interface {
+	Honk()
+	Drive()
+	GetBrand() string
+}
+
+type TypicalCar struct {
+	Brand  string
+}
+func (c TypicalCar) Honk() {
+	fmt.Printf("%s car goes \"Honk!\"\n", c.Brand)
+}
+func (c TypicalCar) Drive() {
+	fmt.Printf("%s car goes \"Vroom!\"\n", c.Brand)
+}
+func (c TypicalCar) GetBrand() string {
+	return c.Brand
+}
+
+type TypicalCarWithRadio struct {
+	Car
+	Music  string
+}
+func (c TypicalCarWithRadio) PlayMusic() {
+	fmt.Printf("%s car plays: ♪♪♪ %s ♪♪♪\n", c.GetBrand(), c.Music)
+}
+
+func do(c Car) {
+	c.Honk()
+	c.Drive()
+}
+
+func main() {
+	var c0 Car = TypicalCar{"Volvo"}
+	do(c0)
+	var c1 TypicalCarWithRadio = TypicalCarWithRadio{TypicalCar{"Saab"}, "Rock"}
+	do(c1)
+}
+#+END_SRC
+
+*** Implementing default methods for interfaces
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+type Car interface {
+	Honk()
+	Drive()
+}
+
+type TypicalCar struct {
+	Brand  string
+}
+func (c TypicalCar) Honk() {
+	fmt.Printf("%s car goes \"Honk!\"\n", c.Brand)
+}
+func (c TypicalCar) Drive() {
+	fmt.Printf("%s car goes \"Vroom!\"\n", c.Brand)
+}
+
+type FastCar struct {
+	TypicalCar
+	Speed  int
+}
+// Redefine Drive
+func (c FastCar) Drive() {
+	fmt.Printf("%s car goes %d km/h\n", c.TypicalCar.Brand, c.Speed)
+}
+
+func doCarStuff(c Car) {
+	c.Honk()
+	c.Drive()
+}
+
+func doTypicalCarStuff(c TypicalCar) {
+	c.Honk()
+	c.Drive()
+}
+
+func main() {
+	var c0 TypicalCar = TypicalCar{"Volvo"}
+	doCarStuff(c0)
+	doTypicalCarStuff(c0)
+	var c1 FastCar = FastCar{TypicalCar{"Saab"}, 100}
+	doCarStuff(c1)
+	//doTypicalCarStuff(c1) // Not allowed as a FastCar is not a TypicalCar (the subclass concept doesn't exist in go!)
+	// You can use the embedded struct itself but then it will be used as a TypicalCar (calling Drive will use the TypicalCar implementation)
+	doTypicalCarStuff(c1.TypicalCar)
+}
+#+END_SRC
+
 * Naming conventions
 
 - A name must begin with a letter, and can have any number of additional letters
@@ -3848,16 +4031,11 @@ func printSlice(s []*int) {
 - Equality. Floats and strings
 - Equality. Pointers
 - Exception handling?
-- Embedding https://go.dev/doc/effective_go#embedding
 - Packages
 - Higher order functions (https://www.golangprograms.com/higher-order-functions-in-golang.html)
 - Generators and iterators http://www.golangpatterns.info/concurrency/generators
 - About reveiver types: https://github.com/golang/go/wiki/CodeReviewComments#receiver-type
 - ~new~ keyword? https://forum.golangbridge.org/t/how-to-cast-interface-to-a-given-interface/13997
-- default implementations interface
-  - https://www.reddit.com/r/golang/comments/28garc/what_is_the_preferred_way_to_provide_a_default/
-  - https://go.dev/play/p/9l68IatydV
-  - https://go.dev/play/p/ByoUzfqOpn
 - https://yourbasic.org/golang/switch-statement/
 - https://yourbasic.org/golang/for-loop-range-array-slice-map-channel/
 - Reflect package?
@@ -3871,6 +4049,9 @@ func printSlice(s []*int) {
 - write to channel and then read directly after
 - https://yourbasic.org/golang/concurrent-programming/
 - https://yourbasic.org/golang/gotcha-why-nil-error-not-equal-nil/
+- Pointer to interface error
+  - https://stackoverflow.com/questions/51611086/pointer-to-interface-is-not-an-interface-error
+  - https://stackoverflow.com/questions/44370277/type-is-pointer-to-interface-not-interface-confusion
 
 Values are returned by value:
 

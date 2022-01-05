@@ -2912,7 +2912,7 @@ func main() {
 	i, err := func2()
 	if err != nil {
 		fmt.Printf("Call failed: (%T) %s\n", err, err)
-		wrappedErr := errors.Unwrap(err)
+		wrappedErr := errors.Unwrap(err) // err is no longer of type "*errorString" but "*wrapError"
 		// wrappedErr := err.Unwrap() // Will not compile as the error interface doesn't expose Unwrap
 		fmt.Printf("Wrapped: (%T) %s\n", wrappedErr, wrappedErr)
 		wrappedErr = errors.Unwrap(wrappedErr) // Nothing is wrapped here
@@ -2924,6 +2924,129 @@ func main() {
 #+END_SRC
 
 **** Wrapping using custom errors
+
+If you want to allow your custom errors to support wrapping other errors you
+must of course store the error somehow but also implement the ~Unwrap~ method
+that returns the wrapped error. Interestingly, the ~Unwrap~ method is not part
+of an interface, but the ~errors.Unwrap~ function will in run time look if the
+given error defines the method. This is the definition of the ~errors.Unwrap~
+method:
+
+#+BEGIN_SRC go :noeval
+func Unwrap(err error) error {
+	u, ok := err.(interface {
+		Unwrap() error
+	})
+	if !ok {
+		return nil
+	}
+	return u.Unwrap()
+}
+#+END_SRC
+
+Example:
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"fmt"
+	"errors"
+)
+
+type CustomError struct {
+	customArg  string
+	cause      error
+}
+
+func (e *CustomError) Error() string {
+	return fmt.Sprintf("Custom error with custom arg (%s) and wrapped error (%s)", e.customArg, e.cause)
+}
+
+func (e *CustomError) Unwrap() error {
+	return e.cause
+}
+
+func func1() (int, error) {
+	return 0, &CustomError{customArg: "func1"}
+}
+
+func func2() (int, error) {
+	ret, err := func1()
+	if err != nil {
+		return 0, &CustomError{"func2", err}//fmt.Errorf("func2: %w", err) // USING "%w" HERE NOW
+	}
+	return ret, nil
+}
+
+func main() {
+	i, err := func2()
+	if err != nil {
+		fmt.Printf("Call failed: (%T) %s\n", err, err)
+		wrappedErr := errors.Unwrap(err) // err is no longer of type "*errorString" but "*wrapError"
+		// wrappedErr := err.Unwrap() // Will not compile as the error interface doesn't expose Unwrap
+		fmt.Printf("Wrapped: (%T) %s\n", wrappedErr, wrappedErr)
+		wrappedErr = errors.Unwrap(wrappedErr) // Nothing is wrapped here
+		fmt.Printf("Wrapped: (%T) %s\n", wrappedErr, wrappedErr)
+		return
+	}
+	fmt.Println("Result:", i)
+}
+#+END_SRC
+
+**** Inspect wrapped errors with the ~errors.Is~ and ~errors.As~ functions
+
+~errors.Is~ is used to look for a matching error in an error chain. The chain
+consists of ~err~ itself followed by the sequence of errors obtained by
+repeatedly calling ~Unwrap~. An error is considered to match a target if it is
+equal to that target or if it implements a method ~Is(error) bool~ such that
+~Is(target)~ returns true.
+
+The function definition header looks like this:
+
+#+BEGIN_SRC go :noeval
+func Is(err, target error) bool
+#+END_SRC
+
+Note that ~target~ is also an ~error~. So you must actually have an error to
+compare with.
+
+~errors.As~ function definition looks like this:
+
+#+BEGIN_SRC go :noeval
+func As(err error, target interface{}) bool
+#+END_SRC
+
+It finds the first error in ~err~'s chain that matches ~target~ type, and if so,
+sets ~target~ to that error value and returns ~true~. Otherwise, it returns
+~false~. E.g.
+
+#+BEGIN_SRC go :results output
+package main
+
+import (
+	"errors"
+	"fmt"
+	"io/fs"
+	"os"
+)
+
+func main() {
+	if _, err := os.Open("non-existing"); err != nil {
+		var pathError *fs.PathError
+		if errors.As(err, &pathError) {
+			fmt.Println("Failed at path:", pathError.Path)
+		} else {
+			fmt.Println(err)
+		}
+	}
+}
+#+END_SRC
+
+An error matches target if the error's concrete value is assignable to the value
+pointed to by ~target~, or if the error has a method ~As(interface{}) bool~ such
+that ~As(target)~ returns ~true~. In the latter case, the ~As~ method is
+responsible for setting target.
 
 *** Exercise: Errors
 

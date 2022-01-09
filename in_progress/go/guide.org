@@ -36,6 +36,7 @@
   - [[#variadic-functions-varargs-ellipsis][Variadic functions (varargs, ellipsis)]]
   - [[#enums][Enums]]
   - [[#embedding][Embedding]]
+  - [[#the-new-keyword][The ~new~ keyword]]
 - [[#code][Code]]
   - [[#naming-conventions][Naming conventions]]
   - [[#code-review][Code review]]
@@ -4239,6 +4240,57 @@ func main() {
 	//doTypicalCarStuff(c1) // Not allowed as a FastCar is not a TypicalCar (the subclass concept doesn't exist in go!)
 	// You can use the embedded struct itself but then it will be used as a TypicalCar (calling Drive will use the TypicalCar implementation)
 	doTypicalCarStuff(c1.TypicalCar)
+}
+#+END_SRC
+
+** The ~new~ keyword
+
+~new~ allocates zeroed storage for a new item or type whatever and then returns
+a pointer to it. It looks like as if ~new(myType)~ would be equivalent to
+~&myType{}~. In [[https://softwareengineering.stackexchange.com/questions/210399/why-is-there-a-new-in-go/216582#216582][this]] discussion you can read the reason why ~new~ exists (it was
+there first) and when to use it.
+
+One occassion that you maybe would use it is when you would like to do something
+like this:
+
+#+BEGIN_SRC go :noeval
+package main
+
+import "fmt"
+
+func main() {
+	p := &0
+	*p++
+	fmt.Println(*p)
+}
+#+END_SRC
+
+This is not allowed. Instead you could then write
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func main() {
+	v := 0
+	p := &v
+	,*p++
+	fmt.Println(*p)
+}
+#+END_SRC
+
+or
+
+#+BEGIN_SRC go :results output
+package main
+
+import "fmt"
+
+func main() {
+	p := new(int)
+	,*p++
+	fmt.Println(*p)
 }
 #+END_SRC
 

@@ -44,6 +44,7 @@
 - [[#pitfalls][Pitfalls]]
   - [[#overuse-of-declaration-][Overuse of declaration (~:=~)]]
   - [[#pointers-to-objects-in-a-slice][Pointers to objects in a slice]]
+  - [[#pointers-to-interfaces][Pointers to interfaces]]
 - [[#questions][Questions]]
 #+END_QUOTE
 
@@ -76,7 +77,7 @@ func main() {
 Every Go program is made up of packages. Programs start running in package
 ~main~.
 
-By convention, the package name is the same as the last element of the import
+vBy convention, the package name is the same as the last element of the import
 path. For instance, the ~math/rand~ package comprises files that begin with the
 statement package ~rand~.
 
@@ -4330,6 +4331,7 @@ func main() {
 - https://www.educative.io/courses/mastering-concurrency-in-go?affiliate_id=5088579051061248
 - https://quii.gitbook.io/learn-go-with-tests/
 - https://go.dev/doc/faq#closures_and_goroutines
+- https://www.golangprograms.com/go-language/logging-go-programs.html
 
 * Pitfalls
 ** Overuse of declaration (~:=~)
@@ -4463,16 +4465,34 @@ func printSlice(s []*int) {
 }
 #+END_SRC
 
+** Pointers to interfaces
+
+- https://stackoverflow.com/questions/51611086/pointer-to-interface-is-not-an-interface-error
+- https://stackoverflow.com/questions/44370277/type-is-pointer-to-interface-not-interface-confusion
+
+Pointers to interfaces are almost /never/ useful. In the overwhelming majority
+of cases, a pointer to an interface reflects a misunderstanding of how
+interfaces are supposed to work.
+
+If you ever want to implement:
+
+#+BEGIN_SRC go :noeval
+func Dummy(f *Foo)
+#+END_SRC
+
+Remember that a pointer type can implement ~Foo~ as well. So if ~*MyFooType~
+implements ~Foo~, it's ok to send ~*MyFooType~ into:
+
+#+BEGIN_SRC go :noeval
+func Dummy(f Foo)
+#+END_SRC
+
 * Questions
 
 - Exception handling?
   - https://blog.golang.org/defer-panic-and-recover
 - https://yourbasic.org/golang/gotcha-why-nil-error-not-equal-nil/
-- Pointer to interface error
-  - https://stackoverflow.com/questions/51611086/pointer-to-interface-is-not-an-interface-error
-  - https://stackoverflow.com/questions/44370277/type-is-pointer-to-interface-not-interface-confusion
 - Higher order functions (https://www.golangprograms.com/higher-order-functions-in-golang.html)
-- ~new~ keyword? https://forum.golangbridge.org/t/how-to-cast-interface-to-a-given-interface/13997
 
 - https://www.sohamkamani.com/golang/type-assertions-vs-type-conversions/
 - https://talks.golang.org/2012/10things.slide#1

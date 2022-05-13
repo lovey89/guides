@@ -16,6 +16,8 @@
   - [[#pipe-result-directly-to-wireshark][Pipe result directly to wireshark]]
 - [[#docker][Docker]]
   - [[#view-stdout-from-container][View stdout from container]]
+- [[#git][git]]
+  - [[#use-a-specific-ssh-key-temporarily][Use a specific ssh key temporarily]]
 - [[#ssh][ssh]]
   - [[#attach-to-tmux-on-connect][Attach to ~tmux~ on connect]]
   - [[#port-forwarding][Port forwarding]]
@@ -316,6 +318,13 @@ Then it worked
 docker logs <containter_name> -f --tail 10
 #e.g.
 docker logs wiremock -f --tail 10
+#+END_SRC
+
+* git
+** Use a specific ssh key temporarily
+
+#+BEGIN_SRC bash
+GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -i /path/to/key" git clone git@server
 #+END_SRC
 
 * ssh

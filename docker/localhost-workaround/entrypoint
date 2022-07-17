@@ -1,0 +1,15 @@
+#!/bin/bash
+
+echo "Configuring container nftables rules to forward incoming"
+echo "requests to 127.0.0.1 where the server is listening"
+
+sysctl -w net.ipv4.conf.eth0.route_localnet=1
+nft add table nat
+nft 'add chain nat prerouting { type nat hook prerouting priority -100; }'
+nft 'add rule nat prerouting iif eth0 dnat to 127.0.0.1'
+#nft -an list ruleset
+
+echo "Done configuring nftables"
+echo "-------------------------"
+echo "Running command: $@"
+"$@"

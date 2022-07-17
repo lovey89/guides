@@ -40,6 +40,10 @@
 - [[#other-commands-1][Other commands]]
   - [[#remove-all-images][Remove all images]]
   - [[#remove-all-containers][Remove all containers]]
+- [[#other-examples][Other examples]]
+  - [[#run-gui-applications-in-docker][Run GUI applications in docker]]
+  - [[#audio-in-docker][Audio in docker]]
+  - [[#workaround-when-application-is-listening-to-localhost-instead-of-0000][Workaround when application is listening to ~localhost~ instead of ~0.0.0.0~]]
 - [[#to-investigate][To investigate]]
 #+END_QUOTE
 
@@ -1208,6 +1212,160 @@ docker image rm -f $(docker image ls -aq)
 #+BEGIN_SRC bash
 docker container rm -f $(docker container ls -aq)
 #+END_SRC
+
+* Other examples
+** Run GUI applications in docker
+
+In [[file:firefox-gui-audio][firefox-gui-audio]] I have written a [[file:firefox-gui-audio/Dockerfile][Dockerfile]] which installs firefox. Build
+the ~Dockerfile~:
+
+#+BEGIN_SRC bash :noeval
+docker build -t firefox:latest .
+#+END_SRC
+
+Run the following command to allow ~docker~ to use the hosts ~X~ server:
+
+#+BEGIN_SRC bash :noeval
+xhost +local:
+#+END_SRC
+
+To start it with a gui, run:
+
+#+BEGIN_SRC bash :noeval
+docker run --rm -it \
+  --env DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  firefox:latest firefox https://www.youtube.com/watch?v=OyWQro6q7qo
+#+END_SRC
+
+~--env DISPLAY=$DISPLAY~ and ~-v /tmp/.X11-unix:/tmp/.X11-unix~ are needed to
+give ~docker~ access to the ~X~ server. A window is opened and you can start a
+clip on youtube, but there is no sound. Read next section how to give ~docker~
+access to ~pulseaudio~
+
+** Audio in docker
+
+The Dockerfile from the previous section also installs ~pulseaudio~ which is
+needed to get sound from the container (at least if you follow these
+instructions). First run the following commands to create a ~pulseaudio~ socket
+and a ~pulseaudio.client.conf~ file.
+
+#+BEGIN_SRC bash :noeval
+# https://github.com/mviereck/x11docker/wiki/Container-sound:-ALSA-or-Pulseaudio
+pactl load-module module-native-protocol-unix socket=/tmp/pulseaudio.socket
+
+echo 'default-server = unix:/tmp/pulseaudio.socket
+# Prevent a server running in the container
+autospawn = no
+daemon-binary = /bin/true
+# Prevent the use of shared memory
+enable-shm = false' > /tmp/pulseaudio.client.conf
+#+END_SRC
+
+The container needs to run as the same user as on the host system so we include
+~-u~ flag to set user and group. We also mount ~/etc/passwd~ and ~/etc/group~ so
+we get all information about the user. We also need a ~$HOME~ directory for this
+user in the container, otherwise ~firefox~ will complain (an empty directory
+seems to be fine, so we use the ~--tmpfs~ option).
+
+#+BEGIN_SRC bash :noeval
+docker run --rm -it \
+  --user $(id -u):$(id -g) \
+  -v /etc/passwd:/etc/passwd:ro \
+  -v /etc/group:/etc/group:ro \
+  --tmpfs "$HOME" \
+  --env PULSE_SERVER=unix:/tmp/pulseaudio.socket \
+  --env PULSE_COOKIE=/tmp/pulseaudio.cookie \
+  --volume /tmp/pulseaudio.socket:/tmp/pulseaudio.socket \
+  --volume /tmp/pulseaudio.client.conf:/etc/pulse/client.conf \
+  --env DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  firefox:latest firefox https://www.youtube.com/watch?v=OyWQro6q7qo
+#+END_SRC
+
+A window will open and you can play a video with audio. Instead of mounting
+~/etc/passwd~ and ~/etc/group~ you can also just set the ~$HOME~ environment
+variable:
+
+#+BEGIN_SRC bash :noeval
+docker run --rm -it \
+  --user $(id -u):$(id -g) \
+  --env "HOME"
+  --tmpfs "$HOME" \
+  --env PULSE_SERVER=unix:/tmp/pulseaudio.socket \
+  --env PULSE_COOKIE=/tmp/pulseaudio.cookie \
+  --volume /tmp/pulseaudio.socket:/tmp/pulseaudio.socket \
+  --volume /tmp/pulseaudio.client.conf:/etc/pulse/client.conf \
+  --env DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  firefox:latest firefox https://www.youtube.com/watch?v=OyWQro6q7qo
+#+END_SRC
+
+** Workaround when application is listening to ~localhost~ instead of ~0.0.0.0~
+
+In [[file:localhost-workaround][localhost-workaround]] I have written a [[file:localhost-workaround/Dockerfile][Dockerfile]] which installs ~python3~ and
+~nftables~. Build the ~Dockerfile~:
+
+#+BEGIN_SRC bash :noeval
+docker build -t localhost-wa:latest .
+#+END_SRC
+
+Start a simple http server in the container:
+
+#+BEGIN_SRC bash :noeval
+docker run --rm -it \
+  -p 8000:8000 \
+  localhost-wa:latest \
+  python3 -m http.server 8000
+#+END_SRC
+
+The server is by default listening to ~0.0.0.0~. Navigate to
+[[http://localhost:8000/]] and see that you are presented a directory listing.
+
+All applications are not designed to listen to anything else but ~localhost~,
+e.g the android emulator. Close the server and start it so it listens to
+~127.0.0.1~ instead:
+
+#+BEGIN_SRC bash :noeval
+docker run --rm -it \
+  -p 8000:8000 \
+  localhost-wa:latest \
+  python3 -m http.server --bind 127.0.0.1 8000
+#+END_SRC
+
+Again navigate to http://localhost:8000/ and see that you can't reach it. You
+can solve this in two ways:
+
+#+BEGIN_SRC bash :noeval
+docker run --rm -it \
+  -p 8000:8000 \
+  --net=host \
+  localhost-wa:latest \
+  python3 -m http.server --bind 127.0.0.1 8000
+#+END_SRC
+
+In this case the container will share network layer with the host system. A
+downside with this is that you can't run multiple identical containers
+anylonger, since the ports can no longer be mapped (in fact ~-p 8000:8000~ have
+no effect in the example above since all ports are exposed anyway).
+
+Another way is to use ~nftables~ to redirect all incoming traffic on ~eth0~ to
+~localhost~:
+
+#+BEGIN_SRC bash :noeval
+docker run --rm -it \
+  -p 8000:8000 \
+  -v "$PWD/entrypoint:/entrypoint:ro" \
+  --entrypoint /entrypoint \
+  --privileged \
+  localhost-wa:latest \
+  python3 -m http.server --bind 127.0.0.1 8000
+#+END_SRC
+
+In this example I have defined my own [[file:localhost-workaround/entrypoint][entrypoint script]] which makes all the
+necessary ~nftables~ settings. This script is mounted and then referred to with
+the ~--entrypoint~ option. To do the required settings, the container needs to
+run with ~--privileged~.
 
 * To investigate
 

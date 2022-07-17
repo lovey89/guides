@@ -1290,7 +1290,7 @@ variable:
 #+BEGIN_SRC bash :noeval
 docker run --rm -it \
   --user $(id -u):$(id -g) \
-  --env "HOME"
+  --env "HOME" \
   --tmpfs "$HOME" \
   --env PULSE_SERVER=unix:/tmp/pulseaudio.socket \
   --env PULSE_COOKIE=/tmp/pulseaudio.cookie \
@@ -1333,7 +1333,7 @@ docker run --rm -it \
   python3 -m http.server --bind 127.0.0.1 8000
 #+END_SRC
 
-Again navigate to http://localhost:8000/ and see that you can't reach it. You
+Again navigate to [[http://localhost:8000/]] and see that you can't reach it. You
 can solve this in two ways:
 
 #+BEGIN_SRC bash :noeval

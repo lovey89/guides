@@ -1301,6 +1301,28 @@ docker run --rm -it \
   firefox:latest firefox https://www.youtube.com/watch?v=OyWQro6q7qo
 #+END_SRC
 
+*** In fedora with ~pipewire~ and ~pipewire-pulse~
+
+Got it working after reading:
+
+- https://joonas.fi/2020/12/audio-in-docker-containers-linux-audio-subsystems-spotifyd/
+- https://github.com/joonas-fi/spotifyd-docker
+
+Maybe the following command also work in Ubuntu. You don't have to run prepare
+the host system in any way for audio.
+
+#+BEGIN_SRC bash :noeval
+docker run --rm -it \
+  --user $(id -u):$(id -g) \
+  --env "HOME" \
+  --tmpfs "$HOME" \
+  --env PULSE_SERVER=unix:/tmp/pulseaudio.socket \
+  --volume /run/user/$UID/pulse/native:/tmp/pulseaudio.socket \
+  --env DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  firefox:latest firefox https://www.youtube.com/watch?v=OyWQro6q7qo
+#+END_SRC
+
 ** Workaround when application is listening to ~localhost~ instead of ~0.0.0.0~
 
 In [[file:localhost-workaround][localhost-workaround]] I have written a [[file:localhost-workaround/Dockerfile][Dockerfile]] which installs ~python3~ and

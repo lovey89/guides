@@ -7,6 +7,8 @@ RUN apt-get update && \
        software-properties-common \
        ca-certificates \
        gnupg2 \
+       # For video codecs
+       libavcodec58 \
        pulseaudio && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*

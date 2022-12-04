@@ -9,13 +9,17 @@
   - [[#installation][Installation]]
   - [[#hello-world][Hello, World]]
   - [[#hello-cargo][Hello, Cargo]]
+- [[#guessing-game][Guessing game]]
 - [[#common-programming-concepts][Common Programming Concepts]]
   - [[#variable-and-mutability][Variable and Mutability]]
   - [[#data-types][Data Types]]
   - [[#functions][Functions]]
   - [[#comments][Comments]]
   - [[#control-flow][Control Flow]]
+- [[#crates-and-dependencies][Crates and dependencies]]
 - [[#documentation][Documentation]]
+- [[#style-guide][Style guide]]
+- [[#clippy][Clippy]]
 - [[#misc][Misc]]
 #+END_QUOTE
 
@@ -46,22 +50,43 @@
 
 https://doc.rust-lang.org/book/ch01-01-installation.html
 
-Or on fedora linux:
-
 #+BEGIN_SRC bash :noeval
-sudo dnf install rust
-rustc --version
-sudo dnf install cargo # Rust's package manager and build tool
-cargo --version
-sudo dnf install rustfmt # Rust formatting
+curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh
 cargo install rust-script # Run rust files as scripts. Needed for emacs babel
                           # Make sure the script is on your path afterwards!
 rust-script --version
 #+END_SRC
 
+*** Update
+
+Once Rust is installed via rustup, when a new version of Rust is released,
+updating to the latest version is easy. From your shell, run the following
+update script:
+
+#+BEGIN_SRC bash :noeval
+rustup update
+#+END_SRC
+
+*** Get documentation
+
+The installation of Rust also includes a local copy of the documentation, so you
+can read it offline. Run rustup doc to open the local documentation in your
+browser.
+
+#+BEGIN_SRC bash :noeval
+rustup doc
+#+END_SRC
+
+This didn't work on my machine since [[https://stackoverflow.com/questions/55961953/access-denied-when-i-run-rustup-doc][firefox was installed with snap]] but I could
+get it to work with:
+
+#+BEGIN_SRC bash :noeval
+google-chrome ~/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/doc/rust/html/index.html
+#+END_SRC
+
 ** Hello, World
 
-Files in rust are on the format ~programname.rs~. Words should be separated with ~_~.
+Files in rust are on the format ~program_name.rs~. Words should be separated with ~_~.
 
 #+BEGIN_SRC rust :results output
 fn main() {
@@ -86,7 +111,7 @@ rustc hello_world.rs
    that has no parameters and returns nothing. If there were parameters, they
    would go inside the parentheses, ~()~.
 2. ~println!~ calls a Rust macro. If it called a function instead, it would be
-   entered as ~println~ (without the ~!~).
+   entered as ~println~ (without the ~!~). TODO: Link to macro section
 3. Rust style is to indent with four spaces, not a tab. Run
    ~rustfmt hello_world.rs~ to format code according to the standard.
 
@@ -138,13 +163,13 @@ your program: the name, the version, and the edition of Rust to use.
 The ~[dependencies]~ heading, is the start of a section for you to list any of
 your project’s dependencies (known as /crates/ in Rust).
 
-Cargo expects your source files to live inside the src directory. The top-level
-project directory is just for README files, license information, configuration
-files, and anything else not related to your code.
+Cargo expects your source files to live inside the ~src~ directory. The
+top-level project directory is just for README files, license information,
+configuration files, and anything else not related to your code.
 
 *** Building and Running a Cargo Project
 
-To build the project, run the followin command while standing in the
+To build the project, run the following command while standing in the
 ~hello_cargo~ directory:
 
 #+BEGIN_SRC bash :noeval
@@ -157,6 +182,9 @@ following command:
 #+BEGIN_SRC bash :noeval
 ./target/debug/hello_cargo
 #+END_SRC
+
+The default build is a ~debug~ build and that's why the binary ends up in that
+directory.
 
 You may notice that ~cargo build~ also creates a ~Cargo.lock~ in the top level
 directory. This file keeps track of the exact versions of dependencies in your
@@ -178,7 +206,7 @@ You can both compile and run the project in one step by running:
 cargo run
 #+END_SRC
 
-Cargo will automatically what needs to be recompiled and what doesn't.
+Cargo will automatically figure out what needs to be recompiled and what doesn't.
 
 If you only want to make sure that the project compiles but not actually compile
 the project you can run:
@@ -202,7 +230,11 @@ cargo build --release
 cargo run --release
 #+END_SRC
 
-This result will end up in ~target/release~ now.
+This result will end up in ~target/release~ instead of ~target/debug~ now.
+
+* Guessing game
+
+Code and comments for the guessing game is located in [[file:002_guessing_game][002_guessing_game]].
 
 * Common Programming Concepts
 ** Variable and Mutability
@@ -239,7 +271,7 @@ fn main() {
 Rust also supports constants using the ~const~ keyword. An immutable variable
 and a constant are not exactly the same in Rust.
 
-- You aren’t allowed to use ~mut~ with constants, they're always mutable.
+- You aren’t allowed to use ~mut~ with constants, they're always immutable.
 - You declare constants using the ~const~ keyword instead of the ~let~ keyword
 - The type of the value /must/ be annotated
 - Constants can be declared in any scope, including the global scope
@@ -390,6 +422,38 @@ fn main() {
 }
 #+END_SRC
 
+**** Numeric Operations
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    // addition
+    let sum = 5 + 10;
+    println!("sum: {}", sum);
+
+    // subtraction
+    let difference = 95.5 - 4.3;
+    println!("difference: {}", difference);
+
+    // multiplication
+    let product = 4 * 30;
+    println!("product: {}", product);
+
+    // division
+    let quotient = 56.7 / 32.2;
+    // The following will fail since you can't divide a float with an int
+    //let quotient = 56.7 / 32;
+    // The following will work though
+    //let quotient = 56.7 / 32f64;
+    let floored = 2 / 3; // Results in 0. Integer division rounds down to the nearest integer
+    println!("quotient: {}", quotient);
+    println!("floored: {}", floored);
+
+    // remainder
+    let remainder = 43 % 5;
+    println!("remainder: {}", remainder);
+}
+#+END_SRC
+
 **** The Boolean Type
 
 Boolean type in Rust has two possible values: ~true~ and ~false~. Booleans are
@@ -481,6 +545,25 @@ also written ~()~. The type is called the /unit type/ and the value is called
 the /unit value/. Expressions implicitly return the unit value if they don’t
 return any other value.
 
+***** Mutable tuples
+
+A tuple can be made mutable by adding the ~mut~ keyword. If you remove the ~mut~
+keyword below, the compilation will fail
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let mut x: (i32, f64, u8) = (500, 6.4, 1);
+    x.0 = 400;
+    let not_five_hundred = x.0;
+    let six_point_four = x.1;
+    let one = x.2;
+
+    println!("not_five_hundred: {}", not_five_hundred);
+    println!("six_point_four:   {}", six_point_four);
+    println!("one:              {}", one);
+}
+#+END_SRC
+
 **** The Array Type
 
 Unlike a tuple, every element of an array must have the same type. Arrays in
@@ -512,8 +595,8 @@ semicolon, and then the length of the array in square brackets, as shown here:
 
 #+BEGIN_SRC rust :results output
 fn main() {
-  let a = [3; 5];
-  let b = [3i64; 5]; // To define the type of the elements (in this case i64)
+    let a = [3; 5];
+    let b = [3i64; 5]; // To define the type of the elements (in this case i64)
 }
 #+END_SRC
 
@@ -535,6 +618,22 @@ valid range, the compile will fail and you will get an error message. But checks
 are done during run time as well so if you try to access an element outside the
 valid range, the program will panic instead of allowing the program to access
 the memory. Run the program in [[file:003_invalid_index][003_invalid_index]] for an example.
+
+***** Mutable lists
+
+Lists are immutable by default. You can make it mutable with the ~mut~ keyword
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let mut a = [1, 2, 3, 4, 5];
+    a[0] = 20;
+    let first = a[0];
+    let second = a[1];
+
+    println!("first:  {}", first);
+    println!("second: {}", second);
+}
+#+END_SRC
 
 ** Functions
 
@@ -568,7 +667,7 @@ fn main() {
 }
 
 fn another_function(x: i32) {
-    println!("The value of x is: {}", x);
+    println!("The value of x is: {x}");
 }
 #+END_SRC
 
@@ -666,7 +765,7 @@ fn main() {
 }
 
 fn plus_one(x: i32) -> i32 {
-    x + 1;
+    x + 1
 }
 
 fn plus_two(x: i32) -> i32 {
@@ -776,7 +875,7 @@ loops:
 #+BEGIN_SRC rust :results output
 fn main() {
     let mut count = 0;
-    counting_up: loop {
+    'counting_up: loop {
         println!("count = {}", count);
         let mut remaining = 10;
 
@@ -844,6 +943,60 @@ fn main() {
 
 **** The ~for~ loop
 
+The ~for~ loop can be used when looping over the elements of a collection. You
+could do it with a ~while~ loop as well but it's more error prone (the index may
+go out of bounds which will cause the program to panic if you enter the wrong
+value) and less efficient (Rust adds a check that the index is within the bound
+of the array on every iteration).
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let a = [10, 20, 30, 40, 50];
+    let mut index = 0;
+
+    while index < 5 {
+        println!("the value is: {}", a[index]);
+
+        index += 1;
+    }
+}
+#+END_SRC
+
+With the ~for~ loop:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let a = [10, 20, 30, 40, 50];
+
+    for element in a {
+        println!("the value is: {element}");
+    }
+}
+#+END_SRC
+
+Even in situations in which you want to run some code a certain number of times,
+as in the countdown example that used a ~while~ loop above, you can use a ~for~
+loop. The way to do that would be to use a ~Range~, provided by the standard
+library, which generates all numbers in sequence starting from one number and
+ending before another number. ~rev~ reverses the range.
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    for number in (1..4).rev() {
+    // Or
+    //for number in (1..=3).rev() {
+        println!("{number}!");
+    }
+    println!("LIFTOFF!!!");
+}
+#+END_SRC
+
+* Crates and dependencies
+
+When we include an external dependency, Cargo fetches the latest versions of
+everything that dependency needs from the registry, which is a copy of data from
+[[https://crates.io/]]. crates.io is where people in the Rust ecosystem post their
+open source Rust projects for others to use.
 
 * Documentation
 
@@ -854,6 +1007,14 @@ your browser.
 #+BEGIN_SRC bash :noeval
 cargo doc --open
 #+END_SRC
+
+* Style guide
+
+https://doc.rust-lang.org/1.0.0/style/style/naming/README.html
+
+* Clippy
+
+https://doc.rust-lang.org/clippy/
 
 * Misc
 

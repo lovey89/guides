@@ -2077,8 +2077,71 @@ fn main() {
 
 *** Associated functions
 
+All functions defined within an ~impl~ block are called /associated functions/
+because they’re associated with the type named after the ~impl~. We can define
+associated functions that don’t have ~self~ as their first parameter (and thus
+are not methods) because they don’t need an instance of the type to work with.
+
+Associated functions that aren’t methods are often used for constructors that
+will return a new instance of the struct. These are often called ~new~, but
+~new~ isn’t a special name and isn’t built into the language.
+
+#+BEGIN_SRC rust :results output
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+impl Rectangle {
+    fn square(size: u32) -> Self {
+        Self {
+            width: size,
+            height: size,
+        }
+    }
+}
+
+fn main() {
+    let squared = Rectangle::square(3);
+}
+#+END_SRC
+
+To call this associated function, we use the ~::~ syntax with the struct name.
+This function is namespaced by the struct
 
 *** Multiple ~impl~ blocks
+
+Each struct is allowed to have multiple ~impl~ blocks. The following blocks are
+equivalent. In this case, there’s no reason to separate these methods into
+multiple ~impl~ blocks here, but this is valid syntax.
+
+#+BEGIN_SRC rust :noeval
+impl Rectangle {
+    fn area(&self) -> u32 {
+        self.width * self.height
+    }
+
+    fn can_hold(&self, other: &Rectangle) -> bool {
+        self.width > other.width && self.height > other.height
+    }
+}
+#+END_SRC
+
+and
+
+#+BEGIN_SRC rust :noeval
+impl Rectangle {
+    fn area(&self) -> u32 {
+        self.width * self.height
+    }
+}
+
+impl Rectangle {
+    fn can_hold(&self, other: &Rectangle) -> bool {
+        self.width > other.width && self.height > other.height
+    }
+}
+#+END_SRC
 
 * Debug
 

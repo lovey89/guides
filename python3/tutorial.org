@@ -880,6 +880,36 @@ print("d:", d)
 print("e:", e)
 #+END_SRC
 
+Also works for lists:
+
+#+BEGIN_SRC python :python python3 :results output
+l = [1, 2, 3, 4]
+a, b, *c = l
+print("a:", a)
+print("b:", b)
+print("c:", c)
+#+END_SRC
+
+The last variable may be an empty list
+
+#+BEGIN_SRC python :python python3 :results output
+l = [1, 2]
+a, b, *c = l
+print("a:", a)
+print("b:", b)
+print("c:", c)
+#+END_SRC
+
+If you try to unpack more variables than is possible you will get an error
+
+#+BEGIN_SRC python :python python3 :results output
+l = [1, 2]
+a, b, c = l
+print("a:", a)
+print("b:", b)
+print("c:", c)
+#+END_SRC
+
 * Dictionairies
 ** Creating dictionairies
 
@@ -953,10 +983,6 @@ filled_dict = {"one": 1, "two": 2, "three": 3}
 print("filled_dict.items():      ", filled_dict.items())
 print("list(filled_dict.items()):", list(filled_dict.items()))
 #+END_SRC
-
-#+RESULTS:
-: filled_dict.items():       dict_items([('three', 3), ('two', 2), ('one', 1)])
-: list(filled_dict.items()): [('three', 3), ('two', 2), ('one', 1)]
 
 ** Adding/updating value in dictionairy
 

@@ -32,6 +32,9 @@
   - [[#ownerships-of-struct-data][Ownerships of struct data]]
   - [[#an-example-with-structs][An example with structs]]
   - [[#methods][Methods]]
+- [[#enums-and-pattern-matching][Enums and pattern matching]]
+  - [[#defining-an-enum][Defining an enum]]
+  - [[#the-match-control-flow-construct][The ~match~ control flow construct]]
 - [[#debug][Debug]]
 - [[#crates-and-dependencies][Crates and dependencies]]
 - [[#documentation][Documentation]]
@@ -60,7 +63,8 @@
 * Other things to look at
 
 - ~rustfmt~ command
-- The prelude: https://doc.rust-lang.org/std/prelude/index.html
+- The prelude (a list of things that Rust automatically imports into every Rust
+  program): https://doc.rust-lang.org/std/prelude/index.html
 
 * Getting started
 ** Installation
@@ -406,6 +410,24 @@ have the same value as if you had specified ~1000~.
 
 Integer types default to ~i32~. The primary situation in which you’d use ~isize~
 or ~usize~ is when indexing some sort of collection.
+
+***** Types must match
+
+It looks like as if the types must match when performing arithmetic operations.
+The following example will fail to compile as there is no way to add a variable
+of type ~i32~ with another variable of type ~i64~.
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let x: i32 = 8;
+    let y: i64 = 15;
+    let z = x + y;
+
+    println!("x: {}", x);
+    println!("y: {}", y);
+    println!("z: {}", z);
+}
+#+END_SRC
 
 ***** Overflow
 
@@ -2141,6 +2163,268 @@ impl Rectangle {
         self.width > other.width && self.height > other.height
     }
 }
+#+END_SRC
+
+* Enums and pattern matching
+** Defining an enum
+
+To define am enum representing the different standards for IP addresses you
+would define it like this:
+
+#+BEGIN_SRC rust :results output
+enum IpAddrKind {
+    V4,
+    V6
+}
+#+END_SRC
+
+~IpAddrKind~ is now a custom data type that we can use elsewhere in our code. We
+can now create instances of each of the two variants of ~IpAddrKind~ and define
+functions that takes any ~IpAddrKind~:
+
+#+BEGIN_SRC rust :results output
+enum IpAddrKind {
+    V4,
+    V6
+}
+
+fn route(ip_kind: IpAddrKind) {}
+
+fn main() {
+    let four = IpAddrKind::V4;
+    let six = IpAddrKind::V6;
+
+    route(four);
+    route(six);
+}
+#+END_SRC
+
+To define the data associated with the enum you may be tempted to use enums in
+combination with a struct, like this:
+
+#+BEGIN_SRC rust :results output
+enum IpAddrKind {
+    V4,
+    V6
+}
+
+struct IpAddr {
+    kind: IpAddrKind,
+    address: String,
+}
+
+let home = IpAddr {
+    kind: IpAddrKind::V4,
+    address: String::from("127.0.0.1"),
+};
+
+let loopback = IpAddr {
+    kind: IpAddrKind::V6,
+    address: String::from("::1"),
+};
+#+END_SRC
+
+But you can represent this using only enums. This new definition of the ~IpAddr~
+enum says that both ~V4~ and ~V6~ variants will have associated ~String~ values:
+
+#+BEGIN_SRC rust :results output
+enum IpAddr {
+    V4(String),
+    V6(String)
+}
+
+let home = IpAddr::V4(String::from("127.0.0.1"));
+
+let loopback = IpAddr::V6(String::from("::1"));
+#+END_SRC
+
+We attach data to each variant of the enum directly, so there is no need for an
+extra struct (this is not possible in e.g. Java). Here it’s also easier to see
+another detail of how enums work: the name of each enum variant that we define
+also becomes a function that constructs an instance of the enum. That is,
+~IpAddr::V4()~ is a function call that takes a ~String~ argument and returns an
+instance of the ~IpAddr~ type. We automatically get this constructor function
+defined as a result of defining the enum.
+
+Each variant can have different types and amounts of associated data. If we
+wanted to store ~V4~ addresses as four ~u8~ values but still express ~V6~
+addresses as one ~String~ value, we wouldn’t be able to with a struct. Enums
+handle this case with ease:
+
+#+BEGIN_SRC rust :results output
+enum IpAddr {
+    V4(u8, u8, u8, u8),
+    V6(String)
+}
+
+let home = IpAddr::V4(127, 0, 0, 1);
+
+let loopback = IpAddr::V6(String::from("::1"));
+#+END_SRC
+
+You can put any kind of data inside an enum variant: strings, numeric types,
+structs, or another enum for example.
+
+A more advanced example could look like this:
+
+#+BEGIN_SRC rust :results output
+enum Message {
+    Quit,
+    Move { x: i32, y: i32 },
+    Write(String),
+    ChangeColor(i32, i32, i32),
+}
+#+END_SRC
+
+This enum has four variants with different types:
+
+- ~Quit~ has no data associated with it at all.
+- ~Move~ has named fields like a struct does.
+- ~Write~ includes a single ~String~.
+- ~ChangeColor~ includes three ~i32~ values.
+
+There is one more similarity between enums and structs: just as we’re able to
+define methods on structs using ~impl~, we’re also able to define methods on
+enums. Here’s a method named ~call~ that we could define on our ~Message~ enum:
+
+#+BEGIN_SRC rust :results output
+enum Message {
+    Quit,
+    Move { x: i32, y: i32 },
+    Write(String),
+    ChangeColor(i32, i32, i32),
+}
+
+impl Message {
+    fn call(&self) {
+        // method body would be defined here
+    }
+}
+
+let m = Message::Write(String::from("hello"));
+m.call();
+#+END_SRC
+
+*** The ~Option~ enum
+
+There is no ~null~ value in Rust, but it does have an enum that can encode the
+concept of a value being present or absent. This enum is ~Option<T>~, and it is
+[[https://doc.rust-lang.org/std/option/enum.Option.html][defined by the standard library]] library as follows:
+
+#+BEGIN_SRC rust :results output
+enum Option<T> {
+    None,
+    Some(T)
+}
+#+END_SRC
+
+The ~Option<T>~ enum is so useful that it’s even included in the prelude. Its
+variants are also included in the prelude: you can use ~Some~ and ~None~
+directly without the ~Option::~ prefix. The ~Option<T>~ enum is still just a
+regular enum, and ~Some(T)~ and ~None~ are still variants of type ~Option<T>~.
+
+The ~<T>~ syntax is a generic type parameter. Here are some examples of using
+~Option~ values to hold number types and string types:
+
+#+BEGIN_SRC rust :results output
+let some_number = Some(5);
+let some_char = Some('e');
+
+let absent_number: Option<i32> = None;
+#+END_SRC
+
+The type of ~some_number~ is ~Option<i32>~. The type of ~some_char~ is
+~Option<char>~, which is a different type. Rust can infer these types because
+we’ve specified a value inside the ~Some~ variant. For ~absent_number~, Rust
+requires us to annotate the overall ~Option~ type: the compiler can’t infer the
+type that the corresponding ~Some~ variant will hold by looking only at a ~None~
+value.
+
+~Option<T>~ is a different type than ~T~ so the following will fail:
+
+#+BEGIN_SRC rust :results output
+let x: i8 = 5;
+let y: Option<i8> = Some(5);
+let sum = x + y;
+#+END_SRC
+
+When we have a value of a type like ~i8~ in Rust, the compiler will ensure that
+we always have a valid value. We can proceed confidently without having to check
+for null before using that value. Only when we have an ~Option<T>~ do we have to
+worry about possibly not having a value, and the compiler will make sure we
+handle that case before using the value. In other words, you have to convert an
+~Option<T>~ to a ~T~ before you can perform ~T~ operations with it.
+
+** The ~match~ control flow construct
+
+~match~ allows you to compare a value against a series of patterns and then
+execute code based on which pattern matches. The power of ~match~ comes from the
+expressiveness of the patterns and the fact that the compiler confirms that all
+possible cases are handled.
+
+Here's an example:
+
+#+BEGIN_SRC rust :results output
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter,
+}
+
+fn value_in_cents(coin: Coin) -> u8 {
+    match coin {
+        Coin::Penny => 1,
+        Coin::Nickel => 5,
+        Coin::Dime => 10, // Try remove one option
+        Coin::Quarter => 25,
+    }
+}
+
+let nickel_cents = value_in_cents(Coin::Nickel);
+println!("{}", nickel_cents);
+let penny_cents = value_in_cents(Coin::Penny);
+println!("{}", penny_cents);
+#+END_SRC
+
+The different options in a ~match~ expression are called the ~match~ arms. An
+arm has two parts: a pattern and some code. The first arm here has a pattern
+that is the value ~Coin::Penny~ and then the ~=>~ operator that separates the
+pattern and the code to run. The code in this case is just the value ~1~. Each
+arm is separated from the next with a comma.
+
+The code associated with each arm is an expression, and the resulting value of
+the expression in the matching arm is the value that gets returned for the
+entire ~match~ expression.
+
+We don’t typically use curly brackets if the match arm code is short, but if you
+want to run multiple lines of code in a ~match~ arm, you must use curly
+brackets, and the comma following the arm is then optional. E.g.
+
+#+BEGIN_SRC rust :results output
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter,
+}
+
+fn value_in_cents(coin: Coin) -> u8 {
+    match coin {
+        Coin::Penny => {
+            println!("Lucky penny!");
+            1
+        }
+        Coin::Nickel => 5,
+        Coin::Dime => 10,
+        Coin::Quarter => 25,
+    }
+}
+
+let nickel_cents = value_in_cents(Coin::Nickel);
+println!("{}", nickel_cents);
+let penny_cents = value_in_cents(Coin::Penny);
+println!("{}", penny_cents);
 #+END_SRC
 
 * Debug

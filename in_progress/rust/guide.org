@@ -35,6 +35,7 @@
 - [[#enums-and-pattern-matching][Enums and pattern matching]]
   - [[#defining-an-enum][Defining an enum]]
   - [[#the-match-control-flow-construct][The ~match~ control flow construct]]
+  - [[#concise-control-flow-with-if-let][Concise Control Flow with ~if let~]]
 - [[#debug][Debug]]
 - [[#crates-and-dependencies][Crates and dependencies]]
 - [[#documentation][Documentation]]
@@ -2425,6 +2426,179 @@ let nickel_cents = value_in_cents(Coin::Nickel);
 println!("{}", nickel_cents);
 let penny_cents = value_in_cents(Coin::Penny);
 println!("{}", penny_cents);
+#+END_SRC
+
+*** Patterns that bind to values
+
+~match~ can bind to the parts of the values that match the pattern. This is how
+we can extract values out of enum variants.
+
+Let's add a ~UsState~ enum to the ~Quarter~ variant of our ~Coin~ enum:
+
+#+BEGIN_SRC rust :results output
+#[derive(Debug)] // so we can inspect the state in a minute
+enum UsState {
+    Alabama,
+    Alaska,
+    // --snip--
+}
+
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter(UsState),
+}
+
+fn value_in_cents(coin: Coin) -> u8 {
+    match coin {
+        Coin::Penny => 1,
+        Coin::Nickel => 5,
+        Coin::Dime => 10,
+        Coin::Quarter(state) => {
+            println!("State quarter from {:?}!", state); // We use the derive(Debug) functionality here
+            25
+        }
+    }
+}
+let nickel_cents = value_in_cents(Coin::Nickel);
+println!("{}", nickel_cents);
+let quarter_cents = value_in_cents(Coin::Quarter(UsState::Alaska));
+println!("{}", quarter_cents)
+#+END_SRC
+
+*** Matching with ~Option<T>~
+
+The concept above can also be applied to ~Option<T>~. E.g.
+
+#+BEGIN_SRC rust :results output
+fn plus_one(x: Option<i32>) -> Option<i32> {
+    match x {
+        None => None,
+        Some(i) => Some(i + 1),
+    }
+}
+
+let five = Some(5);
+println!("{:?}", five);
+let six = plus_one(five);
+println!("{:?}", six);
+let none = plus_one(None);
+println!("{:?}", none);
+#+END_SRC
+
+*** Matches are exhaustive
+
+In a ~match~ statement all patterns must be covered, otherwise it won't compile.
+E.g.
+
+#+BEGIN_SRC rust :results output
+fn plus_one(x: Option<i32>) -> Option<i32> {
+    match x {
+        //None => None,
+        Some(i) => Some(i + 1),
+    }
+}
+#+END_SRC
+
+Try to run the code above and see that the compilation fails.
+
+*** Catch-all patterns and the ~_~ placeholder
+
+#+BEGIN_SRC rust :results output
+fn print_number(x: u8) {
+    match x {
+        3 => println!("Three!"),
+        7 => println!("Seven!"),
+        other => println!("Just a {}...", other)
+    }
+}
+
+print_number(3);
+print_number(9);
+print_number(7);
+#+END_SRC
+
+The code above compile even though we haven't covered all possible values a ~u8~
+can have. This is because the last pattern will match all values not
+specifically listed (the variable may be named anything, not just ~other~).
+
+If we don't care about the "catch all" value we can use ~_~. By using this, the
+value won't be bound to ~_~ and Rust won't warn us about an unused variable.
+
+#+BEGIN_SRC rust :results output
+fn print_number(x: u8) {
+    match x {
+        3 => println!("Three!"),
+        7 => println!("Seven!"),
+        _ => println!("Just another value...")
+    }
+}
+
+print_number(3);
+print_number(9);
+print_number(7);
+#+END_SRC
+
+But what if we don't want to do anything in the catch all scenario? Just use the
+/unit value/, ~()~ (discussed in [[*The Tuple Type][The Tuple Type]] section).
+
+#+BEGIN_SRC rust :results output
+fn print_number(x: u8) {
+    match x {
+        3 => println!("Three!"),
+        7 => println!("Seven!"),
+        _ => ()
+    }
+}
+
+print_number(3);
+print_number(9);
+print_number(7);
+#+END_SRC
+
+** Concise Control Flow with ~if let~
+
+If you only care about one value it may feel unnecessary to write code like
+this:
+
+#+BEGIN_SRC rust :results output
+let config_max = Some(3u8);
+match config_max {
+    Some(max) => println!("The maximum is configured to be {}", max),
+    _ => (),
+}
+#+END_SRC
+
+To satisfy the ~match~ expression, we have to add ~_ => ()~ after processing
+just one variant, which is annoying boilerplate code to add. Instead we can use
+~if let~ when we only want to process one single variant:
+
+#+BEGIN_SRC rust :results output
+let config_max = Some(3u8);
+if let Some(max) = config_max {
+    println!("The maximum is configured to be {}", max);
+}
+#+END_SRC
+
+Using ~if let~ means less typing, less indentation, and less boilerplate code.
+However, you lose the exhaustive checking that ~match~ enforces.
+
+In other words, you can think of ~if let~ as syntax sugar for a ~match~ that
+runs code when the value matches one pattern and then ignores all other values.
+
+It's also allowed to use ~else~ with ~if let~. The block of code that goes with
+the ~else~ is the same as the block of code that would go with the ~_~ case in
+the ~match~ expression that is equivalent to the ~if let~ and ~else~.
+
+#+BEGIN_SRC rust :results output
+//let config_max = Some(3u8);
+let config_max: Option<u8> = None;
+if let Some(max) = config_max {
+    println!("The maximum is configured to be {}", max);
+} else {
+    println!("No maximum value is defined");
+}
 #+END_SRC
 
 * Debug

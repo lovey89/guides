@@ -40,6 +40,8 @@
   - [[#packages-and-crates][Packages and crates]]
   - [[#defining-modules-to-control-scope-and-privacy][Defining modules to control scope and privacy]]
   - [[#paths-for-referring-to-an-item-in-the-module-tree][Paths for referring to an item in the module tree]]
+  - [[#bringing-paths-into-scope-with-the-use-keyword][Bringing paths into scope with the ~use~ keyword]]
+  - [[#separating-modules-into-different-files][Separating modules into different files]]
 - [[#debug][Debug]]
 - [[#crates-and-dependencies][Crates and dependencies]]
 - [[#documentation][Documentation]]
@@ -2977,6 +2979,308 @@ pub fn eat_at_restaurant() {
     let order2 = back_of_house::Appetizer::Salad;
 }
 #+END_SRC
+
+** Bringing paths into scope with the ~use~ keyword
+
+Instead of writing out the full parths to use items in other modules we can use
+use the ~use~ keyword tocreate a shortcut to a path, and then use the shorter
+name everywhere else in the scope.
+
+#+BEGIN_SRC rust :results output
+mod front_of_house {
+    pub mod hosting {
+        pub fn add_to_waitlist() {}
+    }
+}
+
+use front_of_house::hosting; // Relative path but we could use the absolute path as well
+//use crate::front_of_house::hosting;
+
+pub fn eat_at_restaurant() {
+    hosting::add_to_waitlist();
+    // instead of
+    //front_of_house::hosting::add_to_waitlist();
+}
+#+END_SRC
+
+~hosting~ is now a valid name in this scope, just as though the ~hosting~ module
+had been defined here. Note that ~use~ only creates the shortcut for the
+particular scope in which the ~use~ occurs. The code block below moves the
+~eat_at_restaurant~ function into a new child module named ~customer~, which is
+then a different scope than the ~use~ statement, so the function body won’t
+compile:
+
+#+BEGIN_SRC rust :noeval
+mod front_of_house {
+    pub mod hosting {
+        pub fn add_to_waitlist() {}
+    }
+}
+
+use crate::front_of_house::hosting;
+
+mod customer {
+    pub fn eat_at_restaurant() {
+        hosting::add_to_waitlist();
+    }
+}
+#+END_SRC
+
+To fix this problem, move the ~use~ within the ~customer~ module too, or
+reference the shortcut in the parent module with ~super::hosting~ within the
+child ~customer~ module.
+
+*** Creating idiomatic ~use~ paths
+
+In the example above you could also specified the ~use~ path all the way down
+to the function, like this:
+
+#+BEGIN_SRC rust :results output
+mod front_of_house {
+    pub mod hosting {
+        pub fn add_to_waitlist() {}
+    }
+}
+
+use front_of_house::hosting::add_to_waitlist;
+
+
+pub fn eat_at_restaurant() {
+    add_to_waitlist();
+}
+#+END_SRC
+
+Although this accomplished the same task the former is the idiomatic way to
+bring a function into scope with ~use~. Bringing the function’s parent module
+into scope with ~use~ means we have to specify the parent module when calling
+the function. Specifying the parent module when calling the function makes it
+clear that the function isn’t locally defined while still minimizing repetition
+of the full path.
+
+On the other hand, when bringing in structs, enums, and other items with ~use~,
+it’s idiomatic to specify the full path. E.g.
+
+#+BEGIN_SRC rust :results output
+use std::collections::HashMap;
+
+fn main() {
+    let mut map = HashMap::new();
+    map.insert(1, 2);
+}
+#+END_SRC
+
+*** Providing new names with the ~as~ keyword
+
+In some cases you may try to bring two types of the same name with the ~use~
+keyword. We can use the ~as~ keyword to give the type a new local name, or
+/alias/.
+
+#+BEGIN_SRC rust :noeval
+use std::fmt::Result;
+use std::io::Result as IoResult;
+
+fn function1() -> Result {
+    // --snip--
+}
+
+fn function2() -> IoResult<()> {
+    // --snip--
+}
+#+END_SRC
+
+In the second ~use~ statement, we chose the new name ~IoResult~ for the
+~std::io::Result~ type, which won’t conflict with the ~Result~ from ~std::fmt~
+that we’ve also brought into scope.
+
+*** Re-exporting names with ~pub use~
+
+When we bring a name into scope with the ~use~ keyword, the name available in
+the new scope is private. To enable the code that calls our code to refer to
+that name as if it had been defined in that code’s scope, we can combine ~pub~
+and ~use~. This technique is called /re-exporting/ because we’re bringing an
+item into scope but also making that item available for others to bring into
+their scope.
+
+#+BEGIN_SRC rust :results output
+mod front_of_house {
+    pub mod hosting {
+        pub fn add_to_waitlist() {}
+    }
+}
+
+pub use front_of_house::hosting;
+
+pub fn eat_at_restaurant() {
+    hosting::add_to_waitlist();
+}
+#+END_SRC
+
+Before this change, external code would have to call the ~add_to_waitlist~
+function by using the path ~restaurant::front_of_house::hosting::add_to_waitlist()~.
+Now that this ~pub use~ has re-exported the ~hosting~ module from the root
+module, external code can now use the path ~restaurant::hosting::add_to_waitlist()~
+instead.
+
+With ~pub use~, we can write our code with one structure but expose a different
+structure. Doing so makes our library well organized for programmers working on
+the library and programmers calling the library.
+
+*** Using external packages
+
+In the guessing game we developed earlier ([[file:002_guessing_game][002_guessing_game]]) we used an
+external package called ~rand~ to get random numbers. To use ~rand~ in our
+project, we added this line to ~Cargo.toml~:
+
+#+BEGIN_SRC toml
+rand = "0.8.5"
+#+END_SRC
+
+Adding ~rand~ as a dependency in ~Cargo.toml~ tells Cargo to download the ~rand~
+package and any dependencies from [[crates.io]] and make ~rand~ available to our
+project.
+
+Then, to bring ~rand~ definitions into the scope of our package, we added a
+~use~ line starting with the name of the crate, ~rand~, and listed the items we
+wanted to bring into scope. In the code block below we bring the ~Rng~ trait
+into scope and call the ~rand::thread_rng~ function:
+
+#+BEGIN_SRC rust :noeval
+use rand::Rng;
+
+fn main() {
+    let secret_number = rand::thread_rng().gen_range(1..=100);
+}
+#+END_SRC
+
+Members of the Rust community have made many packages available at [[crates.io]],
+and pulling any of them into your package involves these same steps: listing
+them in your package’s ~Cargo.toml~ file and using ~use~ to bring items from
+their crates into scope.
+
+Note that the standard ~std~ library is also a crate that’s external to our
+package. Because the standard library is shipped with the Rust language, we
+don’t need to change ~Cargo.toml~ to include ~std~. But we do need to refer to
+it with ~use~ to bring items from there into our package’s scope. For example,
+with ~HashMap~ we would use this line:
+
+#+BEGIN_SRC rust :results output
+use std::collections::HashMap;
+#+END_SRC
+
+This is an absolute path starting with ~std~, the name of the standard library
+crate.
+
+*** Using nested paths to clean up large ~use~ lists
+
+Instead of bringing multiple items into scope in multiple lines like this:
+
+#+BEGIN_SRC rust :results output
+use std::cmp::Ordering;
+use std::io;
+#+END_SRC
+
+We can use nested paths to bring the same items into scope in one line. We do
+this by specifying the common part of the path, followed by two colons, and then
+curly brackets around a list of the parts of the paths that differ:
+
+#+BEGIN_SRC rust :results output
+use std::{cmp::Ordering, io};
+#+END_SRC
+
+We can use a nested path at any level in a path, which is useful when combining
+two ~use~ statements that share a subpath. E.g.
+
+#+BEGIN_SRC rust :results output
+use std::io;
+use std::io::Write;
+#+END_SRC
+
+The common part of these two paths is ~std::io~, and that’s the complete first
+path. To merge these two paths into one ~use~ statement, we can use ~self~ in
+the nested path:
+
+#+BEGIN_SRC rust :results output
+use std::io::{self, Write};
+#+END_SRC
+
+*** The glob operator
+
+If we want to bring /all/ public items defined in a path into scope, we can
+specify that path followed by the ~*~ glob operator:
+
+#+BEGIN_SRC rust :results output
+use std::collections::*;
+#+END_SRC
+
+** Separating modules into different files
+
+When modules get large, you might want to move their definitions to a separate
+file to make the code easier to navigate.
+
+Note that you only need to load a file using a ~mod~ declaration /once/ in your
+module tree. Once the compiler knows the file is part of the project (and knows
+where in the module tree the code resides because of where you’ve put the ~mod~
+statement), other files in your project should refer to the loaded file’s code
+using a path to where it was declared. In other words, ~mod~ is not an “include”
+operation.
+
+#+BEGIN_SRC rust :noeval
+mod front_of_house {
+    pub mod hosting {
+        pub fn add_to_waitlist() {}
+    }
+}
+
+pub use crate::front_of_house::hosting;
+
+pub fn eat_at_restaurant() {
+    hosting::add_to_waitlist();
+}
+#+END_SRC
+
+This single file has been divided into multiple files (one module per file) in
+[[file:005_restaurant][005_restaurant]]. The files are structured like this:
+
+#+BEGIN_SRC
+restaurant
+├── Cargo.toml
+├── Cargo.lock
+└── src
+    ├── lib.rs
+    ├── front_of_house.rs
+    └── front_of_house
+        └── hosting.rs
+#+END_SRC
+
+We’ve moved each module’s code to a separate file, and the module tree remains
+the same. The function calls in ~eat_at_restaurant~ will work without any
+modification, even though the definitions live in different files.
+
+Note that the ~pub use crate::front_of_house::hosting~ statement in ~src/lib.rs~
+also hasn’t changed. The ~mod~ keyword declares modules, and Rust looks in a
+file with the same name as the module for the code that goes into that module.
+
+*** Alternate file paths
+
+For a module named ~front_of_house~ declared in the crate root, the compiler
+will look for the module’s code in:
+
+- ~src/front_of_house/hosting.rs~
+- ~src/front_of_house/hosting/mod.rs~ (older style, still supported path)
+
+For a module named ~hosting~ that is a submodule of ~front_of_house~, the
+compiler will look for the module’s code in:
+
+- ~src/front_of_house/hosting.rs~
+- ~src/front_of_house/hosting/mod.rs~ (older style, still supported path)
+
+If you use both styles for the same module, you’ll get a compiler error. Using a
+mix of both styles for different modules in the same project is allowed, but
+might be confusing for people navigating your project.
+
+The main downside to the style that uses files named ~mod.rs~ is that your
+project can end up with many files named ~mod.rs~, which can get confusing when
+you have them open in your editor at the same time.
 
 * Debug
 

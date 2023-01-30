@@ -2642,7 +2642,7 @@ far have been binary crates.
 executable. Instead, they define functionality intended to be shared with
 multiple projects. Most of the time when Rustaceans say “crate”, they mean
 library crate, and they use “crate” interchangeably with the general programming
-concept of a “library".
+concept of a "library".
 
 The /crate root/ is a source file that the Rust compiler starts from and makes
 up the root module of your crate.
@@ -3478,11 +3478,386 @@ vector itself is valid.
 
 ** Strings
 
+Strings in Rust are more complicated than other languages for three reasons:
 
+- Rust’s propensity for exposing possible errors
+- Strings being a more complicated data structure than many programmers give
+  them credit for, and
+- UTF-8
+
+We discuss strings in the context of collections because strings are implemented
+as a collection of bytes, plus some methods to provide useful functionality when
+those bytes are interpreted as text.
+
+Rust has only one string type in the core language, which is the string slice
+~str~ that is usually seen in its borrowed form ~&str~. String literals, for
+example, are stored in the program’s binary and are therefore string slices.
+
+The ~String~ type, which is provided by Rust’s standard library rather than
+coded into the core language, is a growable, mutable, owned, UTF-8 encoded
+string type. Both ~String~ and string slices are used heavily in Rust’s standard
+library, and are both UTF-8 encoded.
+
+*** Creating a new string
+
+Many of the same operations available with ~Vec<T>~ are available with ~String~
+as well, because ~String~ is actually implemented as a wrapper around a vector
+of bytes with some extra guarantees, restrictions, and capabilities.
+
+This is how you create an empty ~String~:
+
+#+BEGIN_SRC rust :results output
+let mut s = String::new();
+#+END_SRC
+
+We can load data into this mutable ~String~. Often, we have some initial data
+that we want to start the string with. For that, we use the ~to_string~ method,
+which is available on any type that implements the ~Display~ trait, as string
+literals do.
+
+#+BEGIN_SRC rust :results output
+let data = "initial contents";
+let s = data.to_string();
+// the method also works on a literal directly:
+let s = "initial contents".to_string();
+#+END_SRC
+
+We can also use the function ~String::from~ to create a ~String~ from a string
+literal. This code is equivalent to using the ~to_string~ method:
+
+#+BEGIN_SRC rust :results output
+let s = String::from("initial contents");
+#+END_SRC
+
+Since strings are UTF-8 encoded we can include any properly encoded data in
+them:
+
+#+BEGIN_SRC rust :results output
+let hello = String::from("السلام عليكم");
+let hello = String::from("Dobrý den");
+let hello = String::from("Hello");
+let hello = String::from("שָׁלוֹם");
+let hello = String::from("नमस्ते");
+let hello = String::from("こんにちは");
+let hello = String::from("안녕하세요");
+let hello = String::from("你好");
+let hello = String::from("Olá");
+let hello = String::from("Здравствуйте");
+let hello = String::from("Hola");
+#+END_SRC
+
+*** Updating a string
+
+We can grow a ~String~ by using the ~push_str~ method to append a string slice:
+
+#+BEGIN_SRC rust :results output
+let mut s = String::from("foo");
+s.push_str("bar");
+println!("{s}")
+#+END_SRC
+
+The ~push_str~ method takes a string slice because we don’t necessarily want to
+take ownership of the parameter. So in the example below we can still use ~s2~
+after the call to ~pust_str~:
+
+#+BEGIN_SRC rust :results output
+let mut s1 = String::from("foo");
+let s2 = "bar";
+s1.push_str(s2);
+println!("s1 is {s1}");
+println!("s2 is {s2}");
+#+END_SRC
+
+To add a character instead of a string slice you can use the ~push~ method:
+
+#+BEGIN_SRC rust :results output
+let mut s = String::from("lo");
+s.push('l');
+println!("{s}")
+#+END_SRC
+
+**** Concatenation with the ~+~ operator or the ~format!~ macro
+
+Often, you’ll want to combine two existing strings. One way to do so is to use
+the ~+~ operator:
+
+#+BEGIN_SRC rust :results output
+let s1 = String::from("Hello, ");
+let s2 = String::from("world!");
+let s3 = s1 + &s2; // note s1 has been moved here and can no longer be used
+println!("{s3}")
+#+END_SRC
+
+The reason ~s1~ is no longer valid after the addition, and the reason we used a
+reference to ~s2~, has to do with the signature of the method that’s called when
+we use the ~+~ operator. The ~+~ operator uses the ~add~ method, whose signature
+looks something like this:
+
+#+BEGIN_SRC rust :noeval
+fn add(self, s: &str) -> String {
+#+END_SRC
+
+The reason why the code above works even though we called ~+~ with a ~&String~
+instead of ~&str~ is that the compiler can /coerce/ the ~&String~ argument into
+a ~&str~. Because ~add~ does not take ownership of the ~s~ parameter, ~s2~ will
+still be a valid ~String~ after this operation.
+
+If we need to concatenate multiple strings, the behavior of the ~+~ operator
+gets unwieldy:
+
+#+BEGIN_SRC rust :results output
+let s1 = String::from("tic");
+let s2 = String::from("tac");
+let s3 = String::from("toe");
+let s = s1 + "-" + &s2 + "-" + &s3;
+println!("{s}");
+println!("{s2}"); // Still valid
+println!("{s3}"); // Still valid
+#+END_SRC
+
+For more complicated string combining, we can instead use the ~format!~ macro:
+
+#+BEGIN_SRC rust :results output
+let s1 = String::from("tic");
+let s2 = String::from("tac");
+let s3 = String::from("toe");
+let s = format!("{s1}-{s2}-{s3}");
+println!("{s}");
+println!("{s1}"); // All variables still valid
+println!("{s2}");
+println!("{s3}");
+#+END_SRC
+
+The ~format!~ macro works like ~println!~, but instead of printing the output to
+the screen, it returns a ~String~ with the contents. The ~format!~ macro uses
+references so that this call doesn’t take ownership of any of its parameters.
+
+*** Indexing into strings
+
+If you try to access parts of a ~String~ using indexing syntax in Rust, you’ll
+get an error:
+
+#+BEGIN_SRC rust :results output
+let s1 = String::from("hello");
+let h = s1[0];
+#+END_SRC
+
+Because the way a ~String~ is represented internally (UTF-8 character) it's not
+suitable to allow indexing.
+
+Another reason Rust doesn’t allow us to index into a ~String~ to get a character
+is that indexing operations are expected to always take constant time (O(1)).
+But it isn’t possible to guarantee that performance with a ~String~, because
+Rust would have to walk through the contents from the beginning to the index to
+determine how many valid characters there were.
+
+*** Slicing strings
+
+You can slice a string like this:
+
+#+BEGIN_SRC rust :results output
+let hello = "Здравствуйте";
+let s = &hello[0..4];
+println!("{s}");
+#+END_SRC
+
+Note that only the 2 first characters was returned. That is because you index on
+the bytes and in this case the first 2 characters are represented internally by
+4 bytes.
+
+If we were to try to slice only part of a character’s bytes with something like
+~&hello[0..3]~, Rust would panic at runtime in the same way as if an invalid
+index were accessed in a vector:
+
+#+BEGIN_SRC rust :results output
+let hello = "Здравствуйте";
+let s = &hello[0..3];
+println!("{s}");
+#+END_SRC
+
+You should use ranges to create string slices with caution, because doing so can
+crash your program.
+
+*** Iterating over a string
+
+The best way to operate on pieces of strings is to be explicit about whether you
+want characters or bytes. For individual Unicode scalar values, use the chars
+method. Calling ~chars~ on “Здр” separates out and returns three values of type
+~char~, and you can iterate over the result to access each element:
+
+#+BEGIN_SRC rust :results output
+for c in "Здр".chars() {
+    println!("{c}");
+}
+#+END_SRC
+
+The ~bytes~ method returns each raw byte:
+
+#+BEGIN_SRC rust :results output
+for b in "Здр".bytes() {
+    println!("{b}");
+}
+#+END_SRC
 
 ** Hash maps
 
+The type ~HashMap<K, V>~ stores a mapping of keys of type ~K~ to values of type
+~V~ using a hashing function, which determines how it places these keys and
+values into memory.
 
+*** Creating a new hash map
+
+One way to create an empty hash map is using ~new~ and adding elements with
+~insert~.
+
+#+BEGIN_SRC rust :results output
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Yellow"), 50);
+#+END_SRC
+
+Note that we need to first ~use~ the ~HashMap~ from the collections portion of
+the standard library. It’s not included in the features brought into scope
+automatically in the prelude.
+
+Like vectors, hash maps are homogeneous: all of the keys must have the same type
+as each other, and all of the values must have the same type.
+
+*** Accessing values
+
+We can get a value out of the hash map by providing its key to the ~get~ method:
+
+#+BEGIN_SRC rust :results output
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Yellow"), 50);
+
+let team_name = String::from("Blue");
+let score = scores.get(&team_name).copied().unwrap_or(0);
+
+println!("{score}")
+#+END_SRC
+
+The ~get~ method returns an ~Option<&V>~; if there’s no value for that key in
+the hash map, get will return ~None~. This program handles the ~Option~ by
+calling ~copied~ to get an ~Option<i32>~ rather than an ~Option<&i32>~, then
+~unwrap_or~ to set ~score~ to zero if ~scores~ doesn't have an entry for the
+key.
+
+We can iterate over each key/value pair in a hash map in a similar manner as we
+do with vectors, using a ~for~ loop:
+
+#+BEGIN_SRC rust :results output
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Yellow"), 50);
+
+for (key, value) in &scores {
+    println!("{key}: {value}");
+}
+#+END_SRC
+
+*** Ownership
+
+For types that implement the ~Copy~ trait, like ~i32~, the values are copied
+into the hash map. For owned values like ~String~, the values will be moved and
+the hash map will be the owner of those values.
+
+#+BEGIN_SRC rust :results output
+use std::collections::HashMap;
+
+let field_name = String::from("Favorite color");
+let field_value = String::from("Blue");
+
+let mut map = HashMap::new();
+map.insert(field_name, field_value);
+// field_name and field_value are invalid at this point, try using them and
+// see what compiler error you get!
+#+END_SRC
+
+If we insert references to values into the hash map, the values won’t be moved
+into the hash map.
+
+*** Updating a hash map
+
+When you want to change the data in a hash map, you have to decide how to handle
+the case when a key already has a value assigned.
+
+**** Overwriting a value
+
+If we insert a key and a value into a hash map and then insert that same key
+with a different value, the value associated with that key will be replaced.
+
+#+BEGIN_SRC rust :results output
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Blue"), 25);
+
+println!("{:?}", scores);
+#+END_SRC
+
+**** Adding a key and value only if a key isn’t present
+
+Hash maps have a special API called ~entry~ that takes the key you want to check
+as a parameter. The return value of the ~entry~ method is an enum called ~Entry~
+that represents a value that might or might not exist. Let’s say we want to
+check whether the key for the Yellow team has a value associated with it. If it
+doesn’t, we want to insert the value 50, and the same for the Blue team.
+
+#+BEGIN_SRC rust :results output
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+scores.insert(String::from("Blue"), 10);
+
+scores.entry(String::from("Yellow")).or_insert(50);
+scores.entry(String::from("Blue")).or_insert(50);
+
+println!("{:?}", scores);
+#+END_SRC
+
+The ~or_insert~ method on ~Entry~ is defined to return a mutable reference to
+the value for the corresponding ~Entry~ key if that key exists, and if not,
+inserts the parameter as the new value for this key and returns a mutable
+reference to the new value. This technique is much cleaner than writing the
+logic ourselves and, in addition, plays more nicely with the borrow checker.
+
+**** Updating a value based on the old value
+
+#+BEGIN_SRC rust :results output
+use std::collections::HashMap;
+
+let text = "hello world wonderful world";
+
+let mut map = HashMap::new();
+
+for word in text.split_whitespace() {
+    let count = map.entry(word).or_insert(0);
+    *count += 1;
+}
+
+println!("{:?}", map);
+#+END_SRC
+
+The ~split_whitespace~ method returns an iterator over sub-slices, separated by
+whitespace, of the value in ~text~. The ~or_insert~ method returns a mutable
+reference (~&mut V~) to the value for the specified key. Here we store that
+mutable reference in the ~count~ variable, so in order to assign to that value,
+we must first dereference ~count~ using the asterisk (~*~). The mutable
+reference goes out of scope at the end of the ~for~ loop, so all of these
+changes are safe and allowed by the borrowing rules.
 
 * Debug
 

@@ -46,6 +46,10 @@
   - [[#vectors][Vectors]]
   - [[#strings][Strings]]
   - [[#hash-maps][Hash maps]]
+- [[#error-handling][Error handling]]
+  - [[#unrecoverable-errors-with-panic][Unrecoverable Errors with ~panic!~]]
+  - [[#recoverable-errors-with-result][Recoverable Errors with ~Result~]]
+  - [[#which-one-to-use][Which one to use]]
 - [[#debug][Debug]]
 - [[#crates-and-dependencies][Crates and dependencies]]
 - [[#documentation][Documentation]]
@@ -3858,6 +3862,118 @@ mutable reference in the ~count~ variable, so in order to assign to that value,
 we must first dereference ~count~ using the asterisk (~*~). The mutable
 reference goes out of scope at the end of the ~for~ loop, so all of these
 changes are safe and allowed by the borrowing rules.
+
+* Error handling
+
+In many cases, Rust requires you to acknowledge the possibility of an error and
+take some action before your code will compile. This requirement makes your
+program more robust by ensuring that you’ll discover errors and handle them
+appropriately before you’ve deployed your code to production.
+
+Rust groups errors into two major categories: /recoverable/ and /unrecoverable/
+errors.
+
+** Unrecoverable Errors with ~panic!~
+
+
+When a program panices it will print a failure message, unwind, clean up the
+stack, and quit. Via an environment variable, you can also have Rust display the
+call stack when a panic occurs to make it easier to track down the source of the
+panic.
+
+To make a program panic you can use the ~panic!~ macro
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    panic!("crash and burn");
+}
+#+END_SRC
+
+*** Using a ~panic!~ backtrace
+
+The following command will panic:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let v = vec![1, 2, 3];
+    v[99];
+}
+#+END_SRC
+
+The output will look something like this:
+
+#+BEGIN_SRC
+thread 'main' panicked at 'index out of bounds: the len is 3 but the index is 99', rust-src-f1BHax.rs:3:5
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+#+END_SRC
+
+It only reveals which line in our code that makes a call to a function that
+panics. The next note line tells us that we can set the ~RUST_BACKTRACE~
+environment variable to get a backtrace of exactly what happened to cause the
+error. Then it will look something like this:
+
+#+BEGIN_SRC
+thread 'main' panicked at 'index out of bounds: the len is 3 but the index is 99', src/main.rs:4:5
+stack backtrace:
+   0: rust_begin_unwind
+             at /rustc/897e37553bba8b42751c67658967889d11ecd120/library/std/src/panicking.rs:584:5
+   1: core::panicking::panic_fmt
+             at /rustc/897e37553bba8b42751c67658967889d11ecd120/library/core/src/panicking.rs:142:14
+   2: core::panicking::panic_bounds_check
+             at /rustc/897e37553bba8b42751c67658967889d11ecd120/library/core/src/panicking.rs:84:5
+   3: <usize as core::slice::index::SliceIndex<[T]>>::index
+             at /rustc/897e37553bba8b42751c67658967889d11ecd120/library/core/src/slice/index.rs:250:10
+   4: core::slice::index::<impl core::ops::index::Index<I> for [T]>::index
+             at /rustc/897e37553bba8b42751c67658967889d11ecd120/library/core/src/slice/index.rs:18:9
+   5: <alloc::vec::Vec<T,A> as core::ops::index::Index<I>>::index
+             at /rustc/897e37553bba8b42751c67658967889d11ecd120/library/alloc/src/vec/mod.rs:2628:9
+   6: panic::main                    <---- The project was named panic
+             at ./src/main.rs:4:5
+   7: core::ops::function::FnOnce::call_once
+             at /rustc/897e37553bba8b42751c67658967889d11ecd120/library/core/src/ops/function.rs:248:5
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+#+END_SRC
+
+In order to get backtraces with this information, debug symbols must be enabled.
+Debug symbols are enabled by default when using ~cargo build~ or ~cargo run~
+without the ~--release~ flag.
+
+** Recoverable Errors with ~Result~
+
+For recoverable errors we use the ~Result~ enum instead of causing the program
+to panic.
+
+#+BEGIN_SRC rust :results output
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+#+END_SRC
+
+Because ~Result~ has the generic type parameters ~<T, E>~, we can use the
+~Result~ type and the functions defined on it in many different situations where
+the successful value and error value we want to return may differ.
+
+The ~File::open~ function will return a ~Result<std::fs::File, std::io::Error>~:
+
+#+BEGIN_SRC rust :results output
+use std::fs::File;
+
+fn main() {
+    let greeting_file_result = File::open("hello.txt");
+
+    let greeting_file = match greeting_file_result {
+        Ok(file) => file,
+        Err(error) => panic!("Problem opening the file: {:?}", error),
+    };
+}
+#+END_SRC
+
+Like the ~Option~ enum, the ~Result~ enum and its variants have been brought
+into scope by the prelude, so we don’t need to specify ~Result::~ before the
+~Ok~ and ~Err~ variants in the match arms.
+
+** Which one to use
 
 * Debug
 

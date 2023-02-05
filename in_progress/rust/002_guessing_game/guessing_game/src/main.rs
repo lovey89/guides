@@ -10,7 +10,7 @@ fn main() {
     let secret_number = rand::thread_rng().gen_range(1..=100);
     // Old code looked like
     //let secret_number = rand::thread_rng().gen_range(1..101);
-    // So I guess that "=x"" means that x is inclusive and just "x" is exclusive
+    // So I guess that "=x" means that x is inclusive and just "x" is exclusive
 
     //println!("The secret number is: {}", secret_number);
 

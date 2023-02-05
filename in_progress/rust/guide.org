@@ -4229,7 +4229,10 @@ implement the ~std::process::Termination~ trait, which contains a function
 
 ** Which one to use
 
-ads
+When code panics, there’s no way to recover. You could call ~panic!~ for any
+error situation, whether there’s a possible way to recover or not, but then
+you’re making the decision that a situation is unrecoverable on behalf of the
+calling code.
 
 * Debug
 

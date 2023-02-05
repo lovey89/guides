@@ -3973,7 +3973,263 @@ Like the ~Option~ enum, the ~Result~ enum and its variants have been brought
 into scope by the prelude, so we don’t need to specify ~Result::~ before the
 ~Ok~ and ~Err~ variants in the match arms.
 
+*** Matching on different errors
+
+Sometimes we want to take different actions for different failure reasons. If
+~File::open~ failed because the file doesn’t exist, we want to create the file
+and return the handle to the new file. If ~File::open~ failed for any other
+reason we still want the code to ~panic!~.
+
+#+BEGIN_SRC rust :results output
+use std::fs::File;
+use std::io::ErrorKind;
+
+fn main() {
+    let greeting_file_result = File::open("hello.txt");
+    // Try open a file with no read permissions to see what happens
+    let greeting_file = match greeting_file_result {
+        Ok(file) => file,
+        Err(error) => match error.kind() {
+            ErrorKind::NotFound => match File::create("hello.txt") {
+                Ok(fc) => fc,
+                Err(e) => panic!("Problem creating the file: {:?}", e),
+            },
+            other_error => {
+                panic!("Problem opening the file: {:?}", other_error);
+            }
+        },
+    };
+}
+#+END_SRC
+
+The type of the value that ~File::open~ returns inside the ~Err~ variant is
+~io::Error~, which is a struct provided by the standard library. This struct has
+a method ~kind~ that we can call to get an ~io::ErrorKind~ value.
+
+**** Alternatives to using ~match~ with ~Result<T, E>~
+
+You can also use closures (more about that later), which are used with many of
+the methods defined on ~Result<T, E>~. Here’s another way to write the same
+logic as shown in the previous example, this time using closures and the
+~unwrap_or_else~ method:
+
+#+BEGIN_SRC rust :results output
+use std::fs::File;
+use std::io::ErrorKind;
+
+fn main() {
+    let greeting_file = File::open("hello.txt").unwrap_or_else(|error| {
+        if error.kind() == ErrorKind::NotFound {
+            File::create("hello.txt").unwrap_or_else(|error| {
+                panic!("Problem creating the file: {:?}", error);
+            })
+        } else {
+            panic!("Problem opening the file: {:?}", error);
+        }
+    });
+}
+#+END_SRC
+
+*** Getting the value or panic using ~unwrap~ and ~expect~
+
+If the ~Result~ value is the ~Ok~ variant, ~unwrap~ will return the value inside
+the ~Ok~. If the ~Result~ is the ~Err~ variant, ~unwrap~ will call the ~panic!~
+macro for us.
+
+#+BEGIN_SRC rust :results output
+use std::fs::File;
+
+fn main() {
+    let greeting_file = File::open("hello.txt").unwrap();
+}
+#+END_SRC
+
+Similarly, the ~expect~ method lets us also choose the ~panic!~ error message.
+Using ~expect~ instead of ~unwrap~ and providing good error messages can convey
+your intent and make tracking down the source of a panic easier.
+
+#+BEGIN_SRC rust :results output
+use std::fs::File;
+
+fn main() {
+    let greeting_file = File::open("hello.txt")
+        .expect("hello.txt should be included in this project");
+}
+#+END_SRC
+
+*** Propagating errors
+
+Instead of handling the error within the function itself, you can return the
+error to the calling code.
+
+#+BEGIN_SRC rust :noeval
+use std::fs::File;
+use std::io::{self, Read};
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let username_file_result = File::open("hello.txt");
+
+    let mut username_file = match username_file_result {
+        Ok(file) => file,
+        Err(e) => return Err(e),
+    };
+
+    let mut username = String::new();
+
+    match username_file.read_to_string(&mut username) {
+        Ok(_) => Ok(username),
+        Err(e) => Err(e),
+    }
+}
+#+END_SRC
+
+If this function succeeds without any problems, the code that calls this
+function will receive an ~Ok~ value that holds a ~String~ - the username that
+this function read from the file. Both the ~File::open~ function and the
+~read_to_string~ method has the error type ~io::Error~ which makes that type
+suitable for our function as well. So in the code block above we can see that we
+return errors early to the caller if anything fails. Remember that we don't need
+to explicitly say ~return~ when the error is the last expression.
+
+The code that calls this code will then handle getting either an ~Ok~ value that
+contains a username or an ~Err~ value that contains an ~io::Error~.
+
+**** A shortcut for propagating errors: the ~?~ operator
+
+This pattern of propagating errors is so common in Rust that Rust provides the
+question mark operator ~?~ to make this easier.
+
+Let's rewrite the previous code using the ~?~ operator:
+
+#+BEGIN_SRC rust :noeval
+use std::fs::File;
+use std::io::{self, Read};
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let mut username_file = File::open("hello.txt")?;
+    let mut username = String::new();
+    username_file.read_to_string(&mut username)?;
+    Ok(username)
+}
+#+END_SRC
+
+The ~?~ placed after a ~Result~ value is defined to work in almost the same way
+as the ~match~ expressions we defined to handle the ~Result~ values before. If
+the value of the ~Result~ is an ~Ok~, the value inside the ~Ok~ will get
+returned from this expression, and the program will continue. If the value is an
+~Err~, the ~Err~ will be returned from the whole function as if we had used the
+~return~ keyword so the error value gets propagated to the calling code.
+
+There is a difference between what the ~match~ expression does and what the ~?~
+operator does: error values that have the ~?~ operator called on them go through
+the ~from~ function, defined in the ~From~ trait in the standard library, which
+is used to convert values from one type into another. When the ~?~ operator
+calls the ~from~ function, the error type received is converted into the error
+type defined in the return type of the current function. This is useful when a
+function returns one error type to represent all the ways a function might fail,
+even if parts might fail for many different reasons.
+
+For example, we could change the ~read_username_from_file~ function in to return
+a custom error type named ~OurError~ that we define. If we also define
+~impl From<io::Error> for OurError~ to construct an instance of ~OurError~ from
+an ~io::Error~, then the ~?~ operator calls in the body of
+~read_username_from_file~ will call ~from~ and convert the error types without
+needing to add any more code to the function.
+
+We could actually write an even shorter version of the code above by chaining
+method calls immediately after the ~?~:
+
+#+BEGIN_SRC rust :noeval
+use std::fs::File;
+use std::io::{self, Read};
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let mut username = String::new();
+
+    File::open("hello.txt")?.read_to_string(&mut username)?;
+
+    Ok(username)
+}
+#+END_SRC
+
+Since this is a fairly common operation to read a file into a ~String~, the
+standard library provides the convenient ~fs::read_to_string~ function that
+opens the file, creates a new ~String~, reads the contents of the file, puts the
+contents into that ~String~, and returns it.
+
+#+BEGIN_SRC rust :results output
+use std::fs;
+use std::io;
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    fs::read_to_string("hello.txt")
+}
+#+END_SRC
+
+**** Where the ~?~ operator can be used
+
+The ~?~ operator can only be used in functions whose return type is compatible
+with the value the ~?~ is used on. In addition to that it can only be used in a
+function returning a ~Result~, ~Option~, or another type that implements
+~FromResidual~.
+
+The behavior of the ~?~ operator when called on an ~Option<T>~ is similar to its
+behavior when called on a ~Result<T, E>~: if the value is ~None~, the ~None~
+will be returned early from the function at that point. If the value is ~Some~,
+the value inside the ~Some~ is the resulting value of the expression and the
+function continues. E.g.:
+
+#+BEGIN_SRC rust :noeval
+fn last_char_of_first_line(text: &str) -> Option<char> {
+    text.lines().next()?.chars().last()
+}
+#+END_SRC
+
+This code takes the ~text~ string slice argument and calls the ~lines~ method on
+it, which returns an iterator over the lines in the string. Because this
+function wants to examine the first line, it calls ~next~ on the iterator to get
+the first value from the iterator. If ~text~ is the empty string, this call to
+~next~ will return ~None~, in which case we use ~?~ to stop and return ~None~
+from ~last_char_of_first_line~. If ~text~ is not the empty string, ~next~ will
+return a ~Some~ value containing a string slice of the first line in text.
+
+The ~?~ extracts the string slice, and we can call ~chars~ on that string slice
+to get an iterator of its characters. We’re interested in the last character in
+this first line, so we call ~last~ to return the last item in the iterator. This
+is an ~Option~ because it’s possible that the first line is the empty string,
+for example if ~text~ starts with a blank line but has characters on other
+lines. The ~?~ operator in the middle gives us a concise way to express this
+logic, allowing us to implement the function in one line.
+
+So far, all the ~main~ functions we’ve used return ~()~. There are restrictions
+on what its return type can be for the programs to behave as expected. ~main~
+can also return a ~Result<(), E>~. E.g.:
+
+#+BEGIN_SRC rust :results output
+use std::error::Error;
+use std::fs::File;
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let greeting_file = File::open("hello.txt")?;
+    Ok(())
+}
+#+END_SRC
+
+The ~Box<dyn Error>~ type is a /trait object/, which we’ll talk more about
+later. For now, you can read ~Box<dyn Error>~ to mean "any kind of error".
+Using ~?~ on a ~Result~ value in a ~main~ function with the error type
+~Box<dyn Error>~ is allowed, because it allows any ~Err~ value to be returned
+early.
+
+When a ~main~ function returns a ~Result<(), E>~, the executable will exit with
+a value of ~0~ if ~main~ returns ~Ok(())~ and will exit with a nonzero value if
+~main~ returns an ~Err~ value. The ~main~ function may return any types that
+implement the ~std::process::Termination~ trait, which contains a function
+~report~ that returns an ~ExitCode~.
+
 ** Which one to use
+
+ads
 
 * Debug
 
@@ -4006,7 +4262,5 @@ https://doc.rust-lang.org/clippy/
 
 * Misc
 
-#+BEGIN_SRC rust :noeval
-let apples = 5; // immutable
-let mut bananas = 5; // mutable
-#+END_SRC
+Can a immutable var become mutable? Write an example where a function returns
+a ~String~ and assign it to both mutable and immutable variables.

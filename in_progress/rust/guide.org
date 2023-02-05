@@ -50,12 +50,16 @@
   - [[#unrecoverable-errors-with-panic][Unrecoverable Errors with ~panic!~]]
   - [[#recoverable-errors-with-result][Recoverable Errors with ~Result~]]
   - [[#which-one-to-use][Which one to use]]
+- [[#generic-types-traits-and-lifetimes][Generic types, traits, and lifetimes]]
+  - [[#generic-data-type][Generic data type]]
 - [[#debug][Debug]]
 - [[#crates-and-dependencies][Crates and dependencies]]
 - [[#documentation][Documentation]]
 - [[#style-guide][Style guide]]
 - [[#clippy][Clippy]]
 - [[#misc][Misc]]
+  - [[#test-is-an-array-slice-and-a-vector-slice-the-same][Test: Is an array slice and a vector slice the same?]]
+  - [[#test-iterating-over-arrays-and-vectors][Test: Iterating over arrays and vectors]]
 #+END_QUOTE
 
 * Links
@@ -4234,6 +4238,222 @@ error situation, whether there’s a possible way to recover or not, but then
 you’re making the decision that a situation is unrecoverable on behalf of the
 calling code.
 
+* Generic types, traits, and lifetimes
+** Generic data type
+*** In function definitions
+
+When defining a function that uses generics, we place the generics in the
+signature of the function where we would usually specify the data types of the
+parameters and return value. Doing so makes our code more flexible and provides
+more functionality to callers of our function while preventing code duplication.
+
+#+BEGIN_SRC rust :results output
+//fn largest<T>(list: &[T]) -> &T { // This won't work as we need to be able to
+                                    // compare the elements in the slice. We
+                                    // must add that T must support the PartialOrd
+                                    // trait. More about traits soon
+fn largest<T: std::cmp::PartialOrd>(list: &[T]) -> &T {
+    let mut largest = &list[0];
+
+    for item in list {
+        if item > largest {
+            largest = item;
+        }
+    }
+
+    largest
+}
+
+fn main() {
+    let number_list = vec![34, 50, 25, 100, 65];
+
+    let result = largest(&number_list);
+    println!("The largest number is {}", result);
+
+    let char_list = vec!['y', 'm', 'a', 'q'];
+
+    let result = largest(&char_list);
+    println!("The largest char is {}", result);
+}
+#+END_SRC
+
+*** In struct definitions
+
+We can also define structs to use a generic type parameter in one or more fields
+using the ~<>~ syntax.
+
+#+BEGIN_SRC rust :results output
+struct Point<T> {
+    x: T,
+    y: T,
+}
+
+fn main() {
+    let integer = Point { x: 5, y: 10 };
+    let float = Point { x: 1.0, y: 4.0 };
+}
+#+END_SRC
+
+Note that because we’ve used only one generic type to define ~Point<T>~, this
+definition says that the ~Point<T>~ struct is generic over some type ~T~, and
+the fields ~x~ and ~y~ are both that same type, whatever that type may be. To
+define a ~Point~ struct where ~x~ and ~y~ are both generics but could have
+different types, we can use multiple generic type parameters.
+
+#+BEGIN_SRC rust :results output
+struct Point<T, U> {
+    x: T,
+    y: U,
+}
+
+fn main() {
+    let both_integer = Point { x: 5, y: 10 };
+    let both_float = Point { x: 1.0, y: 4.0 };
+    let integer_and_float = Point { x: 5, y: 4.0 };
+}
+#+END_SRC
+
+*** In enum definitions
+
+As we did with structs, we can define enums to hold generic data types in their
+variants. Let’s take another look at the ~Option<T>~ enum that the standard
+library provides:
+
+#+BEGIN_SRC rust :results output
+enum Option<T> {
+    Some(T),
+    None,
+}
+#+END_SRC
+
+Enums can use multiple generic types as well. The definition of the ~Result~
+enum is one example:
+
+#+BEGIN_SRC rust :results output
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+#+END_SRC
+
+*** In method definitions
+
+We can implement methods on structs and enums and use generic types in their
+definitions, too.
+
+#+BEGIN_SRC rust :results output
+struct Point<T> {
+    x: T,
+    y: T,
+}
+
+impl<T> Point<T> {
+    fn x(&self) -> &T {
+        &self.x
+    }
+}
+
+fn main() {
+    let p = Point { x: 5, y: 10 };
+
+    println!("p.x = {}", p.x());
+}
+#+END_SRC
+
+Here, we’ve defined a method named ~x~ on ~Point<T>~ that returns a reference to
+the data in the field ~x~.
+
+Note that we have to declare ~T~ just after ~impl~ so we can use ~T~ to specify
+that we’re implementing methods on the type ~Point<T>~. By declaring ~T~ as a
+generic type after ~impl~, Rust can identify that the type in the angle brackets
+in ~Point~ is a generic type rather than a concrete type. We could have chosen a
+different name for this generic parameter than the generic parameter declared in
+the struct definition, but using the same name is conventional.
+
+We can also specify constraints on generic types when defining methods on the
+type. We could, for example, implement methods only on ~Point<f32>~ instances
+rather than on ~Point<T>~ instances with any generic type. In the example below
+we use the concrete type ~f32~, meaning we don’t declare any types after ~impl~.
+
+#+BEGIN_SRC rust :results output
+struct Point<T> {
+    x: T,
+    y: T,
+}
+
+impl<T> Point<T> {
+    fn x(&self) -> &T {
+        &self.x
+    }
+}
+
+impl Point<f32> {
+    fn distance_from_origin(&self) -> f32 {
+        (self.x.powi(2) + self.y.powi(2)).sqrt()
+    }
+}
+
+fn main() {
+    let integer_point = Point { x: 5, y: 10 };
+    println!("integer_point.x = {}", integer_point.x());
+    // The following is not valid as distance_from_origin is only defined for Point<f32>
+    //println!("integer_point.distance_from_origin() = {}", integer_point.distance_from_origin());
+
+    let float_point = Point { x: 5.0, y: 10.0 };
+    println!("float_point.x = {}", float_point.x());
+    println!("float_point.distance_from_origin() = {}", float_point.distance_from_origin());
+}
+#+END_SRC
+
+Generic type parameters in a struct definition aren’t always the same as those
+you use in that same struct’s method signatures. The example below uses the
+generic types ~X1~ and ~Y1~ for the ~Point~ struct and ~X2~ and ~Y2~ for the
+~mixup~ method signature to make the example clearer. The method creates a new
+~Point~ instance with the ~x~ value from the ~self~ ~Point~ (of type ~X1~) and
+the ~y~ value from the passed-in ~Point~ (of type ~Y2~).
+
+#+BEGIN_SRC rust :results output
+struct Point<X1, Y1> {
+    x: X1,
+    y: Y1,
+}
+
+impl<X1, Y1> Point<X1, Y1> {
+    fn mixup<X2, Y2>(self, other: Point<X2, Y2>) -> Point<X1, Y2> {
+        Point {
+            x: self.x,
+            y: other.y,
+        }
+    }
+}
+
+fn main() {
+    let p1 = Point { x: 5, y: 10.4 };
+    let p2 = Point { x: "Hello", y: 'c' };
+
+    let p3 = p1.mixup(p2);
+
+    println!("p3.x = {}, p3.y = {}", p3.x, p3.y);
+}
+#+END_SRC
+
+The purpose of this example is to demonstrate a situation in which some generic
+parameters are declared with ~impl~ and some are declared with the method
+definition. Here, the generic parameters ~X1~ and ~Y1~ are declared after ~impl~
+because they go with the struct definition. The generic parameters ~X2~ and ~Y2~
+are declared after ~fn mixup~, because they’re only relevant to the method.
+
+*** Performance of code using generics
+
+Using generics won't make your code run any slower. The compiler does the
+opposite of the steps we used to create the generic code: the compiler looks at
+all the places where generic code is called and generates code for the concrete
+types the generic code is called with.
+
+Because Rust compiles generic code into code that specifies the type in each
+instance, we pay no runtime cost for using generics. When the code runs, it
+performs just as it would if we had duplicated each definition by hand.
+
 * Debug
 
 https://doc.rust-lang.org/book/ch05-02-example-structs.html#adding-useful-functionality-with-derived-traits
@@ -4267,3 +4487,85 @@ https://doc.rust-lang.org/clippy/
 
 Can a immutable var become mutable? Write an example where a function returns
 a ~String~ and assign it to both mutable and immutable variables.
+
+** Test: Is an array slice and a vector slice the same?
+
+#+BEGIN_SRC rust :results output
+fn print_type_of<T>(_: &T) {
+    println!("{}", std::any::type_name::<T>())
+}
+
+fn main() {
+    let a = [1, 2, 3, 4, 5];
+    let v = vec![1, 2, 3, 4, 5];
+    print_type_of(&a);
+    print_type_of(&v);
+    let a_slice = &a[1..3];
+    let v_slice = &v[1..3];
+    print_type_of(&a_slice);
+    print_type_of(&v_slice);
+}
+#+END_SRC
+
+#+BEGIN_SRC rust :results output
+fn print_array(a: &[i32; 3]) {
+    for e in a {
+        println!("Array element: {e}");
+    }
+}
+
+fn print_vector(v: &Vec<i32>) {
+    for e in v {
+        println!("Vector element: {e}");
+    }
+}
+
+fn print_slice(s: &[i32]) {
+    for e in s {
+        println!("Slice element: {e}");
+    }
+}
+
+fn main() {
+    let a = [1, 2, 3];
+    let v = vec![1, 2, 3];
+    print_array(&a);
+    //print_array(&v);
+    print_vector(&v);
+    //print_vector(&a);
+    print_slice(&a);
+    print_slice(&v);
+}
+#+END_SRC
+
+Conclusion: Yes, it looks like the slices are treated the same.
+
+** Test: Iterating over arrays and vectors
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let v = vec![1, 2, 3];
+    //for e in &v { // This will work
+    for e in v {
+        println!("Slice element: {e}");
+    }
+    for e in v {
+        println!("Slice element: {e}");
+    }
+}
+#+END_SRC
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let a = [1, 2, 3];
+    for e in a {
+        println!("Slice element: {e}");
+    }
+    for e in a {
+        println!("Slice element: {e}");
+    }
+}
+#+END_SRC
+
+Why does the lower example work even though we don't use borrowing? Something
+with the ~Copy~ trait?

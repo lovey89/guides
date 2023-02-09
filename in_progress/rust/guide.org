@@ -52,6 +52,7 @@
   - [[#which-one-to-use][Which one to use]]
 - [[#generic-types-traits-and-lifetimes][Generic types, traits, and lifetimes]]
   - [[#generic-data-type][Generic data type]]
+  - [[#traits-defining-shared-behavior][Traits: defining shared behavior]]
 - [[#debug][Debug]]
 - [[#crates-and-dependencies][Crates and dependencies]]
 - [[#documentation][Documentation]]
@@ -4453,6 +4454,203 @@ types the generic code is called with.
 Because Rust compiles generic code into code that specifies the type in each
 instance, we pay no runtime cost for using generics. When the code runs, it
 performs just as it would if we had duplicated each definition by hand.
+
+** Traits: defining shared behavior
+
+Traits are similar to a feature often called /interfaces/ in other languages,
+(such as Java) although with some differences.
+
+*** Defining a trait
+
+Let’s say we have multiple structs that hold various kinds and amounts of text:
+a ~NewsArticle~ and a ~Tweet~. We want to make a media aggregator library crate
+that can display summaries of data that might be stored in a ~NewsArticle~ or
+~Tweet~ instance. To do this, we need a summary from each type, and we’ll
+request that summary by calling a ~summarize~ method on an instance. This code
+shows the definition of a public ~Summary~ trait that expresses this behavior.
+
+#+BEGIN_SRC rust :results output
+pub trait Summary {
+    fn summarize(&self) -> String;
+}
+#+END_SRC
+
+Here, we declare a trait using the ~trait~ keyword and then the trait’s name,
+which is ~Summary~ in this case. We’ve also declared the trait as ~pub~ so that
+crates depending on this crate can make use of this trait too. Inside the curly
+brackets, we declare the method signatures that describe the behaviors of the
+types that implement this trait.
+
+After the method signature, instead of providing an implementation within curly
+brackets, we use a semicolon. Each type implementing this trait must provide its
+own custom behavior for the body of the method.
+
+A trait can have multiple methods in its body: the method signatures are listed
+one per line and each line ends in a semicolon.
+
+*** Implementing a trait on a type
+
+The following code block shows how to implement the ~Summary~ trait for our
+~NewsArticle~ and ~Tweet~ structs.
+
+#+BEGIN_SRC rust :results output
+pub trait Summary {
+    fn summarize(&self) -> String;
+}
+
+pub struct NewsArticle {
+    pub headline: String,
+    pub location: String,
+    pub author: String,
+    pub content: String,
+}
+
+impl Summary for NewsArticle {
+    fn summarize(&self) -> String {
+        format!("{}, by {} ({})", self.headline, self.author, self.location)
+    }
+}
+
+pub struct Tweet {
+    pub username: String,
+    pub content: String,
+    pub reply: bool,
+    pub retweet: bool,
+}
+
+impl Summary for Tweet {
+    fn summarize(&self) -> String {
+        format!("{}: {}", self.username, self.content)
+    }
+}
+#+END_SRC
+
+Implementing a trait on a type is similar to implementing regular methods. The
+difference is that after ~impl~, we put the trait name we want to implement,
+then use the ~for~ keyword, and then specify the name of the type we want to
+implement the trait for. Within the ~impl~ block, we put the method signatures
+that the trait definition has defined. Instead of adding a semicolon after each
+signature, we use curly brackets and fill in the method body with the specific
+behavior that we want the methods of the trait to have for the particular type.
+
+To call the trait methods you have to bring the trait into scope as well as the
+types. E.g.
+
+#+BEGIN_SRC rust :noeval
+use aggregator::{Summary, Tweet};
+
+fn main() {
+    let tweet = Tweet {
+        username: String::from("horse_ebooks"),
+        content: String::from(
+            "of course, as you probably already know, people",
+        ),
+        reply: false,
+        retweet: false,
+    };
+
+    println!("1 new tweet: {}", tweet.summarize());
+}
+#+END_SRC
+
+Other crates can also bring the ~Summary~ trait into scope to implement
+~Summary~ on their own types. One restriction to note is that we can implement a
+trait on a type only if at least one of the trait or the type is local to our
+crate. But we can’t implement external traits on external types. For example, we
+can’t implement the ~Display~ trait on ~Vec<T>~ within our crate. Without the
+rule, two crates could implement the same trait for the same type, and Rust
+wouldn’t know which implementation to use.
+
+*** Default implementations
+
+In the code block below we specify a default string for the ~summarize~ method
+of the ~Summary~ trait instead of only defining the method signature.
+
+#+BEGIN_SRC rust :results output
+pub trait Summary {
+    fn summarize(&self) -> String {
+        String::from("(Read more...)")
+    }
+}
+#+END_SRC
+
+To use a default implementation to summarize instances of ~NewsArticle~, we
+specify an empty ~impl~ block with ~impl Summary for NewsArticle {}~. The syntax
+for overriding a default implementation is the same as the syntax for
+implementing a trait method that doesn’t have a default implementation.
+
+Default implementations can call other methods in the same trait, even if those
+other methods don’t have a default implementation. In this way, a trait can
+provide a lot of useful functionality and only require implementors to specify a
+small part of it. For example, we could define the ~Summary~ trait to have a
+~summarize_author~ method whose implementation is required, and then define a
+~summarize~ method that has a default implementation that calls the
+~summarize_author~ method:
+
+#+BEGIN_SRC rust :results output
+pub trait Summary {
+    fn summarize_author(&self) -> String;
+
+    fn summarize(&self) -> String {
+        format!("(Read more from {}...)", self.summarize_author())
+    }
+}
+#+END_SRC
+
+To use this version of ~Summary~, we only need to define ~summarize_author~ when
+we implement the trait.
+
+*** Traits as parameters
+
+Let's define a ~notify~ function that calls the ~summarize~ method on its ~item~
+parameter, which is of some type that implements the ~Summary~ trait. To do
+this, we use the ~impl Trait~ syntax:
+
+#+BEGIN_SRC rust :noeval
+pub fn notify(item: &impl Summary) {
+    println!("Breaking news! {}", item.summarize());
+}
+#+END_SRC
+
+Instead of a concrete type for the ~item~ parameter, we specify the ~impl~
+keyword and the trait name. This parameter accepts any type that implements the
+specified trait.
+
+**** Trait bound syntax
+
+The ~impl Trait~ syntax works for straightforward cases but is actually syntax
+sugar for a longer form known as a /trait bound/:
+
+#+BEGIN_SRC rust :noeval
+pub fn notify<T: Summary>(item: &T) {
+    println!("Breaking news! {}", item.summarize());
+}
+#+END_SRC
+
+We place trait bounds with the declaration of the generic type parameter after a
+colon and inside angle brackets.
+
+We can have two parameters that implement ~Summary~. Doing so with the
+~impl Trait~ syntax looks like this:
+
+#+BEGIN_SRC rust :noeval
+pub fn notify(item1: &impl Summary, item2: &impl Summary) {
+#+END_SRC
+
+In this case ~item1~ and ~item2~ may be of different types as long as they both
+implement the ~Summary~ trait. If we want to force both parameters to have the
+same type, however, we must use a trait bound, like this:
+
+#+BEGIN_SRC rust :noeval
+pub fn notify<T: Summary>(item1: &T, item2: &T) {
+#+END_SRC
+
+In this case we define that ~item1~ and ~item2~ must be of the generic type ~T~
+which will be a single type, hence ~item1~ and ~item2~ will be of the same type.
+
+**** Specifying multiple trait bounds with the ~+~ syntax
+
+Todo
 
 * Debug
 

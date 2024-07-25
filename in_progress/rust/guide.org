@@ -147,7 +147,7 @@ rustc hello_world.rs
 
 *** Things to note
 
-1. The main ~function~ is special: it is always the first code that runs in
+1. The ~main~ function is special: it is always the first code that runs in
    every executable Rust program. The first line declares a function named main
    that has no parameters and returns nothing. If there were parameters, they
    would go inside the parentheses, ~()~.
@@ -179,7 +179,7 @@ This created the following file structure:
 `-- hello_cargo
     |-- Cargo.toml
     `-- src
-        `-- main.rsl
+        `-- main.rs
 #+END_SRC
 
 The ~Cargo.toml~ file looks like this:
@@ -507,6 +507,9 @@ fn main() {
     println!("quotient: {}", quotient);
     println!("floored: {}", floored);
 
+    let truncated = -5 / 3;
+    println!("truncated: {}", truncated); // results in -1
+
     // remainder
     let remainder = 43 % 5;
     println!("remainder: {}", remainder);
@@ -538,7 +541,7 @@ use double quotes.
 #+BEGIN_SRC rust :results output
 fn main() {
     let c = 'z';
-    let z = 'ℤ';
+    let z: char = 'ℤ';
     let heart_eyed_cat = '😻';
 
     println!("c: {}", c);
@@ -767,8 +770,8 @@ value. /Expressions/ evaluate to a resulting value. Let’s look at some example
 Creating a variable and assigning a value to it with the ~let~ keyword is a
 statement. ~let y = 6;~ is a statement.
 
-Statements do not return values. Therefore, you can’t assign a let statement to
-another variable. E.g:
+Statements do not return values. Therefore, you can’t assign a ~let~ statement
+to another variable. E.g:
 
 #+BEGIN_SRC rust :noeval
 let x = (let y = 6); // Not valid code!
@@ -891,7 +894,7 @@ fn main() {
 }
 #+END_SRC
 
-Blocks of code associated with the conditions in if expressions are sometimes
+Blocks of code associated with the conditions in ~if~ expressions are sometimes
 called /arms/. The ~else~ expression is optional.
 
 It’s also worth noting that the condition in this code must be a ~bool~. If the
@@ -1147,7 +1150,7 @@ twice, that’s a bug too. We need to pair exactly one ~allocate~ with exactly o
 
 Rust takes a different path: the memory is automatically returned once the
 variable that owns it goes out of scope. It's returned by Rust calling a special
-function called ~drop~, and it’s where the author of of an object type (e.g
+function called ~drop~, and it’s where the author of an object type (e.g
 ~String~) can put the code to return the memory.
 
 *** Move
@@ -1156,7 +1159,7 @@ Multiple variables can interact with the same data in different ways in Rust.
 
 #+BEGIN_SRC rust :results output
 fn main() {
-    let mut x = 5;
+    let x = 5;
     let mut y = x;
     println!("{}", x);
     println!("{}", y);
@@ -1175,7 +1178,8 @@ What happends with ~String~s?
 fn main() {
     let s1 = String::from("hello");
     let s2 = s1;
-    println!("{}", s1);
+    // Try to add back this line and it will fail
+    //println!("{}", s1);
     println!("{}", s2);
 }
 #+END_SRC
@@ -1197,7 +1201,7 @@ valid. Therefore, Rust doesn’t need to free anything when ~s1~ goes out of
 scope. So the example above will actually now compile!
 
 So what is happening in the example above is not a shallow copy. Because the
-first variable is invalidated this is known as a /move/.
+first variable is invalidated this is instead known as a /move/.
 
 *** Clone
 
@@ -1328,7 +1332,7 @@ the data stored at that address; that data is owned by some other variable.
 Unlike a pointer, a reference is guaranteed to point to a valid value of a
 particular type for the life of that reference.
 
-Here is how you would define and use a calculate_length function that has a
+Here is how you would define and use a ~calculate_length~ function that has a
 reference to an object as a parameter instead of taking ownership of the value:
 
 #+BEGIN_SRC rust :results output
@@ -1469,6 +1473,10 @@ data, the compiler will ensure that the data will not go out of scope before the
 reference to the data does.
 
 #+BEGIN_SRC rust :results output
+fn main() {
+    let reference_to_nothing = dangle();
+}
+
 fn dangle() -> &String { // dangle returns a reference to a String
 
     let s = String::from("hello"); // s is a new String
@@ -1481,6 +1489,15 @@ fn dangle() -> &String { // dangle returns a reference to a String
 Because ~s~ is created inside dangle, when the code of dangle is finished, ~s~
 will be deallocated. But we tried to return a reference to it. That means this
 reference would be pointing to an invalid ~String~. Rust won’t let us do this.
+Instead we could return ~s~ which would also transfer ownership.
+
+*** The Rules of References
+
+Let’s recap what we’ve discussed about references:
+
+- At any given time, you can have either one mutable reference or any number of
+  immutable references.
+- References must always be valid.
 
 ** The slice type
 

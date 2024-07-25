@@ -2,6 +2,8 @@
 use std::cmp::Ordering;
 use std::io;
 // The rand crate is a dependency. It's mentioned in the Cargo.toml file
+// The Rng trait defines methods that random number generators implement,
+// and this trait must be in scope for us to use those methods
 use rand::Rng;
 
 fn main() {
@@ -19,6 +21,7 @@ fn main() {
 
         // The 'mut' keyword makes the variable mutable
         // In Rust, variables are immutable by default
+        // Here we create a new empty instance of a String
         let mut guess = String::new();
 
         // If the 'use' import on the second line wasn't present we could have written

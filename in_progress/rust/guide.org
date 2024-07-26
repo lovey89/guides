@@ -31,6 +31,7 @@
   - [[#unit-like-structs][Unit-like structs]]
   - [[#ownerships-of-struct-data][Ownerships of struct data]]
   - [[#an-example-with-structs][An example with structs]]
+  - [[#adding-useful-functionality-with-derived-traits][Adding Useful Functionality with Derived Traits]]
   - [[#methods][Methods]]
 - [[#enums-and-pattern-matching][Enums and pattern matching]]
   - [[#defining-an-enum][Defining an enum]]
@@ -1522,8 +1523,8 @@ fn main() {
 
 We create slices using a range within brackets by specifying
 ~[starting_index..ending_index]~. ~starting_index~ is inclusive and
-~ending_index~ is exclusive. Internally, the slice data structure stores the
-starting position and the length of the slice.
+~ending_index~ is exclusive. Internally, the slice data structure stores a
+pointer to the starting position and the length of the slice.
 
 With Rust’s ~..~ range syntax, if you want to start at index zero, you can drop
 the value before the two periods and if your slice includes the last index, you
@@ -1606,7 +1607,7 @@ so the immutable reference must still be active at that point.
 let s = "Hello, world!";
 #+END_SRC
 
-The type of ~s~ here is ~%str~: it’s a slice pointing to that specific point of
+The type of ~s~ here is ~&str~: it’s a slice pointing to that specific point of
 the binary. This is also why string literals are immutable; ~&str~ is an
 immutable reference.
 
@@ -1685,7 +1686,7 @@ Structs are similar to [[*The Tuple Type][tuples]], in that both hold multiple r
 a struct you’ll name each piece of data so it’s clear what the values mean.
 
 To define a struct, we enter the keyword ~struct~ and name the entire struct.
-Then, inside curly brackets, we define the /fields/. To define an /instance/ of
+Then, inside curly brackets, we define the /fields/. We define an /instance/ of
 the struct in the following way (we don’t have to specify the fields in the same
 order in which we declared them in the struct):
 
@@ -1843,8 +1844,6 @@ fn main() {
         email: String::from("another@example.com"),
         ..user1
     };
-
-    let User {email: e, username: u, .. } = user2;
 }
 #+END_SRC
 
@@ -1933,9 +1932,10 @@ unused values when destructing a struct tuple:
 struct Color(i32, i32, i32);
 
 fn main() {
-    let c = Color(0, 0, 0);
+    let c = Color(0, 1, 2);
     let Color(r, _, _) = c;
-    println!("{}", r)
+    println!("{}", r);
+    println!("{}", c.1);
 }
 #+END_SRC
 
@@ -1944,7 +1944,17 @@ fn main() {
 You can also define structs that don’t have any fields. These are called
 unit-like structs because they behave similarly to ~()~, the unit type.
 
-TODO: Why is this needed?
+#+BEGIN_SRC rust :results output
+struct AlwaysEqual;
+
+fn main() {
+    let subject = AlwaysEqual;
+}
+#+END_SRC
+
+Unit-like structs can be useful when you need to implement a trait on some type
+but don’t have any data that you want to store in the type itself. Traits will
+be discussed later.
 
 ** Ownerships of struct data
 
@@ -2003,7 +2013,101 @@ fn area_with_struct(rectangle: &Rectangle) -> u32 {
 }
 #+END_SRC
 
-Borrowed struct. What if a type without copy trait?
+In the struct example we want to borrow the struct rather than take ownership of
+it. This way, ~main~ retains its ownership and can continue using ~rect_struct~,
+which is the reason we use the ~&~ in the function signature and where we call
+the function. Note that accessing fields of a borrowed struct instance does not
+move the field values, which is why you often see borrows of structs.
+
+** Adding Useful Functionality with Derived Traits
+
+We can't create a ~Rectangle~ directly:
+
+#+BEGIN_SRC rust :results output
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+fn main() {
+    let rect1 = Rectangle {
+        width: 30,
+        height: 50,
+    };
+
+    println!("rect1 is {}", rect1);
+}
+#+END_SRC
+
+The code above complains that the ~Display~ trait is not implemented for
+~Rectangle~. It suggest to print with ~{:?}~ instead of ~{}~. Let's try that:
+
+#+BEGIN_SRC rust :results output
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+fn main() {
+    let rect1 = Rectangle {
+        width: 30,
+        height: 50,
+    };
+
+    println!("rect1 is {:?}", rect1);
+}
+#+END_SRC
+
+Now it complains that we don't have the ~Debug~ trait implemented. Instead of
+manually implementing it we can derive it with ~#[derive(Debug)]~:
+
+#+BEGIN_SRC rust :results output
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+fn main() {
+    let rect1 = Rectangle {
+        width: 30,
+        height: 50,
+    };
+
+    println!("rect1 is {:?}", rect1);
+    // Or
+    println!("rect1 is {rect1:?}");
+    // Or for pretty printing the debug output
+    println!("rect1 is {rect1:#?}");
+}
+#+END_SRC
+
+Another way to debug your code is with the ~dbg!~ macro. It takes ownership of
+an expression (as opposed to ~println!~, which takes a reference), prints the
+file and line number of where that ~dbg!~ macro call occurs in your code along
+with the resultant value of that expression, and returns ownership of the value.
+
+#+BEGIN_SRC rust :results output
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+fn main() {
+    let scale = 2;
+    let rect1 = Rectangle {
+        width: dbg!(30 * scale), // The ownership is handed back so this is ok
+        height: 50,
+    };
+
+    // Pass a reference since we don't handle the returned ownership here
+    dbg!(&rect1);
+}
+#+END_SRC
+
+The ~dbg!~ macro prints to ~stderr~ so executing this code in emacs will print
+the log in the error output buffer.
 
 ** Methods
 
@@ -2093,7 +2197,7 @@ p1.distance(&p2);
 #+END_SRC
 
 The first one looks much cleaner. This automatic referencing behavior works
-because methods have a clear receiver—the type of ~self~.
+because methods have a clear receiver — the type of ~self~.
 
 *** Methods with more parameters
 
@@ -2387,10 +2491,12 @@ let sum = x + y;
 
 When we have a value of a type like ~i8~ in Rust, the compiler will ensure that
 we always have a valid value. We can proceed confidently without having to check
-for null before using that value. Only when we have an ~Option<T>~ do we have to
-worry about possibly not having a value, and the compiler will make sure we
+for ~null~ before using that value. Only when we have an ~Option<T>~ do we have
+to worry about possibly not having a value, and the compiler will make sure we
 handle that case before using the value. In other words, you have to convert an
-~Option<T>~ to a ~T~ before you can perform ~T~ operations with it.
+~Option<T>~ to a ~T~ before you can perform ~T~ operations with it. This can be
+done with the ~match~ expression (see below) or with the functions described in
+[[https://doc.rust-lang.org/std/option/enum.Option.html][Option's documentation]].
 
 ** The ~match~ control flow construct
 
@@ -2546,6 +2652,7 @@ fn print_number(x: u8) {
     match x {
         3 => println!("Three!"),
         7 => println!("Seven!"),
+        22..=30 => println!("A value between 20 and 30 (inclusive)"),
         other => println!("Just a {}...", other)
     }
 }
@@ -2553,6 +2660,7 @@ fn print_number(x: u8) {
 print_number(3);
 print_number(9);
 print_number(7);
+print_number(25);
 #+END_SRC
 
 The code above compile even though we haven't covered all possible values a ~u8~

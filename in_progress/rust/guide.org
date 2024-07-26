@@ -3121,7 +3121,7 @@ pub fn eat_at_restaurant() {
 ** Bringing paths into scope with the ~use~ keyword
 
 Instead of writing out the full parths to use items in other modules we can use
-use the ~use~ keyword tocreate a shortcut to a path, and then use the shorter
+use the ~use~ keyword to create a shortcut to a path, and then use the shorter
 name everywhere else in the scope.
 
 #+BEGIN_SRC rust :results output

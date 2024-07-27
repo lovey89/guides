@@ -4010,7 +4010,7 @@ errors.
 ** Unrecoverable Errors with ~panic!~
 
 
-When a program panices it will print a failure message, unwind, clean up the
+When a program panics it will print a failure message, unwind, clean up the
 stack, and quit. Via an environment variable, you can also have Rust display the
 call stack when a panic occurs to make it easier to track down the source of the
 panic.

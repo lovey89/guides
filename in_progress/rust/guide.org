@@ -3489,6 +3489,9 @@ let v = vec![1, 2, 3, 4, 5];
 let third: &i32 = &v[2]; // Type annotation not needed here
 println!("The third element is {third}");
 
+let third: i32 = v[2]; // This is allowed since i32 implements the Copy trait so ownership is not transferred
+println!("The third element is {third}");
+
 let third: Option<&i32> = v.get(2); // Type annotation not needed here
 match third {
     Some(third) => println!("The third element is {third}"),
@@ -3692,7 +3695,7 @@ println!("{s}")
 
 The ~push_str~ method takes a string slice because we don’t necessarily want to
 take ownership of the parameter. So in the example below we can still use ~s2~
-after the call to ~pust_str~:
+after the call to ~push_str~:
 
 #+BEGIN_SRC rust :results output
 let mut s1 = String::from("foo");
@@ -3815,7 +3818,7 @@ crash your program.
 *** Iterating over a string
 
 The best way to operate on pieces of strings is to be explicit about whether you
-want characters or bytes. For individual Unicode scalar values, use the chars
+want characters or bytes. For individual Unicode scalar values, use the ~chars~
 method. Calling ~chars~ on “Здр” separates out and returns three values of type
 ~char~, and you can iterate over the result to access each element:
 
@@ -3919,7 +3922,8 @@ map.insert(field_name, field_value);
 #+END_SRC
 
 If we insert references to values into the hash map, the values won’t be moved
-into the hash map.
+into the hash map. The values that the references point to must be valid for at
+least as long as the hash map is valid.
 
 *** Updating a hash map
 
@@ -3947,8 +3951,8 @@ println!("{:?}", scores);
 Hash maps have a special API called ~entry~ that takes the key you want to check
 as a parameter. The return value of the ~entry~ method is an enum called ~Entry~
 that represents a value that might or might not exist. Let’s say we want to
-check whether the key for the Yellow team has a value associated with it. If it
-doesn’t, we want to insert the value 50, and the same for the Blue team.
+check whether the key for the ~Yellow~ team has a value associated with it. If
+it doesn’t, we want to insert the value ~50~, and the same for the ~Blue~ team.
 
 #+BEGIN_SRC rust :results output
 use std::collections::HashMap;

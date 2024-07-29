@@ -5097,6 +5097,144 @@ point where ~result~ is printed it still breaks the contract saying that the
 lifetime of the reference returned by the ~longest~ function is the same as the
 smaller of the lifetimes of the references passed in.
 
+*** Thinking in Terms of Lifetimes
+
+If we changed the implementation of the ~longest~ function to always return the
+first parameter rather than the longest string slice, we wouldn’t need to
+specify a lifetime on the ~y~ parameter.
+
+When returning a reference from a function, the lifetime parameter for the
+return type needs to match the lifetime parameter for one of the parameters. If
+the reference returned does not refer to one of the parameters, it must refer to
+a value created within this function. However, this would be a dangling
+reference because the value will go out of scope at the end of the function.
+This is not allowed in Rust. One way to fix that would be to return an owned
+data type rather than a reference so the calling function is then responsible
+for cleaning up the value.
+
+*** Lifetime Annotations in Struct Definitions
+
+We can define structs to hold references, but in that case we would need to add
+a lifetime annotation on every reference in the struct’s definition. E.g:
+
+#+BEGIN_SRC rust :results output
+struct ImportantExcerpt<'a> {
+    part: &'a str,
+}
+
+fn main() {
+    let novel = String::from("Call me Ishmael. Some years ago...");
+    let first_sentence = novel.split('.').next().unwrap();
+    let i = ImportantExcerpt {
+        part: first_sentence,
+    };
+}
+#+END_SRC
+
+As with generic data types, we declare the name of the generic lifetime
+parameter inside angle brackets after the name of the struct so we can use the
+lifetime parameter in the body of the struct definition. This annotation means
+an instance of ~ImportantExcerpt~ can’t outlive the reference it holds in its
+~part~ field.
+
+In the example above the ~ImportantExcerpt~ struct that holds a reference to the
+first sentence of the ~String~ owned by the variable ~novel~. ~novel~ doesn’t go
+out of scope until after the ~ImportantExcerpt~ goes out of scope, so the
+reference in the ~ImportantExcerpt~ instance is valid.
+
+*** Lifetime Elision
+
+How come the following program works even though we haven't defined any explicit
+lifetimes?
+
+#+BEGIN_SRC rust :results output
+fn first_word(s: &str) -> &str {
+    let bytes = s.as_bytes();
+
+    for (i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return &s[0..i];
+        }
+    }
+
+    &s[..]
+}
+
+fn main() {
+    let s = String::from("Hello world");
+    let fw = first_word(&s);
+    println!("{}", fw)
+}
+#+END_SRC
+
+We could expect that the proper signature would look like this:
+
+#+BEGIN_SRC rust :noeval
+fn first_word<'a>(s: &'a str) -> &'a str {
+#+END_SRC
+
+This was the case in very early versions of Rust but some patterns have been
+found to be predictable so this can be added automatically. These patterns are
+known as /lifetime elision rules/ and they’re a set of particular cases that the
+compiler will consider, and if your code fits these cases, you don’t need to
+write the lifetimes explicitly. If there is still ambiguity as to what lifetimes
+the references have after Rust applies the rules, the compiler will give you an
+error that you can resolve by adding the lifetime annotations.
+
+Lifetimes on function or method parameters are called /input lifetimes/, and
+lifetimes on return values are called /output lifetimes/.
+
+The compiler uses three rules to figure out the lifetimes of the references when
+there aren’t explicit annotations. The first rule applies to input lifetimes,
+and the second and third rules apply to output lifetimes. If the compiler gets
+to the end of the three rules and there are still references for which it can’t
+figure out lifetimes, the compiler will stop with an error. These rules apply to
+~fn~ definitions as well as ~impl~ blocks. The rules are:
+
+- The compiler assigns a lifetime parameter to each parameter that’s a
+  reference. In other words, a function with one parameter gets one lifetime
+  parameter: ~fn foo<'a>(x: &'a i32);~ a function with two parameters gets two
+  separate lifetime parameters: ~fn foo<'a, 'b>(x: &'a i32, y: &'b i32);~ and so
+  on.
+- If there is exactly one input lifetime parameter, that lifetime is assigned to
+  all output lifetime parameters: ~fn foo<'a>(x: &'a i32) -> &'a i32~.
+- If there are multiple input lifetime parameters, but one of them is ~&self~ or
+  ~&mut self~ because this is a method, the lifetime of ~self~ is assigned to
+  all output lifetime parameters. This third rule makes methods much nicer to
+  read and write because fewer symbols are necessary.
+
+E.g.:
+
+#+BEGIN_SRC rust :noeval
+fn first_word(s: &str) -> &str {
+#+END_SRC
+
+Apply rule 1 and 2 and we get:
+
+#+BEGIN_SRC rust :noeval
+fn first_word<'a>(s: &'a str) -> &'a str {
+#+END_SRC
+
+Now all the references in this function signature have lifetimes, and the
+compiler can continue its analysis without needing the programmer to annotate
+the lifetimes in this function signature.
+
+Another example:
+
+#+BEGIN_SRC rust :noeval
+fn first_word(s: &str) -> &str {
+#+END_SRC
+
+We can apply rule 1 but rule 2 and 3 can't be applied so it becomes:
+
+#+BEGIN_SRC rust :noeval
+fn longest<'a, 'b>(x: &'a str, y: &'b str) -> &str {
+#+END_SRC
+
+After working through all three rules, we still haven’t figured out what the
+return type’s lifetime is. The compilation will fail and you will have to
+provide lifetime annotations yourself.
+
 * Debug
 
 https://doc.rust-lang.org/book/ch05-02-example-structs.html#adding-useful-functionality-with-derived-traits

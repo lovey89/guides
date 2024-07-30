@@ -55,6 +55,8 @@
   - [[#generic-data-type][Generic data type]]
   - [[#traits-defining-shared-behavior][Traits: defining shared behavior]]
   - [[#validating-references-with-lifetimes][Validating References with Lifetimes]]
+- [[#writing-automated-tests][Writing Automated Tests]]
+  - [[#how-to-write-tests][How to Write Tests]]
 - [[#debug][Debug]]
 - [[#crates-and-dependencies][Crates and dependencies]]
 - [[#documentation][Documentation]]
@@ -5304,7 +5306,196 @@ TODO: When do I use this myself or is it an implicit lifetime used?
 
 *** Generic Type Parameters, Trait Bounds, and Lifetimes Together
 
-TODO
+Let's put everything together:
+
+#+BEGIN_SRC rust :results output
+use std::fmt::Display;
+
+fn main() {
+    let string1 = String::from("abcd");
+    let string2 = "xyz";
+
+    let result = longest_with_an_announcement(
+        string1.as_str(),
+        string2,
+        "Today is someone's birthday!",
+    );
+    println!("The longest string is {result}");
+}
+
+fn longest_with_an_announcement<'a, T>(
+    x: &'a str,
+    y: &'a str,
+    ann: T,
+) -> &'a str
+where
+    T: Display,
+{
+    println!("Announcement! {ann}");
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}
+#+END_SRC
+
+* Writing Automated Tests
+** How to Write Tests
+*** The Anatomy of a Test Function
+
+At its simplest, a test in Rust is a function that’s annotated with the ~test~
+attribute. Attributes are metadata about pieces of Rust code. To change a
+function into a test function, add ~#[test]~ on the line before ~fn~. When you
+run your tests with the ~cargo test~ command, Rust builds a test runner binary
+that runs the annotated functions and reports on whether each test function
+passes or fails.
+
+Whenever we make a new library project with Cargo (~cargo new proj_name --lib~),
+a test module with a test function in it is automatically generated for us. The
+code looks like this (comments added by me):
+
+#+BEGIN_SRC rust :noeval
+pub fn add(left: u64, right: u64) -> u64 {
+    left + right
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // This indicates that the function is a test. We can also add non test
+    // functions
+    #[test]
+    fn it_works() {
+        let result = add(2, 2);
+        assert_eq!(result, 4);
+    }
+}
+#+END_SRC
+
+The test can be run with ~cargo test~. The output is pretty self explanatory but
+there is a section called ~Doc-tests proj_name~ and this is for the result for
+documentation tests. Basically Rust can compile and test code examples that
+appear in the API documentation (if we had documenation).
+
+Tests fail when something in the test function panics. Each test is run in a new
+thread, and when the main thread sees that a test thread has died, the test is
+marked as failed. In the test result output, two new sections appear between the
+individual results and the summary when a test fails. The first displays the
+detailed reason for each test failure.  The next section lists just the names of
+all the failing tests, which is useful when there are lots of tests and lots of
+detailed failing test output.
+
+*** Checking Results with the ~assert!~ macro
+
+The ~assert!~ macro, provided by the standard library, is useful when you want
+to ensure that some condition in a test evaluates to ~true~. If the value is
+~false~, the ~assert!~ macro calls ~panic!~ to cause the test to fail.
+
+Used like:
+
+#+BEGIN_SRC rust :noeval
+assert!(larger.can_hold(&smaller));
+#+END_SRC
+
+*** Testing Equality with the ~assert_eq!~ and ~assert_ne!~ macros
+
+Used like:
+
+#+BEGIN_SRC rust :noeval
+assert_eq!(4, add_two(2));
+#+END_SRC
+
+The order of arguments doesn't matter as they are just called ~left~ and ~right~
+in Rust and not something like ~expected~ and ~actual~.
+
+Under the surface, the ~assert_eq!~ and ~assert_ne!~ macros use the operators
+~==~ and ~!=~, respectively. When the assertions fail, these macros print their
+arguments using debug formatting, which means the values being compared must
+implement the ~PartialEq~ and ~Debug~ traits. Because both traits are derivable
+traits this is usually as straightforward as adding the
+~#[derive(PartialEq, Debug)]~ annotation to your struct or enum definition.
+
+*** Adding Custom Failure Messages
+
+You can also add a custom message to be printed with the failure message as
+optional arguments to the ~assert!~, ~assert_eq!~, and ~assert_ne!~ macros. Any
+arguments specified after the required arguments are passed along to the
+~format!~ macro, so you can pass a format string that contains ~{}~ placeholders
+and values to go in those placeholders. E.g.
+
+#+BEGIN_SRC rust :noeval
+assert!(
+    result.contains("Carol"),
+    "Greeting did not contain name, value was `{}`",
+    result
+);
+#+END_SRC
+
+*** Checking for Panics with ~should_panic~
+
+Adding the attribute ~should_panic~ to our test function. The test passes if the
+code inside the function panics; the test fails if the code inside the function
+doesn’t panic. E.g.
+
+#+BEGIN_SRC rust :noeval
+#[test]
+#[should_panic]
+fn greater_than_100() {
+    Guess::new(200);
+}
+#+END_SRC
+
+Tests that use ~should_panic~ can be imprecise. A ~should_panic~ test would pass
+even if the test panics for a different reason from the one we were expecting.
+To make ~should_panic~ tests more precise, we can add an optional ~expected~
+parameter to the ~should_panic~ attribute. The test harness will make sure that
+the failure message contains the provided text.
+
+#+BEGIN_SRC rust :noeval
+#[test]
+#[should_panic(expected = "less than or equal to 100")]
+fn greater_than_100() {
+    Guess::new(200);
+}
+#+END_SRC
+
+We could have specified the entire panic message that we expect, but what you
+choose to specify depends on how much of the panic message is unique or dynamic
+and how precise you want your test to be.
+
+*** Using ~Result<T, E>~ in Tests
+
+Our tests so far all panic when they fail. We can also write tests that use
+~Result<T, E>~. E.g.
+
+#+BEGIN_SRC rust :noeval
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() -> Result<(), String> {
+        if 2 + 2 == 4 {
+            Ok(())
+        } else {
+            Err(String::from("two plus two does not equal four"))
+        }
+    }
+}
+#+END_SRC
+
+In the body of the function, rather than calling the ~assert_eq!~ macro, we
+return ~Ok(())~ when the test passes and an ~Err~ with a ~String~ inside when
+the test fails.
+
+Writing tests so they return a ~Result<T, E>~ enables you to use the question
+mark operator in the body of tests, which can be a convenient way to write tests
+that should fail if any operation within them returns an ~Err~ variant.
+
+You can’t use the ~#[should_panic]~ annotation on tests that use ~Result<T, E>~.
+To assert that an operation returns an ~Err~ variant, don’t use the question
+mark operator on the ~Result<T, E>~ value. Instead, use
+~assert!(value.is_err())~.
 
 * Debug
 

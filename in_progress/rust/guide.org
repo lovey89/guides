@@ -57,6 +57,7 @@
   - [[#validating-references-with-lifetimes][Validating References with Lifetimes]]
 - [[#writing-automated-tests][Writing Automated Tests]]
   - [[#how-to-write-tests][How to Write Tests]]
+  - [[#controlling-how-tests-are-run][Controlling how tests are run]]
 - [[#debug][Debug]]
 - [[#crates-and-dependencies][Crates and dependencies]]
 - [[#documentation][Documentation]]
@@ -5496,6 +5497,99 @@ You can’t use the ~#[should_panic]~ annotation on tests that use ~Result<T, E>
 To assert that an operation returns an ~Err~ variant, don’t use the question
 mark operator on the ~Result<T, E>~ value. Instead, use
 ~assert!(value.is_err())~.
+
+** Controlling how tests are run
+
+~cargo test~ compiles your code in test mode and runs the resulting test binary.
+The default behavior of the binary produced by ~cargo test~ is to run all the
+tests in parallel and capture output generated during test runs, preventing the
+output from being displayed and making it easier to read the output related to
+the test results.
+
+Some command line options go to ~cargo test~, and some go to the resulting test
+binary. To separate these two types of arguments, you list the arguments that go
+to ~cargo test~ followed by the separator ~--~ and then the ones that go to the
+test binary. Running ~cargo test --help~ displays the options you can use with
+~cargo test~, and running ~cargo test -- --help~ displays the options you can
+use after the separator.
+
+*** Running Tests in Parallel or Consecutively
+
+When you run multiple tests, by default they run in parallel using threads,
+meaning they finish running faster and you get feedback quicker. Because the
+tests are running at the same time, you must make sure your tests don’t depend
+on each other or on any shared state, including a shared environment, such as
+the current working directory or environment variables.
+
+If you don’t want to run the tests in parallel or if you want more fine-grained
+control over the number of threads used, you can send the ~--test-threads~ flag
+and the number of threads you want to use to the test binary. E.g.
+
+#+BEGIN_SRC bash :noeval
+cargo test -- --test-threads=1
+#+END_SRC
+
+Running the tests using one thread will take longer than running them in
+parallel, but the tests won’t interfere with each other if they share state.
+
+*** Showing Function Output
+
+By default, if a test passes, Rust’s test library captures anything printed to
+standard output. For example, if we call ~println!~ in a test and the test
+passes, we won’t see the ~println!~ output in the terminal; we’ll see only the
+line that indicates the test passed. If a test fails, we’ll see whatever was
+printed to standard output with the rest of the failure message.
+
+If we want to see printed values for passing tests as well, we can tell Rust to
+also show the output of successful tests with ~--show-output~.
+
+#+BEGIN_SRC bash :noeval
+cargo test -- --show-output
+#+END_SRC
+
+*** Running a Subset of Tests by Name
+
+If you’re working on code in a particular area, you might want to run only the
+tests pertaining to that code. You can choose which tests to run by passing
+~cargo test~ the name or names of the test(s) you want to run as an argument.
+
+If we run the tests without passing any arguments, as we saw earlier, all the
+tests will run in parallel.
+
+**** Running Single Tests
+
+We can pass the name of any test function to cargo test to run only that test:
+
+#+BEGIN_SRC bash :noeval
+cargo test greater_than_100
+#+END_SRC
+
+We can’t specify the names of multiple tests in this way; only the first value
+given to ~cargo test~ will be used.
+
+**** Filtering to Run Multiple Tests
+
+We can specify part of a test name, and any test whose name matches that value
+will be run. Note that the module in which a test appears becomes part of the
+test’s name, so we can run all the tests in a module by filtering on the
+module’s name.
+
+*** Ignoring Some Tests Unless Specifically Requested
+
+You can ignore a test with the ~#[ignore]~ attribute:
+
+#+BEGIN_SRC rust :noeval
+#[test]
+#[ignore]
+fn expensive_test() {
+    // code that takes an hour to run
+}
+#+END_SRC
+
+This test will now not be run unless specifically requested. If we want to run
+only the ignored tests, we can use ~cargo test -- --ignored~. If you want to run
+all tests whether they’re ignored or not, you can run
+~cargo test -- --include-ignored~.
 
 * Debug
 

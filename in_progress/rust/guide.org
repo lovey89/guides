@@ -58,6 +58,7 @@
 - [[#writing-automated-tests][Writing Automated Tests]]
   - [[#how-to-write-tests][How to Write Tests]]
   - [[#controlling-how-tests-are-run][Controlling how tests are run]]
+  - [[#test-organization][Test Organization]]
 - [[#debug][Debug]]
 - [[#crates-and-dependencies][Crates and dependencies]]
 - [[#documentation][Documentation]]
@@ -5590,6 +5591,15 @@ This test will now not be run unless specifically requested. If we want to run
 only the ignored tests, we can use ~cargo test -- --ignored~. If you want to run
 all tests whether they’re ignored or not, you can run
 ~cargo test -- --include-ignored~.
+
+** Test Organization
+
+The Rust community thinks about tests in terms of two main categories: unit
+tests and integration tests. /Unit tests/ are small and more focused, testing
+one module in isolation at a time, and can test private interfaces. /Integration
+tests/ are entirely external to your library and use your code in the same way
+any other external code would, using only the public interface and potentially
+exercising multiple modules per test.
 
 * Debug
 

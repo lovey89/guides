@@ -1,3 +1,7 @@
+pub fn add(left: u64, right: u64) -> u64 {
+    left + right
+}
+
 #[derive(Debug)]
 struct Rectangle {
     width: u32,
@@ -64,6 +68,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_that_panics() {
         panic!("Make this test fail");
     }
@@ -72,5 +77,11 @@ mod tests {
     #[should_panic(expected = "less than or equal to 100")]
     fn greater_than_100() {
         Guess::new(200);
+    }
+
+    #[test]
+    fn it_works() {
+        let result = add(2, 2);
+        assert_eq!(result, 4);
     }
 }

@@ -5109,8 +5109,8 @@ specify a lifetime on the ~y~ parameter.
 
 When returning a reference from a function, the lifetime parameter for the
 return type needs to match the lifetime parameter for one of the parameters. If
-the reference returned does not refer to one of the parameters, it must refer to
-a value created within this function. However, this would be a dangling
+the reference returned does /not/ refer to one of the parameters, it must refer
+to a value created within this function. However, this would be a dangling
 reference because the value will go out of scope at the end of the function.
 This is not allowed in Rust. One way to fix that would be to return an owned
 data type rather than a reference so the calling function is then responsible
@@ -5343,6 +5343,9 @@ where
 #+END_SRC
 
 * Writing Automated Tests
+
+A project with provided test is already available in the [[file:006_testing][006_testing directory]].
+
 ** How to Write Tests
 *** The Anatomy of a Test Function
 
@@ -5601,6 +5604,142 @@ tests/ are entirely external to your library and use your code in the same way
 any other external code would, using only the public interface and potentially
 exercising multiple modules per test.
 
+*** Unit Tests
+
+You’ll put unit tests in the src directory in each file with the code that
+they’re testing. The convention is to create a module named ~tests~ in each file
+to contain the test functions and to annotate the module with ~cfg(test)~.
+
+**** The Tests Module and #[cfg(test)]
+
+The ~#[cfg(test)]~ annotation on the tests module tells Rust to compile and run
+the test code only when you run ~cargo test~. Because unit tests go in the same
+files as the code, you’ll use ~#[cfg(test)]~ to specify that they shouldn’t be
+included in the compiled result.
+
+The attribute ~cfg~ stands for /configuration/ and tells Rust that the following
+item should only be included given a certain configuration option. In this case,
+the configuration option is ~test~, which is provided by Rust for compiling and
+running tests. By using the ~cfg~ attribute, Cargo compiles our test code only
+if we actively run the tests with ~cargo test~.
+
+**** Testing Private Functions
+
+Rust’s privacy rules do allow you to test private functions. E.g.
+
+#+BEGIN_SRC rust :noeval
+pub fn add_two(a: i32) -> i32 {
+    internal_adder(a, 2)
+}
+
+fn internal_adder(a: i32, b: i32) -> i32 {
+    a + b
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn internal() {
+        assert_eq!(4, internal_adder(2, 2));
+    }
+}
+#+END_SRC
+
+Note that the ~internal_adder~ function is not marked as ~pub~. Tests are just
+Rust code, and the ~tests~ module is just another module. Items in child modules
+can use the items in their ancestor modules. In this test, we bring all of the
+~tests~ module’s parent’s items into scope with ~use super::*~, and then the
+test can call ~internal_adder~.
+
+*** Integration Tests
+
+In Rust, integration tests are entirely external to your library. They use your
+library in the same way any other code would, which means they can only call
+functions that are part of your library’s public API. Their purpose is to test
+whether many parts of your library work together correctly.
+
+**** The /tests/ Directory
+
+We create a /tests/ directory at the top level of our project directory, next to
+/src/. Cargo knows to look for integration test files in this directory. We can
+then make as many test files as we want, and Cargo will compile each of the
+files as an individual crate.
+
+Since each file in the ~tests~ directory is a separate crate, we need to bring
+our library into each test crate’s scope. This is not needed when writing unit
+tests of course. E.g.:
+
+#+BEGIN_SRC rust :noeval
+use adder::add_two;
+
+#[test]
+fn it_adds_two() {
+    assert_eq!(4, add_two(2));
+}
+#+END_SRC
+
+We don’t need to annotate any code in any integration tests file with
+~#[cfg(test)]~. Cargo treats the ~tests~ directory specially and compiles files
+in this directory only when we run ~cargo test~.
+
+Running ~cargo test~ now you will see a new section for integration tests as
+well. Note that if any test in a section fails, the following sections will not
+be run. For example, if a unit test fails, there won’t be any output for
+integration and doc tests because those tests will only be run if all unit tests
+are passing.
+
+Each integration test file has its own section, so if we add more files in the
+~tests~ directory, there will be more integration test sections.
+
+We can still run a particular integration test function by specifying the test
+function’s name as an argument to ~cargo test~. To run all the tests in a
+particular integration test file, use the ~--test~ argument of ~cargo test~
+followed by the name of the file. To run all tests in
+~tests/integration_test.rs~ you would run:
+
+#+BEGIN_SRC bash :noveal
+cargo test --test integration_test
+#+END_SRC
+
+**** Submodules in Integration Tests
+
+As mentioned earlier, each file in the ~tests~ directory is compiled as its own
+separate crate, which is useful for creating separate scopes to more closely
+imitate the way end users will be using your crate. However, this means files in
+the ~tests~ directory don’t share the same behavior as files in ~src~ do.
+
+The different behavior of tests directory files is most noticeable when you have
+a set of helper functions to use in multiple integration test files and you try
+to extract them into a common module. When we run the tests again, we’ll see a
+new section in the test output for the common module even though this file
+doesn’t contain any test functions. This is not what we wanted.
+
+To avoid having this module appear in the test output, instead of creating e.g.
+/tests/common.rs/, we’ll create /tests/common/mod.rs/. This is the older naming
+convention that Rust also understands. Files in subdirectories of the ~tests~
+directory don’t get compiled as separate crates or have sections in the test
+output.
+
+After we’ve created /tests/common/mod.rs/, we can use it from any of the
+integration test files as a module by defining it with ~mod common;~
+
+**** Integration Tests for Binary Crates
+
+If our project is a binary crate that only contains a ~src/main.rs~ file and
+doesn’t have a ~src/lib.rs~ file, we can’t create integration tests in the
+~tests~ directory and bring functions defined in the ~src/main.rs~ file into
+scope with a ~use~ statement. Only library crates expose functions that other
+crates can use; binary crates are meant to be run on their own.
+
+This is one of the reasons Rust projects that provide a binary have a
+straightforward ~src/main.rs~ file that calls logic that lives in the
+~src/lib.rs~ file. Using that structure, integration tests can test the library
+crate with ~use~ to make the important functionality available. If the important
+functionality works, the small amount of code in the ~src/main.rs~ file will
+work as well, and that small amount of code doesn’t need to be tested.
+
 * Debug
 
 https://doc.rust-lang.org/book/ch05-02-example-structs.html#adding-useful-functionality-with-derived-traits
@@ -5722,3 +5861,4 @@ with the ~Copy~ trait?
 - Can I create an ~impl~ block for an object not defined by me?
 - How does lifetimes work with methods? Comparing self with other and return a field from one of them?
 - What is the static lifetime?
+- Global variables?

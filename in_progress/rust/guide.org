@@ -63,6 +63,9 @@
   - [[#accepting-command-line-arguments][Accepting Command Line Arguments]]
   - [[#reading-a-file][Reading a File]]
   - [[#refactoring-to-improve-modularity-and-error-handling][Refactoring to Improve Modularity and Error Handling]]
+  - [[#writing-the-search-function][Writing the ~search~ function]]
+  - [[#working-with-environment-variables][Working with Environment Variables]]
+  - [[#writing-error-messages-to-standard-error-instead-of-standard-output][Writing Error Messages to Standard Error Instead of Standard Output]]
 - [[#debug][Debug]]
 - [[#crates-and-dependencies][Crates and dependencies]]
 - [[#documentation][Documentation]]
@@ -6264,7 +6267,7 @@ fn main() {
 }
 #+END_SRC
 
-*** Writing the ~search~ function
+** Writing the ~search~ function
 
 Let's start with writing a failing test in the ~lib.rs~ file:
 
@@ -6341,6 +6344,173 @@ Then test the program:
 cargo run -- frog poem.txt
 cargo run -- body poem.txt
 cargo run -- monomorphization poem.txt
+#+END_SRC
+
+** Working with Environment Variables
+
+Now we will make it possible to do case-insensitive searching that the user can
+turn on via an environment variable. Start with writing a failing test case:
+
+#+BEGIN_SRC rust :noeval
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn case_sensitive() {
+        let query = "duct";
+        let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.
+Duct tape."; // This line is new and should not be matched by case sensitive search
+
+        assert_eq!(vec!["safe, fast, productive."], search(query, contents));
+    }
+
+    #[test]
+    fn case_insensitive() {
+        let query = "rUsT";
+        let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.
+Trust me.";
+
+        assert_eq!(
+            vec!["Rust:", "Trust me."],
+            search_case_insensitive(query, contents)
+        );
+    }
+}
+#+END_SRC
+
+Then we implement the new function:
+
+#+BEGIN_SRC rust :noeval
+pub fn search_case_insensitive<'a>(
+    query: &str,
+    contents: &'a str,
+) -> Vec<&'a str> {
+    let query = query.to_lowercase();
+    let mut results = Vec::new();
+
+    for line in contents.lines() {
+        if line.to_lowercase().contains(&query) {
+            results.push(line);
+        }
+    }
+
+    results
+}
+#+END_SRC
+
+First, we lowercase the ~query~ string and store it in a shadowed variable with
+the same name. Note that ~query~ is now a ~String~ rather than a string slice,
+because calling ~to_lowercase~ creates new data rather than referencing existing
+data. When we pass ~query~ as an argument to the ~contains~ method now, we need
+to add an ampersand because the signature of ~contains~ is defined to take a
+string slice.
+
+Next, we add a call to ~to_lowercase~ on each ~line~ to lowercase all
+characters.
+
+Now, let’s call the new ~search_case_insensitive~ function from the ~run~
+function. Update the ~Config~ struct:
+
+#+BEGIN_SRC rust :noeval
+pub struct Config {
+    pub query: String,
+    pub file_path: String,
+    pub ignore_case: bool,
+}
+#+END_SRC
+
+Then update ~run~ to check the variable:
+
+#+BEGIN_SRC rust :noeval
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    let contents = fs::read_to_string(config.file_path)?;
+
+    let results = if config.ignore_case {
+        search_case_insensitive(&config.query, &contents)
+    } else {
+        search(&config.query, &contents)
+    };
+
+    for line in results {
+        println!("{line}");
+    }
+
+    Ok(())
+}
+#+END_SRC
+
+Then we’ll use the ~var~ function from the ~env~ module to check if any value
+has been set for an environment variable named ~IGNORE_CASE~ in the
+~Config::build~ function:
+
+#+BEGIN_SRC rust :noeval
+use std::env;
+
+impl Config {
+    pub fn build(args: &[String]) -> Result<Config, &'static str> {
+        if args.len() < 3 {
+            return Err("not enough arguments");
+        }
+
+        let query = args[1].clone();
+        let file_path = args[2].clone();
+
+        let ignore_case = env::var("IGNORE_CASE").is_ok();
+
+        Ok(Config {
+            query,
+            file_path,
+            ignore_case,
+        })
+    }
+}
+#+END_SRC
+
+The ~env::var~ function returns a ~Result~ that will be the successful ~Ok~
+variant that contains the value of the environment variable if the environment
+variable is set to any value. It will return the ~Err~ variant if the
+environment variable is not set. We don’t care about the value of the
+environment variable, just whether it’s set or unset, so we’re checking ~is_ok~
+rather than using ~unwrap~, ~expect~, or any of the other methods we’ve seen on
+~Result~.
+
+Test the program with:
+
+#+BEGIN_SRC bash :noeval
+IGNORE_CASE=1 cargo run -- to poem.txt
+# and
+cargo run -- to poem.txt
+#+END_SRC
+
+** Writing Error Messages to Standard Error Instead of Standard Output
+
+At the moment, we’re writing all of our output to the terminal using the
+~println!~ macro. All the code that prints error messages is in one function,
+~main~. The standard library provides the ~eprintln!~ macro that prints to the
+standard error stream, so let’s change the two places we were calling ~println!~
+to print errors to use ~eprintln!~ instead.
+
+#+BEGIN_SRC rust :noeval
+fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    let config = Config::build(&args).unwrap_or_else(|err| {
+        eprintln!("Problem parsing arguments: {err}");
+        process::exit(1);
+    });
+
+    if let Err(e) = minigrep::run(config) {
+        eprintln!("Application error: {e}");
+        process::exit(1);
+    }
+}
 #+END_SRC
 
 * Debug

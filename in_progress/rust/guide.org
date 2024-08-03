@@ -6264,6 +6264,85 @@ fn main() {
 }
 #+END_SRC
 
+*** Writing the ~search~ function
+
+Let's start with writing a failing test in the ~lib.rs~ file:
+
+#+BEGIN_SRC rust :noeval
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn one_result() {
+        let query = "duct";
+        let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.";
+
+        assert_eq!(vec!["safe, fast, productive."], search(query, contents));
+    }
+}
+#+END_SRC
+
+Then add a function that makes the test pass:
+
+#+BEGIN_SRC rust :noeval
+fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    let mut results = Vec::new();
+
+    for line in contents.lines() {
+        if line.contains(query) {
+            results.push(line);
+        }
+    }
+
+    results
+}
+#+END_SRC
+
+Notice that we need to define an explicit lifetime ~'a~ in the signature of
+~search~ and use that lifetime with the ~contents~ argument and the return
+value. We indicate that the returned vector should contain string slices that
+reference slices of the argument ~contents~ (rather than the argument ~query~).
+
+In other words, we tell Rust that the data returned by the ~search~ function
+will live as long as the data passed into the ~search~ function in the
+~contents~ argument.
+
+Now that the ~search~ function is working and tested, we need to call ~search~
+from our run function. We need to pass the ~config.query~ value and the
+~contents~ that ~run~ reads from the file to the ~search~ function.
+
+#+BEGIN_SRC rust :noeval
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    let contents = fs::read_to_string(config.file_path)?;
+
+    for line in search(&config.query, &contents) {
+        println!("{line}");
+    }
+
+    Ok(())
+}
+#+END_SRC
+
+We’re still using a ~for~ loop to return each line from ~search~ and print it.
+
+Run the test with:
+
+#+BEGIN_SRC bash :noeval
+cargo test
+#+END_SRC
+
+Then test the program:
+
+#+BEGIN_SRC bash :noeval
+cargo run -- frog poem.txt
+cargo run -- body poem.txt
+cargo run -- monomorphization poem.txt
+#+END_SRC
+
 * Debug
 
 https://doc.rust-lang.org/book/ch05-02-example-structs.html#adding-useful-functionality-with-derived-traits

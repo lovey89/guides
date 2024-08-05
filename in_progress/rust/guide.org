@@ -71,6 +71,9 @@
   - [[#processing-a-series-of-items-with-iterators][Processing a Series of Items with Iterators]]
   - [[#improving-minigrep][Improving ~minigrep~]]
   - [[#a-comment-about-performance-between-loops-vs-iterators][A comment about performance between loops vs iterators]]
+- [[#more-about-cargo-and-cratesio][More About Cargo and Crates.io]]
+  - [[#customizing-builds-with-release-profiles][Customizing Builds with Release Profiles]]
+  - [[#improving-a-crate-before-publishing-to-cratesio][Improving a Crate before Publishing to Crates.io]]
 - [[#debug][Debug]]
 - [[#crates-and-dependencies][Crates and dependencies]]
 - [[#documentation][Documentation]]
@@ -7338,6 +7341,256 @@ abstraction, get compiled down to roughly the same code as if you’d written th
 lower-level code yourself. Iterators are one of Rust’s /zero-cost abstractions/,
 by which we mean using the abstraction imposes no additional runtime overhead.
 
+* More About Cargo and Crates.io
+
+For full documentation about Cargo, see [[https://doc.rust-lang.org/cargo/][The Cargo Book]].
+
+** Customizing Builds with Release Profiles
+
+In Rust, /release profiles/ are predefined and customizable profiles with
+different configurations that allow a programmer to have more control over
+various options for compiling code. Each profile is configured independently of
+the others.
+
+Cargo has two main profiles: the ~dev~ profile Cargo uses when you
+~run cargo build~ and the ~release~ profile Cargo uses when you run
+~cargo build --release~. The ~dev~ profile is defined with good defaults for
+development, and the ~release~ profile has good defaults for release builds.
+
+Cargo has default settings for each of the profiles that apply when you haven’t
+explicitly added any ~[profile.*]~ sections in the project’s ~Cargo.toml~ file.
+By adding ~[profile.*]~ sections for any profile you want to customize, you
+override any subset of the default settings. For example, here are the default
+values for the opt-level setting for the ~dev~ and ~release~ profiles:
+
+#+BEGIN_SRC toml :noeval
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3
+#+END_SRC
+
+The ~opt-level~ setting controls the number of optimizations Rust will apply to
+your code, with a range of 0 to 3. You can override a default setting by adding
+a different value for it in ~Cargo.toml~. You can override more values. Read
+more about [[https://doc.rust-lang.org/cargo/reference/profiles.html][profiles in The Cargo Book]].
+
+** Improving a Crate before Publishing to Crates.io
+
+The code for this section is available at [[file:009_documentation][009_documentation]].
+
+*** Making Useful Documentation Comments
+
+Rust has a particular kind of comment for documentation, known conveniently as a
+/documentation comment/, that will generate HTML documentation. The HTML
+displays the contents of documentation comments for public API items intended
+for programmers interested in knowing how to use your crate as opposed to how
+your crate is implemented.
+
+Documentation comments use three slashes, ~///~, instead of two and support
+Markdown notation for formatting the text. Place documentation comments just
+before the item they’re documenting.
+
+#+BEGIN_SRC rust :noeval
+/// Adds one to the number given.
+///
+/// # Examples
+///
+/// ```
+/// let arg = 5;
+/// let answer = my_crate::add_one(arg);
+///
+/// assert_eq!(6, answer);
+/// ```
+pub fn add_one(x: i32) -> i32 {
+    x + 1
+}
+#+END_SRC
+
+We can generate the HTML documentation from this documentation comment by
+running ~cargo doc~. This command runs the ~rustdoc~ tool distributed with Rust
+and puts the generated HTML documentation in the ~target/doc~ directory.
+
+For convenience, running ~cargo doc --open~ will build the HTML for your current
+crate’s documentation (as well as the documentation for all of your crate’s
+dependencies) and open the result in a web browser.
+
+**** Commonly Used Sections
+
+In the example above we used the ~# Examples~ markdown heading to create a
+section in the HTML with the title "Examples". Other commonly used sections are:
+
+- *Panics*: The scenarios in which the function being documented could panic.
+  Callers of the function who don’t want their programs to panic should make
+  sure they don’t call the function in these situations.
+- *Errors*: If the function returns a ~Result~, describing the kinds of errors
+  that might occur and what conditions might cause those errors to be returned
+  can be helpful to callers so they can write code to handle the different kinds
+  of errors in different ways.
+- *Safety*: If the function is ~unsafe~ to call (more about unsafety later),
+  there should be a section explaining why the function is unsafe and covering
+  the invariants that the function expects callers to uphold.
+
+**** Documentation Comments as Tests
+
+Adding example code blocks in your documentation comments can help demonstrate
+how to use your library, and doing so has an additional bonus: running
+~cargo test~ will run the code examples in your documentation as tests.
+
+The test result for the tests in the documentation will appear under a section
+called ~Doc-tests proj_name~ om the output of ~cargo test~.
+
+**** Commenting Contained Items
+
+The style of doc comment ~//!~ adds documentation to the item that contains the
+comments rather than to the items following the comments. We typically use these
+doc comments inside the crate root file (~src/lib.rs~ by convention) or inside a
+module to document the crate or the module as a whole.
+
+To add documentation that describes the purpose of the ~my_crate~ crate, we add
+documentation comments that start with ~//!~ to the beginning of the
+~src/lib.rs~ file:
+
+#+BEGIN_SRC rust :noeval
+//! # My Crate
+//!
+//! `my_crate` is a collection of utilities to make performing certain
+//! calculations more convenient.
+
+/// Adds one to the number given.
+///
+/// # Examples
+///
+/// ```
+/// let arg = 5;
+/// let answer = my_crate::add_one(arg);
+///
+/// assert_eq!(6, answer);
+/// ```
+pub fn add_one(x: i32) -> i32 {
+    x + 1
+}
+#+END_SRC
+
+The new comments will display on the front page of the documentation for
+~my_crate~ above the list of public items in the crate, when running
+~cargo doc --open~.
+
+*** Exporting a Convenient Public API with pub use
+
+The structure of your public API is a major consideration when publishing a
+crate. People who use your crate are less familiar with the structure than you
+are and might have difficulty finding the pieces they want to use if your crate
+has a large module hierarchy.
+
+The structure that makes sense to you while you’re developing a crate might not
+be very convenient for your users. You might want to organize your structs in a
+hierarchy containing multiple levels, but then people who want to use a type
+you’ve defined deep in the hierarchy might have trouble finding out that type
+exists. They might also be annoyed at having to enter
+~use my_crate::some_module::another_module::UsefulType;~ rather than
+~use my_crate::UsefulType;~.
+
+You can re-export items to make a public structure that’s different from your
+private structure by using ~pub use~. Re-exporting takes a public item in one
+location and makes it public in another location, as if it were defined in the
+other location instead.
+
+Look at the following example:
+
+#+BEGIN_SRC rust :noeval
+//! # Art
+//!
+//! A library for modeling artistic concepts.
+
+pub mod kinds {
+    /// The primary colors according to the RYB color model.
+    pub enum PrimaryColor {
+        Red,
+        Yellow,
+        Blue,
+    }
+
+    /// The secondary colors according to the RYB color model.
+    pub enum SecondaryColor {
+        Orange,
+        Green,
+        Purple,
+    }
+}
+
+pub mod utils {
+    use crate::kinds::*;
+
+    /// Combines two primary colors in equal amounts to create
+    /// a secondary color.
+    pub fn mix(c1: PrimaryColor, c2: PrimaryColor) -> SecondaryColor {
+        // --snip--
+    }
+}
+#+END_SRC
+
+When running ~cargo doc --open~, ~PrimaryColor~ and ~SecondaryColor~ types
+aren’t listed on the front page, nor is the ~mix~ function. We have to click
+~kinds~ and ~utils~ in the /Modules/ section to see them.
+
+Another crate that depends on this library would need ~use~ statements that
+bring the items from ~art~ into scope, specifying the module structure that’s
+currently defined.
+
+#+BEGIN_SRC rust :noeval
+use art::kinds::PrimaryColor;
+use art::utils::mix;
+
+fn main() {
+    let red = PrimaryColor::Red;
+    let yellow = PrimaryColor::Yellow;
+    mix(red, yellow);
+}
+#+END_SRC
+
+The module structure of the ~art~ crate is more relevant to developers working
+on the art crate than to those using it. To remove the internal organization
+from the public API, we can modify the ~art~ crate code and add ~pub use~
+statements to re-export the items at the top level:
+
+#+BEGIN_SRC rust :noeval
+//! # Art
+//!
+//! A library for modeling artistic concepts.
+
+pub use self::kinds::PrimaryColor;
+pub use self::kinds::SecondaryColor;
+pub use self::utils::mix;
+
+pub mod kinds {
+    // --snip--
+}
+
+pub mod utils {
+    // --snip--
+}
+#+END_SRC
+
+The API documentation that ~cargo doc~ generates for this crate will now list
+and link re-exports on the front page under the /Re-exports/ section.
+
+The ~art~ crate users can still see and use the internal structure or they can
+use the more convenient re-exported structure:
+
+#+BEGIN_SRC rust :noeval
+use art::mix;
+use art::PrimaryColor;
+
+fn main() {
+    // --snip--
+}
+#+END_SRC
+
+Another common use of ~pub use~ is to re-export definitions of a dependency in
+the current crate to make that crate’s definitions part of your crate’s public
+API.
 
 
 * Debug

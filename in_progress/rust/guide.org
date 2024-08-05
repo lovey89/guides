@@ -74,6 +74,9 @@
 - [[#more-about-cargo-and-cratesio][More About Cargo and Crates.io]]
   - [[#customizing-builds-with-release-profiles][Customizing Builds with Release Profiles]]
   - [[#improving-a-crate-before-publishing-to-cratesio][Improving a Crate before Publishing to Crates.io]]
+  - [[#cargo-workspaces][Cargo Workspaces]]
+  - [[#installing-binaries-with-cargo-install][Installing Binaries with ~cargo install~]]
+  - [[#extending-cargo-with-custom-commands][Extending Cargo with Custom Commands]]
 - [[#debug][Debug]]
 - [[#crates-and-dependencies][Crates and dependencies]]
 - [[#documentation][Documentation]]
@@ -7477,7 +7480,7 @@ The new comments will display on the front page of the documentation for
 ~my_crate~ above the list of public items in the crate, when running
 ~cargo doc --open~.
 
-*** Exporting a Convenient Public API with pub use
+*** Exporting a Convenient Public API with ~pub use~
 
 The structure of your public API is a major consideration when publishing a
 crate. People who use your crate are less familiar with the structure than you
@@ -7592,6 +7595,217 @@ Another common use of ~pub use~ is to re-export definitions of a dependency in
 the current crate to make that crate’s definitions part of your crate’s public
 API.
 
+** Cargo Workspaces
+
+Previously we built a package that included a binary crate and a library crate.
+As your project develops, you might find that the library crate continues to get
+bigger and you want to split your package further into multiple library crates.
+Cargo offers a feature called /workspaces/ that can help manage multiple related
+packages that are developed in tandem.
+
+*** Creating a Workspace
+
+A /workspace/ is a set of packages that share the same ~Cargo.lock~ and output
+directory. There are multiple ways to structure a workspace, so we’ll just show
+one common way. We’ll have a workspace containing a binary and two libraries.
+The binary, which will provide the main functionality, will depend on the two
+libraries. One library will provide an ~add_one~ function, and a second library
+an ~add_two~ function. These three crates will be part of the same workspace.
+
+We have already create a workspace in [[file:010_workspaces][010_workspaces]] with the following file
+structure:
+
+#+BEGIN_SRC
+010_workspaces
+└── add
+    ├── adder
+    │   ├── Cargo.toml
+    │   └── src
+    │       └── main.rs
+    ├── add_one
+    │   ├── Cargo.toml
+    │   └── src
+    │       └── lib.rs
+    ├── add_two
+    │   ├── Cargo.toml
+    │   └── src
+    │       └── lib.rs
+    └── Cargo.toml
+#+END_SRC
+
+To create this structure start creating new directory for the workspace:
+
+#+BEGIN_SRC bash :noeval
+mkdir add
+cd add
+#+END_SRC
+
+Create the ~Cargo.toml~ file that will configure the entire workspace. This file
+won’t have a ~[package]~ section. Instead, it will start with a ~[workspace]~
+section that will allow us to add members to the workspace by specifying the
+path to the package with our binary crate; in this case, that path is ~adder~:
+
+#+BEGIN_SRC toml :noeval
+[workspace]
+
+members = [
+    "adder",
+]
+#+END_SRC
+
+Next, we’ll create the ~adder~ binary crate by running ~cargo new adder~ within
+the ~add~ directory. If we only had created ~Cargo.toml~ with the content:
+
+#+BEGIN_SRC toml :noeval
+[workspace]
+#+END_SRC
+
+The ~adder~ member would have been added automatically to the ~members~ list
+when it was created (discover by myself).
+
+At this point, we can build the workspace by running ~cargo build~. The
+workspace has one target directory at the top level that the compiled artifacts
+will be placed into; the ~adder~ package doesn’t have its own ~target~
+directory. Even if we were to run ~cargo build~ from inside the ~adder~
+directory, the compiled artifacts would still end up in ~add/target~ rather than
+~add/adder/target~.
+
+*** Creating the Second Package in the Workspace
+
+Let’s create another member package in the workspace and call it ~add_one~.
+Change the top-level ~Cargo.toml~ to specify the ~add_one~ path in the members
+list (this step is optional as discovered above):
+
+#+BEGIN_SRC toml :noeval
+[workspace]
+
+members = [
+    "adder",
+    "add_one"
+]
+#+END_SRC
+
+Generate a new library crate named ~add_one~ by running
+~cargo new add_one --lib~.
+
+In the ~add_one/src/lib.rs~ file, let’s add an ~add_one~ function:
+
+#+BEGIN_SRC rust :results output
+pub fn add_one(x: i32) -> i32 {
+    x + 1
+}
+#+END_SRC
+
+Now we can have the ~adder~ package with our binary depend on the ~add_one~
+package that has our library. First, we’ll need to add a path dependency on
+~add_one~ to ~adder/Cargo.toml~.
+
+#+BEGIN_SRC toml :noeval
+[dependencies]
+add_one = { path = "../add_one" }
+#+END_SRC
+
+Cargo doesn’t assume that crates in a workspace will depend on each other, so we
+need to be explicit about the dependency relationships.
+
+Next, let’s use the ~add_one~ function in the ~adder~ crate. Open the
+~adder/src/main.rs~ file and add a ~use~ line at the top to bring the new
+~add_one~ library crate into scope. Then change the ~main~ function to call the
+~add_one~ function:
+
+#+BEGIN_SRC rust :noeval
+use add_one;
+
+fn main() {
+    let num = 10;
+    println!("Hello, world! {num} plus one is {}!", add_one::add_one(num));
+}
+#+END_SRC
+
+Let’s build the workspace by running ~cargo build~ in the top-level ~add~
+directory.
+
+To run the binary crate from the ~add~ directory, we can specify which package
+in the workspace we want to run by using the ~-p~ argument and the package name
+with ~cargo run~. In this case: ~cargo run -p adder~ (actually it looks like as
+if ~cargo run~ works as well in this case).
+
+*** Depending on an External Package in a Workspace
+
+After building, notice that the workspace has only one ~Cargo.lock~ file at the
+top level, rather than having a ~Cargo.lock~ in each crate’s directory. This
+ensures that all crates are using the same version of all dependencies. If we
+add the ~rand~ package to the ~adder/Cargo.toml~ and ~add_one/Cargo.toml~ files,
+Cargo will resolve both of those to one version of ~rand~ and record that in the
+one ~Cargo.lock~. Making all crates in the workspace use the same dependencies
+means the crates will always be compatible with each other. Let’s add the ~rand~
+crate to the ~[dependencies]~ section in the ~add_one/Cargo.toml~ file so we can
+use the ~rand~ crate in the ~add_one~ crate:
+
+#+BEGIN_SRC toml :noeval
+[dependencies]
+rand = "0.8.5"
+#+END_SRC
+
+We can now add ~use rand;~ to the ~add_one/src/lib.rs~ file and it will compile
+just fine. The top-level ~Cargo.lock~ now contains information about the
+dependency of ~add_one~ on ~rand~. However, even though ~rand~ is used somewhere
+in the workspace, we can’t use it in other crates in the workspace unless we add
+~rand~ to their ~Cargo.toml~ files as well. So we can't use ~rand~ in the
+~adder~ crate.
+
+If we add ~rand~ as a dependency for ~adder~ as well and build it, the list of
+dependencies for ~adder~ in ~Cargo.lock~ will be updated, but no additional
+copies of ~rand~ will be downloaded. Cargo will ensure that every crate in every
+package in the workspace using the ~rand~ package will be using the same version
+as long as they specify compatible versions of ~rand~, saving us space and
+ensuring that the crates in the workspace will be compatible with each other.
+
+If crates in the workspace specify incompatible versions of the same dependency,
+Cargo will resolve each of them, but will still try to resolve as few versions
+as possible.
+
+*** Adding a Test to a Workspace
+
+If you run ~cargo test~ in the top-level ~add~ directory, will run the tests for
+all the crates in the workspace. Each crate will get its own unit test section,
+and each library crate will get it's own Doc-tests section.
+
+We can also run tests for one particular crate in a workspace from the top-level
+directory by using the ~-p~ flag and specifying the name of the crate we want to
+test. E.g. ~cargo test -p add_one~.
+
+If you publish the crates in the workspace to [[https://crates.io/][crates.io]], each crate in the
+workspace will need to be published separately. Like ~cargo test~, we can
+publish a particular crate in our workspace by using the ~-p~ flag and
+specifying the name of the crate we want to publish.
+
+** Installing Binaries with ~cargo install~
+
+The cargo install command allows you to install and use binary crates locally.
+Note that you can only install packages that have binary targets. A /binary
+target/ is the runnable program that is created if the crate has a ~src/main.rs~
+file or another file specified as a binary, as opposed to a library target that
+isn’t runnable on its own but is suitable for including within other programs.
+
+All binaries installed with ~cargo install~ are stored in the installation
+root’s ~bin~ folder. If you installed Rust using /rustup.rs/ and don’t have any
+custom configurations, this directory will be ~$HOME/.cargo/bin~.
+
+To install the crate ~ripgrep~, run ~cargo install ripgrep~. The last couple of
+lines in the output shows the location and the name of the installed binary,
+which in the case of ~ripgrep~ is ~rg~. Run ~rg --help~ to verify.
+
+To uninstall the crate, run ~cargo uninstall ripgrep~.
+
+** Extending Cargo with Custom Commands
+
+Cargo is designed so you can extend it with new subcommands without having to
+modify Cargo. If a binary in your ~$PATH~ is named ~cargo-something~, you can
+run it as if it was a Cargo subcommand by running ~cargo something~. Custom
+commands like this are also listed when you run ~cargo --list~. You can then use
+~cargo install~ to install extensions and then run them just like the built-in
+Cargo tools.
 
 * Debug
 

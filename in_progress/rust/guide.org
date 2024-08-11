@@ -80,6 +80,10 @@
 - [[#smart-pointers][Smart Pointers]]
   - [[#using-boxt-to-point-to-data-on-the-heap][Using ~Box<T>~ to Point to Data on the Heap]]
   - [[#treating-smart-pointers-like-regular-references-with-the-deref-trait][Treating Smart Pointers Like Regular References with the ~Deref~ Trait]]
+  - [[#running-code-on-cleanup-with-the-drop-trait][Running Code on Cleanup with the ~Drop~ Trait]]
+  - [[#rct-the-reference-counted-smart-pointer][~Rc<T>~, the Reference Counted Smart Pointer]]
+  - [[#refcellt-and-the-interior-mutability-pattern][~RefCell<T>~ and the Interior Mutability Pattern]]
+  - [[#reference-cycles-can-leak-memory][Reference Cycles Can Leak Memory]]
 - [[#debug][Debug]]
 - [[#crates-and-dependencies][Crates and dependencies]]
 - [[#documentation][Documentation]]
@@ -2224,7 +2228,7 @@ p1.distance(&p2);
 #+END_SRC
 
 The first one looks much cleaner. This automatic referencing behavior works
-because methods have a clear receiver — the type of ~self~.
+because methods have a clear receiver - the type of ~self~.
 
 *** Methods with more parameters
 
@@ -8160,6 +8164,890 @@ Third case states that Rust will also coerce a mutable reference to an immutable
 one. But the reverse is not possible: immutable references will never coerce to
 mutable references.
 
+** Running Code on Cleanup with the ~Drop~ Trait
+
+The ~Drop~ trait lets you customize what happens when a value is about to go out
+of scope. You can provide an implementation for the ~Drop~ trait on any type,
+and that code can be used to release resources like files or network
+connections. For example, when a ~Box<T>~ is dropped it will deallocate the
+space on the heap that the box points to.
+
+You specify the code to run when a value goes out of scope by implementing the
+~Drop~ trait. The ~Drop~ trait requires you to implement one method named ~drop~
+that takes a mutable reference to ~self~. E.g:
+
+#+BEGIN_SRC rust :results output
+struct CustomSmartPointer {
+    data: String,
+}
+
+impl Drop for CustomSmartPointer {
+    fn drop(&mut self) {
+        println!("Dropping CustomSmartPointer with data `{}`!", self.data);
+    }
+}
+
+fn main() {
+    let c = CustomSmartPointer {
+        data: String::from("my stuff"),
+    };
+    let d = CustomSmartPointer {
+        data: String::from("other stuff"),
+    };
+    println!("CustomSmartPointers created.");
+}
+#+END_SRC
+
+The ~Drop~ trait is included in the prelude, so we don’t need to bring it into
+scope.
+
+In ~main~, we create two instances of ~CustomSmartPointer~ and then print
+~CustomSmartPointers created~. At the end of ~main~, our instances of
+~CustomSmartPointer~ will go out of scope, and Rust will call the code we put in
+the ~drop~ method, printing our final message. Note that we didn’t need to call
+the ~drop~ method explicitly. Variables are dropped in the reverse order of
+their creation, so ~d~ will be dropped before ~c~.
+
+*** Dropping a Value Early with ~std::mem::drop~
+
+Disabling ~drop~ isn’t usually necessary; the whole point of the ~Drop~ trait is
+that it’s taken care of automatically. Occasionally, however, you might want to
+clean up a value early. One example is when using smart pointers that manage
+locks: you might want to force the ~drop~ method that releases the lock so that
+other code in the same scope can acquire the lock. Rust doesn’t let you call the
+~Drop~ trait’s ~drop~ method manually; instead you have to call the
+~std::mem::drop~ function provided by the standard library if you want to force
+a value to be dropped before the end of its scope.
+
+The following code will not compile:
+
+#+BEGIN_SRC rust :results output
+struct CustomSmartPointer {
+    data: String,
+}
+
+impl Drop for CustomSmartPointer {
+    fn drop(&mut self) {
+        println!("Dropping CustomSmartPointer with data `{}`!", self.data);
+    }
+}
+
+fn main() {
+    let c = CustomSmartPointer {
+        data: String::from("some data"),
+    };
+    println!("CustomSmartPointer created.");
+    c.drop();
+    println!("CustomSmartPointer dropped before the end of main.");
+}
+#+END_SRC
+
+Rust doesn’t let us call ~drop~ explicitly because Rust would still
+automatically call ~drop~ on the value at the end of ~main~. This would cause a
+/double free/ error.
+
+We can’t disable the automatic insertion of ~drop~ when a value goes out of
+scope, and we can’t call the ~drop~ method explicitly. So, if we need to force a
+value to be cleaned up early, we use the ~std::mem::drop~ function.
+
+The ~std::mem::drop~ function is different from the ~drop~ method in the ~Drop~
+trait. The function is in the prelude, so we can modify ~main~ to call the
+~drop~ function.
+
+#+BEGIN_SRC rust :results output
+struct CustomSmartPointer {
+    data: String,
+}
+
+impl Drop for CustomSmartPointer {
+    fn drop(&mut self) {
+        println!("Dropping CustomSmartPointer with data `{}`!", self.data);
+    }
+}
+
+fn main() {
+    let c = CustomSmartPointer {
+        data: String::from("some data"),
+    };
+    println!("CustomSmartPointer created.");
+    drop(c); // Value is moved here so c will not be accessible after this
+    //println!("{}", c.data);
+    println!("CustomSmartPointer dropped before the end of main.");
+}
+#+END_SRC
+
+** ~Rc<T>~, the Reference Counted Smart Pointer
+
+In the majority of cases, ownership is clear: you know exactly which variable
+owns a given value. However, there are cases when a single value might have
+multiple owners. For example, in graph data structures, multiple edges might
+point to the same node. A node shouldn’t be cleaned up unless it doesn’t have
+any edges pointing to it and so has no owners.
+
+You have to enable multiple ownership explicitly by using the Rust type ~Rc<T>~,
+which is an abbreviation for /reference counting/. The ~Rc<T>~ type keeps track
+of the number of references to a value to determine whether or not the value is
+still in use. If there are zero references to a value, the value can be cleaned
+up without any references becoming invalid.
+
+We use the ~Rc<T>~ type when we want to allocate some data on the heap for
+multiple parts of our program /to read/ and we can’t determine at compile time
+which part will finish using the data last.
+
+*Note* that ~Rc<T>~ is only for use in single-threaded scenarios.
+
+*** Using ~Rc<T>~ to Share Data
+
+Let's look at the cons list again. This time, we’ll create two lists that both
+share ownership of a third list. In the example below, list ~b~ and ~c~ will
+both own ~a~.
+
+#+BEGIN_SRC rust :results output
+enum List {
+    Cons(i32, Box<List>),
+    Nil,
+}
+
+use crate::List::{Cons, Nil};
+
+fn main() {
+    let a = Cons(5, Box::new(Cons(10, Box::new(Nil))));
+    let b = Cons(3, Box::new(a)); // <-- a is moved here
+    let c = Cons(4, Box::new(a));
+}
+#+END_SRC
+
+This will of course not work since ~a~ is moved to ~b~ and ~a~ is no longer
+valid when assigning it to ~c~.
+
+We could change the definition of ~Cons~ to hold references instead, but then we
+would have to specify lifetime parameters. By specifying lifetime parameters, we
+would be specifying that every element in the list will live at least as long as
+the entire list.
+
+Instead, we’ll change our definition of ~List~ to use ~Rc<T>~ in place of
+~Box<T>~. When we create ~b~, instead of taking ownership of ~a~, we’ll clone
+the ~Rc<List>~ that ~a~ is holding, thereby increasing the number of references
+from one to two and letting ~a~ and ~b~ share ownership of the data in that
+~Rc<List>~. We’ll also clone ~a~ when creating ~c~, increasing the number of
+references from two to three. Every time we call ~Rc::clone~, the reference
+count to the data within the ~Rc<List>~ will increase, and the data won’t be
+cleaned up unless there are zero references to it.
+
+#+BEGIN_SRC rust :results output
+#[derive(Debug)]
+enum List {
+    Cons(i32, Rc<List>),
+    Nil,
+}
+
+use crate::List::{Cons, Nil};
+use std::rc::Rc;
+
+fn main() {
+    let a = Rc::new(Cons(5, Rc::new(Cons(10, Rc::new(Nil)))));
+    let b = Cons(3, Rc::clone(&a));
+    let c = Cons(4, Rc::clone(&a));
+    println!("{:?}", b);
+    println!("{:?}", c);
+}
+#+END_SRC
+
+We need to add a ~use~ statement to bring ~Rc<T>~ into scope because it’s not in
+the prelude.
+
+We could have called ~a.clone()~ rather than ~Rc::clone(&a)~, but Rust’s
+convention is to use ~Rc::clone~ in this case. The implementation of ~Rc::clone~
+doesn’t make a deep copy of all the data like most types’ implementations of
+~clone~ do. The call to ~Rc::clone~ only increments the reference count, which
+doesn’t take much time. Deep copies of data can take a lot of time. By using
+~Rc::clone~ for reference counting, we can visually distinguish between the
+deep-copy kinds of clones and the kinds of clones that increase the reference
+count. When looking for performance problems in the code, we only need to
+consider the deep-copy clones and can disregard calls to ~Rc::clone~.
+
+*** Cloning an ~Rc<T>~ Increases the Reference Count
+
+In the following example, ~main~ has an inner scope around list ~c~; then we can
+see how the reference count changes when c goes out of scope:
+
+#+BEGIN_SRC rust :results output
+#[derive(Debug)]
+enum List {
+    Cons(i32, Rc<List>),
+    Nil,
+}
+
+use crate::List::{Cons, Nil};
+use std::rc::Rc;
+
+fn main() {
+    let a = Rc::new(Cons(5, Rc::new(Cons(10, Rc::new(Nil)))));
+    println!("count after creating a = {}", Rc::strong_count(&a)); // 1
+    let b = Cons(3, Rc::clone(&a));
+    println!("count after creating b = {}", Rc::strong_count(&a)); // 2
+    {
+        let c = Cons(4, Rc::clone(&a));
+        println!("count after creating c = {}", Rc::strong_count(&a)); // 3
+    }
+    println!("count after c goes out of scope = {}", Rc::strong_count(&a)); //2
+}
+#+END_SRC
+
+At each point in the program where the reference count changes, we print the
+reference count, which we get by calling the ~Rc::strong_count~ function. This
+function is named ~strong_count~ rather than ~count~ because the ~Rc<T>~ type
+also has a ~weak_count~ (more about that later).
+
+We don’t have to call a function to decrease the reference count like we have to
+call ~Rc::clone~ to increase the reference count: the implementation of the
+~Drop~ trait decreases the reference count automatically when an ~Rc<T>~ value
+goes out of scope.
+
+When ~b~ and then ~a~ go out of scope at the end of ~main~, the count is then 0,
+and the ~Rc<List>~ is cleaned up completely. Using ~Rc<T>~ allows a single value
+to have multiple owners, and the count ensures that the value remains valid as
+long as any of the owners still exist.
+
+Via immutable references, ~Rc<T>~ allows you to share data between multiple
+parts of your program for reading only. If ~Rc<T>~ allowed you to have multiple
+mutable references too, you might violate one of the borrowing rules.
+
+** ~RefCell<T>~ and the Interior Mutability Pattern
+
+/Interior mutability/ is a design pattern in Rust that allows you to mutate data
+even when there are immutable references to that data; normally, this action is
+disallowed by the borrowing rules. To mutate data, the pattern uses ~unsafe~
+code inside a data structure to bend Rust’s usual rules that govern mutation and
+borrowing. Unsafe code indicates to the compiler that we’re checking the rules
+manually instead of relying on the compiler to check them for us.
+
+We can use types that use the interior mutability pattern only when we can
+ensure that the borrowing rules will be followed at runtime, even though the
+compiler can’t guarantee that. The ~unsafe~ code involved is then wrapped in a
+safe API, and the outer type is still immutable.
+
+*** Enforcing Borrowing Rules at Runtime with ~RefCell<T>~
+
+Unlike ~Rc<T>~, the ~RefCell<T>~ type represents single ownership over the data
+it holds. So, what makes ~RefCell<T>~ different from a type like ~Box<T>~?
+Recall the borrowing rules:
+
+- At any given time, you can have either (but not both) one mutable reference or
+  any number of immutable references.
+- References must always be valid.
+
+With references and ~Box<T>~, the borrowing rules’ invariants are enforced at
+compile time. With ~RefCell<T>~, these invariants are enforced at /runtime/.
+With references, if you break these rules, you’ll get a compiler error. With
+~RefCell<T>~, if you break these rules, your program will panic and exit.
+
+Checking the borrowing rules at compile time is the best choice in the majority
+of cases, which is why this is Rust’s default. You will catch errors during
+compile time and there is no impact on runtime performace.
+
+The advantage of checking the borrowing rules at runtime instead is that certain
+memory-safe scenarios are then allowed, where they would’ve been disallowed by
+the compile-time checks. Some properties of code are impossible to detect by
+analyzing the code. Because some analysis is impossible, if the Rust compiler
+can’t be sure the code complies with the ownership rules, it might reject a
+correct program. The ~RefCell<T>~ type is useful when you’re sure your code
+follows the borrowing rules but the compiler is unable to understand and
+guarantee that.
+
+Similar to ~Rc<T>~, ~RefCell<T>~ is only for use in single-threaded scenarios
+and will give you a compile-time error if you try using it in a multithreaded
+context.
+
+Here is a recap of the reasons to choose ~Box<T>~, ~Rc<T>~, or ~RefCell<T>~:
+
+- ~Rc<T>~ enables multiple owners of the same data; ~Box<T>~ and ~RefCell<T>~
+  have single owners.
+- ~Box<T>~ allows immutable or mutable borrows checked at compile time; ~Rc<T>~
+  allows only immutable borrows checked at compile time; ~RefCell<T>~ allows
+  immutable or mutable borrows checked at runtime.
+- Because ~RefCell<T>~ allows mutable borrows checked at runtime, you can mutate
+  the value inside the ~RefCell<T>~ even when the ~RefCell<T>~ is immutable.
+
+Mutating the value inside an immutable value is the /interior mutability
+pattern/.
+
+*** Interior Mutability: A Mutable Borrow to an Immutable Value
+
+A consequence of the borrowing rules is that when you have an immutable value,
+you can’t borrow it mutably. For example, this code won’t compile:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let x = 5;
+    let y = &mut x;
+}
+#+END_SRC
+
+However, there are situations in which it would be useful for a value to mutate
+itself in its methods but appear immutable to other code. Code outside the
+value’s methods would not be able to mutate the value. Using ~RefCell<T>~ is one
+way to get the ability to have interior mutability, but ~RefCell<T>~ doesn’t get
+around the borrowing rules completely: the borrow checker in the compiler allows
+this interior mutability, and the borrowing rules are checked at runtime
+instead. If you violate the rules, you’ll get a ~panic!~ instead of a compiler
+error.
+
+**** A Use Case for Interior Mutability: Mock Objects
+
+Rust doesn’t have objects in the same sense as other languages have objects, and
+Rust doesn’t have mock object functionality built into the standard library as
+some other languages do. However, you can definitely create a struct that will
+serve the same purposes as a mock object.
+
+Here’s the scenario we’ll test: we’ll create a library that tracks a value
+against a maximum value and sends messages based on how close to the maximum
+value the current value is.
+
+Our library will only provide the functionality of tracking how close to the
+maximum a value is and what the messages should be at what times. Applications
+that use our library will be expected to provide the mechanism for sending the
+messages. All the library needs is something that implements a trait we’ll
+provide called ~Messenger~:
+
+#+BEGIN_SRC rust :results output
+pub trait Messenger {
+    fn send(&self, msg: &str);
+}
+
+pub struct LimitTracker<'a, T: Messenger> {
+    messenger: &'a T,
+    value: usize,
+    max: usize,
+}
+
+impl<'a, T> LimitTracker<'a, T>
+where
+    T: Messenger,
+{
+    pub fn new(messenger: &'a T, max: usize) -> LimitTracker<'a, T> {
+        LimitTracker {
+            messenger,
+            value: 0,
+            max,
+        }
+    }
+
+    pub fn set_value(&mut self, value: usize) {
+        self.value = value;
+
+        let percentage_of_max = self.value as f64 / self.max as f64;
+
+        if percentage_of_max >= 1.0 {
+            self.messenger.send("Error: You are over your quota!");
+        } else if percentage_of_max >= 0.9 {
+            self.messenger
+                .send("Urgent warning: You've used up over 90% of your quota!");
+        } else if percentage_of_max >= 0.75 {
+            self.messenger
+                .send("Warning: You've used up over 75% of your quota!");
+        }
+    }
+}
+#+END_SRC
+
+One important part of this code is that the ~Messenger~ trait has one method
+called ~send~ that takes an immutable reference to ~self~ and the text of the
+message. The other important part is that we want to test the behavior of the
+~set_value~ method on the ~LimitTracker~. We can change what we pass in for the
+~value~ parameter, but ~set_value~ doesn’t return anything for us to make
+assertions on. We want to be able to say that if we create a ~LimitTracker~ with
+something that implements the ~Messenger~ trait and a particular value for
+~max~, when we pass different numbers for ~value~, the messenger is told to send
+the appropriate messages.
+
+We need a mock object that, instead of sending an email or text message when we
+call ~send~, will only keep track of the messages it’s told to send. Then we can
+check that the mock object has the messages we expect after calling the
+~set_value~ method.
+
+#+BEGIN_SRC rust :noeval
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct MockMessenger {
+        sent_messages: Vec<String>,
+    }
+
+    impl MockMessenger {
+        fn new() -> MockMessenger {
+            MockMessenger {
+                sent_messages: vec![],
+            }
+        }
+    }
+
+    impl Messenger for MockMessenger {
+        fn send(&self, message: &str) {
+            self.sent_messages.push(String::from(message));
+        }
+    }
+
+    #[test]
+    fn it_sends_an_over_75_percent_warning_message() {
+        let mock_messenger = MockMessenger::new();
+        let mut limit_tracker = LimitTracker::new(&mock_messenger, 100);
+
+        limit_tracker.set_value(80);
+
+        assert_eq!(mock_messenger.sent_messages.len(), 1);
+    }
+}
+#+END_SRC
+
+This test code defines a ~MockMessenger~ struct that has a ~sent_messages~ field
+with a ~Vec~ of ~String~ values to keep track of the messages it’s told to send.
+We also define an associated function ~new~ to make it convenient to create new
+~MockMessenger~ values that start with an empty list of messages. We then
+implement the ~Messenger~ trait for ~MockMessenger~ so we can give a
+~MockMessenger~ to a ~LimitTracker~. In the definition of the ~send~ method, we
+take the message passed in as a parameter and store it in the ~MockMessenger~
+list of ~sent_messages~.
+
+But there's a problem. We can’t modify the ~MockMessenger~ to keep track of the
+messages, because the send method takes an immutable reference to self. This is
+a situation in which interior mutability can help.
+
+We’ll store the ~sent_messages~ within a ~RefCell<T>~, and then the ~send~
+method will be able to modify ~sent_messages~ to store the messages we’ve seen.
+The following example is also available under [[file:011_refcell_mock][011_refcell_mock]] (run the test
+with ~cargo test~):
+
+#+BEGIN_SRC rust :noeval
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::RefCell;
+
+    struct MockMessenger {
+        sent_messages: RefCell<Vec<String>>,
+    }
+
+    impl MockMessenger {
+        fn new() -> MockMessenger {
+            MockMessenger {
+                sent_messages: RefCell::new(vec![]),
+            }
+        }
+    }
+
+    impl Messenger for MockMessenger {
+        fn send(&self, message: &str) {
+            self.sent_messages.borrow_mut().push(String::from(message));
+        }
+    }
+
+    #[test]
+    fn it_sends_an_over_75_percent_warning_message() {
+        let mock_messenger = MockMessenger::new();
+        let mut limit_tracker = LimitTracker::new(&mock_messenger, 100);
+
+        limit_tracker.set_value(80);
+
+        assert_eq!(mock_messenger.sent_messages.borrow().len(), 1);
+    }
+}
+#+END_SRC
+
+The ~sent_messages~ field is now of type ~RefCell<Vec<String>>~ instead of
+~Vec<String>~. In the ~new~ function, we create a new ~RefCell<Vec<String>>~
+instance around the empty vector.
+
+For the implementation of the ~send~ method, the first parameter is still an
+immutable borrow of ~self~, which matches the trait definition. We call
+~borrow_mut~ on the ~RefCell<Vec<String>>~ in ~self.sent_messages~ to get a
+mutable reference to the value inside the ~RefCell<Vec<String>>~, which is the
+vector. Then we can call ~push~ on the mutable reference to the vector to keep
+track of the messages sent during the test.
+
+The last change we have to make is in the assertion: to see how many items are
+in the inner vector, we call ~borrow~ on the ~RefCell<Vec<String>>~ to get an
+immutable reference to the vector.
+
+**** Keeping Track of Borrows at Runtime with RefCell<T>
+
+When creating immutable and mutable references, we use the ~&~ and ~&mut~
+syntax, respectively. With ~RefCell<T>~, we use the ~borrow~ and ~borrow_mut~
+methods, which are part of the safe API that belongs to ~RefCell<T>~. The
+~borrow~ method returns the smart pointer type ~Ref<T>~, and ~borrow_mut~
+returns the smart pointer type ~RefMut<T>~. Both types implement ~Deref~, so we
+can treat them like regular references.
+
+The ~RefCell<T>~ keeps track of how many ~Ref<T>~ and ~RefMut<T>~ smart pointers
+are currently active. Every time we call ~borrow~, the ~RefCell<T>~ increases
+its count of how many immutable borrows are active. When a ~Ref<T>~ value goes
+out of scope, the count of immutable borrows goes down by one. Just like the
+compile-time borrowing rules, ~RefCell<T>~ lets us have many immutable borrows
+or one mutable borrow at any point in time.
+
+If we try to violate these rules, rather than getting a compiler error as we
+would with references, the implementation of ~RefCell<T>~ will panic at runtime.
+
+#+BEGIN_SRC rust :results output
+use std::cell::RefCell;
+
+fn main() {
+    let rc: RefCell<Vec<String>> = RefCell::new(vec![]);
+
+    let mut one_borrow = rc.borrow_mut();
+    let mut two_borrow = rc.borrow_mut();
+
+    one_borrow.push(String::from("First message"));
+    two_borrow.push(String::from("Second message"));
+}
+#+END_SRC
+
+The code above has two mutable references in the same scope, which isn’t
+allowed. The code will compile without any errors, but will panic during
+runtime with the message ~already borrowed: BorrowMutError~.
+
+Choosing to catch borrowing errors at runtime rather than compile time, as we’ve
+done here, means you’d potentially be finding mistakes in your code later in the
+development process: possibly not until your code was deployed to production.
+Also, your code would incur a small runtime performance penalty as a result of
+keeping track of the borrows at runtime rather than compile time. You can use
+~RefCell<T>~ despite its trade-offs to get more functionality than regular
+references provide.
+
+*** Having Multiple Owners of Mutable Data by Combining ~Rc<T>~ and ~RefCell<T>~
+
+A common way to use ~RefCell<T>~ is in combination with ~Rc<T>~. Recall that
+~Rc<T>~ lets you have multiple owners of some data, but it only gives immutable
+access to that data. If you have an ~Rc<T>~ that holds a ~RefCell<T>~, you can
+get a value that can have multiple owners /and/ that you can mutate!
+
+Let's go back to the cons list. In the last example we used ~Rc<T>~ to allow
+multiple lists to share ownership of another list. Because ~Rc<T>~ holds only
+immutable values, we can’t change any of the values in the list once we’ve
+created them. Let’s add in ~RefCell<T>~ to gain the ability to change the values
+in the lists.
+
+#+BEGIN_SRC rust :results output
+#[derive(Debug)]
+enum List {
+    Cons(Rc<RefCell<i32>>, Rc<List>),
+    Nil,
+}
+
+use crate::List::{Cons, Nil};
+use std::cell::RefCell;
+use std::rc::Rc;
+
+fn main() {
+    let value = Rc::new(RefCell::new(5));
+
+    let a = Rc::new(Cons(Rc::clone(&value), Rc::new(Nil)));
+
+    let b = Cons(Rc::new(RefCell::new(3)), Rc::clone(&a));
+    let c = Cons(Rc::new(RefCell::new(4)), Rc::clone(&a));
+
+    println!("a before = {a:?}");
+    println!("b before = {b:?}");
+    println!("c before = {c:?}");
+
+    *value.borrow_mut() += 10;
+    //*(value.borrow_mut()) += 10; // Same as above but for clarity
+
+    println!("a after = {a:?}");
+    println!("b after = {b:?}");
+    println!("c after = {c:?}");
+}
+#+END_SRC
+
+We create a value that is an instance of ~Rc<RefCell<i32>>~ and store it in a
+variable named ~value~ so we can access it directly later. Then we create a
+~List~ in ~a~ with a ~Cons~ variant that holds ~value~. We need to clone ~value~
+so both ~a~ and ~value~ have ownership of the inner ~5~ value rather than
+transferring ownership from value to ~a~ or having ~a~ borrow from ~value~.
+
+We wrap the list ~a~ in an ~Rc<T>~ so when we create lists ~b~ and ~c~, they can
+both refer to ~a~.
+
+After we’ve created the lists in ~a~, ~b~, and ~c~, we want to add 10 to the
+value in ~value~. We do this by calling ~borrow_mut~ on value, which uses the
+automatic dereferencing feature to dereference the ~Rc<T>~ to the inner
+~RefCell<T>~ value.
+
+By using ~RefCell<T>~, we have an outwardly immutable ~List~ value. But we can
+use the methods on ~RefCell<T>~ that provide access to its interior mutability
+so we can modify our data when we need to. The runtime checks of the borrowing
+rules protect us from data races, and it’s sometimes worth trading a bit of
+speed for this flexibility in our data structures. Note that ~RefCell<T>~ does
+not work for multithreaded code!
+
+** Reference Cycles Can Leak Memory
+
+Rust’s memory safety guarantees make it difficult, but not impossible, to
+accidentally create memory that is never cleaned up (known as a memory leak). We
+can see that Rust allows memory leaks by using ~Rc<T>~ and ~RefCell<T>~: it’s
+possible to create references where items refer to each other in a cycle. This
+creates memory leaks because the reference count of each item in the cycle will
+never reach 0, and the values will never be dropped.
+
+*** Creating a Reference Cycle
+
+Let's look at the following example:
+
+#+BEGIN_SRC rust :results output
+use crate::List::{Cons, Nil};
+use std::cell::RefCell;
+use std::rc::Rc;
+
+#[derive(Debug)]
+enum List {
+    Cons(i32, RefCell<Rc<List>>),
+    Nil,
+}
+
+impl List {
+    fn tail(&self) -> Option<&RefCell<Rc<List>>> {
+        match self {
+            Cons(_, item) => Some(item),
+            Nil => None,
+        }
+    }
+}
+
+fn main() {
+    let a = Rc::new(Cons(5, RefCell::new(Rc::new(Nil))));
+
+    println!("a initial rc count = {}", Rc::strong_count(&a));
+    println!("a next item = {:?}", a.tail());
+
+    let b = Rc::new(Cons(10, RefCell::new(Rc::clone(&a))));
+
+    println!("a rc count after b creation = {}", Rc::strong_count(&a));
+    println!("b initial rc count = {}", Rc::strong_count(&b));
+    println!("b next item = {:?}", b.tail());
+
+    if let Some(link) = a.tail() {
+        *link.borrow_mut() = Rc::clone(&b);
+    }
+
+    println!("b rc count after changing a = {}", Rc::strong_count(&b));
+    println!("a rc count after changing a = {}", Rc::strong_count(&a));
+
+    // Uncomment the next line to see that we have a cycle;
+    // it will overflow the stack
+    // println!("a next item = {:?}", a.tail());
+}
+#+END_SRC
+
+We’re using another variation of the ~List~ definition. The second element in
+the ~Cons~ variant is now ~RefCell<Rc<List>>~, meaning that instead of having
+the ability to modify the ~i32~ value, we want to modify the ~List~ value a
+~Cons~ variant is pointing to. We’re also adding a ~tail~ method to make it
+convenient for us to access the second item if we have a ~Cons~ variant.
+
+The ~main~ function creates a list in ~a~ and a list in ~b~ that points to the
+list in ~a~. Then it modifies the list in ~a~ to point to ~b~, creating a
+reference cycle.
+
+The reference count of the ~Rc<List>~ instances in both ~a~ and ~b~ are 2 after
+we change the list in ~a~ to point to ~b~. At the end of ~main~, Rust drops the
+variable ~b~, which decreases the reference count of the ~b~ ~Rc<List>~ instance
+from 2 to 1. The memory that ~Rc<List>~ has on the heap won’t be dropped at this
+point, because its reference count is 1, not 0. Then Rust drops ~a~, which
+decreases the reference count of the a ~Rc<List>~ instance from 2 to 1 as well.
+This instance’s memory can’t be dropped either, because the other ~Rc<List>~
+instance still refers to it. The memory allocated to the list will remain
+uncollected forever.
+
+If you uncomment the last ~println!~ and run the program, Rust will try to print
+this cycle with ~a~ pointing to ~b~ pointing to ~a~ and so forth until it
+overflows the stack.
+
+*** Preventing Reference Cycles: Turning an ~Rc<T>~ into a ~Weak<T>~
+
+So far, we’ve demonstrated that calling ~Rc::clone~ increases the ~strong_count~
+of an ~Rc<T>~ instance, and an ~Rc<T>~ instance is only cleaned up if its
+~strong_count~ is 0. You can also create a /weak reference/ to the value within
+an ~Rc<T>~ instance by calling ~Rc::downgrade~ and passing a reference to the
+~Rc<T>~. Strong references are how you can share ownership of an ~Rc<T>~
+instance. Weak references don’t express an ownership relationship, and their
+count doesn’t affect when an ~Rc<T>~ instance is cleaned up. They won’t cause a
+reference cycle because any cycle involving some weak references will be broken
+once the strong reference count of values involved is 0.
+
+When you call ~Rc::downgrade~, you get a smart pointer of type ~Weak<T>~.
+Instead of increasing the ~strong_count~ in the ~Rc<T>~ instance by 1, calling
+~Rc::downgrade~ increases the ~weak_count~ by 1. The difference is the
+~weak_count~ doesn’t need to be 0 for the ~Rc<T>~ instance to be cleaned up.
+
+Because the value that ~Weak<T>~ references might have been dropped, to do
+anything with the value that a ~Weak<T>~ is pointing to, you must make sure the
+value still exists. Do this by calling the ~upgrade~ method on a ~Weak<T>~
+instance, which will return an ~Option<Rc<T>>~. You’ll get a result of ~Some~ if
+the ~Rc<T>~ value has not been dropped yet and a result of ~None~ if the ~Rc<T>~
+value has been dropped.
+
+**** Creating a Tree Data Structure: a Node with Child Nodes
+
+To start, we’ll build a tree with nodes that know about their child nodes. We’ll
+create a struct named ~Node~ that holds its own ~i32~ value as well as
+references to its children ~Node~ values:
+
+#+BEGIN_SRC rust :results output
+use std::cell::RefCell;
+use std::rc::Rc;
+
+#[derive(Debug)]
+struct Node {
+    value: i32,
+    children: RefCell<Vec<Rc<Node>>>,
+}
+
+fn main() {
+    let leaf = Rc::new(Node {
+        value: 3,
+        children: RefCell::new(vec![]),
+    });
+
+    let branch = Rc::new(Node {
+        value: 5,
+        children: RefCell::new(vec![Rc::clone(&leaf)]),
+    });
+}
+#+END_SRC
+
+We want a ~Node~ to own its children, and we want to share that ownership with
+variables so we can access each ~Node~ in the tree directly. To do this, we
+define the ~Vec<T>~ items to be values of type ~Rc<Node>~. We also want to
+modify which nodes are children of another node, so we have a ~RefCell<T>~ in
+~children~ around the ~Vec<Rc<Node>>~.
+
+We clone the ~Rc<Node>~ in ~leaf~ and store that in ~branch~, meaning the ~Node~
+in ~leaf~ now has two owners: ~leaf~ and ~branch~. We can get from ~branch~ to
+~leaf~ through ~branch.children~, but there’s no way to get from ~leaf~ to
+~branch~. The reason is that ~leaf~ has no reference to ~branch~ and doesn’t
+know they’re related. We want ~leaf~ to know that ~branch~ is its parent.
+
+**** Adding a Reference from a Child to Its Parent
+
+To make the child node aware of its parent, we need to add a ~parent~ field to
+our ~Node~ struct definition. The trouble is in deciding what the type of
+~parent~ should be. We know it can’t contain an ~Rc<T>~, because that would
+create a reference cycle with ~leaf.parent~ pointing to ~branch~ and
+~branch.children~ pointing to ~leaf~, which would cause their ~strong_count~
+values to never be 0.
+
+Thinking about the relationships another way, a parent node should own its
+children: if a parent node is dropped, its child nodes should be dropped as
+well. However, a child should not own its parent: if we drop a child node, the
+parent should still exist. This is a case for weak references.
+
+So instead of ~Rc<T>~, we’ll make the type of parent use ~Weak<T>~, specifically
+a ~RefCell<Weak<Node>>~. Now our ~Node~ struct example looks like this:
+
+#+BEGIN_SRC rust :results output
+use std::cell::RefCell;
+use std::rc::{Rc, Weak};
+
+#[derive(Debug)]
+struct Node {
+    value: i32,
+    parent: RefCell<Weak<Node>>,
+    children: RefCell<Vec<Rc<Node>>>,
+}
+
+fn main() {
+    let leaf = Rc::new(Node {
+        value: 3,
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![]),
+    });
+
+    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+
+    let branch = Rc::new(Node {
+        value: 5,
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![Rc::clone(&leaf)]),
+    });
+
+    *leaf.parent.borrow_mut() = Rc::downgrade(&branch);
+
+    println!("leaf parent = {:#?}", leaf.parent.borrow().upgrade());
+}
+#+END_SRC
+
+A node will be able to refer to its parent node but doesn’t own its parent.
+
+Creating the ~leaf~ node looks similar to before with the exception of the
+~parent~ field: ~leaf~ starts out without a parent, so we create a new, empty
+~Weak<Node>~ reference instance. Then to refer to the parent, we use the
+~borrow_mut~ method on the ~RefCell<Weak<Node>>~ in the ~parent~ field of
+~leaf~, and then we use the ~Rc::downgrade~ function to create a ~Weak<Node>~
+reference to branch from the ~Rc<Node>~ in branch.
+
+Note that the ~Weak<Node>~ references are printed as ~(Weak)~ when running the
+example above. Otherwise we would again have ended in an infinite cycle that
+eventually would have ended in a stack overflow.
+
+**** Visualizing Changes to ~strong_count~ and ~weak_count~
+
+#+BEGIN_SRC rust :results output
+use std::cell::RefCell;
+use std::rc::{Rc, Weak};
+
+#[derive(Debug)]
+struct Node {
+    value: i32,
+    parent: RefCell<Weak<Node>>,
+    children: RefCell<Vec<Rc<Node>>>,
+}
+
+fn main() {
+    let leaf = Rc::new(Node {
+        value: 3,
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![]),
+    });
+
+    println!(
+        "leaf strong = {}, weak = {}",
+        Rc::strong_count(&leaf),
+        Rc::weak_count(&leaf),
+    );
+
+    {
+        let branch = Rc::new(Node {
+            value: 5,
+            parent: RefCell::new(Weak::new()),
+            children: RefCell::new(vec![Rc::clone(&leaf)]),
+        });
+
+        *leaf.parent.borrow_mut() = Rc::downgrade(&branch);
+
+        println!(
+            "branch strong = {}, weak = {}",
+            Rc::strong_count(&branch),
+            Rc::weak_count(&branch),
+        );
+
+        println!(
+            "leaf strong = {}, weak = {}",
+            Rc::strong_count(&leaf),
+            Rc::weak_count(&leaf),
+        );
+    }
+    // branch (parent) is gone here
+
+    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+    println!(
+        "leaf strong = {}, weak = {}",
+        Rc::strong_count(&leaf),
+        Rc::weak_count(&leaf),
+    );
+}
+#+END_SRC
+
 * Debug
 
 https://doc.rust-lang.org/book/ch05-02-example-structs.html#adding-useful-functionality-with-derived-traits
@@ -8282,3 +9170,5 @@ with the ~Copy~ trait?
 - How does lifetimes work with methods? Comparing self with other and return a field from one of them?
 - What is the static lifetime?
 - Global variables?
+- Casting
+- ~Refcell<Rc<_>>~ vs ~Rc<Refcell<_>>~

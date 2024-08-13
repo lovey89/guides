@@ -10083,7 +10083,26 @@ to a ~post~ as an argument and returning a reference to part of that ~post~, so
 the lifetime of the returned reference is related to the lifetime of the ~post~
 argument.
 
+*** Implementation with enums instead
+
+TODO
+
 *** Encoding States and Behavior as Types
+
+We’ll show you how to rethink the state pattern to get a different set of
+trade-offs. Rather than encapsulating the states and transitions completely so
+outside code has no knowledge of them, we’ll encode the states into different
+types. Consequently, Rust’s type checking system will prevent attempts to use
+draft posts where only published posts are allowed by issuing a compiler error.
+
+In the example below you can only call ~add_text~ on a ~DraftPost~ and call the
+~content~ method on a ~Post~. Also the ~request_review~ and ~approve~ methods
+can only be called at the appropriate stages.
+
+Also note how ~Post::new~ returns a ~DraftPost~ instead of a ~Post~. From
+outside this module the only way to get a ~Post~ instance is by calling the
+~Post::new~ and then call ~request_review~ to get a ~PendingReviewPost~ which
+you then have to ~approve~ in order to get a ~Post~.
 
 #+BEGIN_SRC rust :results output
 pub struct Post {

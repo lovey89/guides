@@ -93,6 +93,7 @@
 - [[#object-oriented-programming-features-of-rust][Object-Oriented Programming Features of Rust]]
   - [[#characteristics-of-object-oriented-languages][Characteristics of Object-Oriented Languages]]
   - [[#using-trait-objects-that-allow-for-values-of-different-types][Using Trait Objects That Allow for Values of Different Types]]
+  - [[#implementing-an-object-oriented-design-pattern][Implementing an Object-Oriented Design Pattern]]
 - [[#debug][Debug]]
 - [[#crates-and-dependencies][Crates and dependencies]]
 - [[#documentation][Documentation]]
@@ -9769,6 +9770,378 @@ incurs a runtime cost that doesn’t occur with static dispatch. Dynamic dispatc
 also prevents the compiler from choosing to inline a method’s code, which in
 turn prevents some optimizations. However, we did get extra flexibility in the
 code that we wrote so it’s a trade-off to consider.
+
+** Implementing an Object-Oriented Design Pattern
+
+The /state pattern/ is an object-oriented design pattern. The crux of the
+pattern is that we define a set of states a value can have internally. The
+states are represented by a set of /state objects/, and the value’s behavior
+changes based on its state. We’re going to work through an example of a blog
+post struct that has a field to hold its state, which will be a state object
+from the set "draft", "review", or "published".
+
+The final functionality will look like this:
+
+1. A blog post starts as an empty draft.
+2. When the draft is done, a review of the post is requested.
+3. When the post is approved, it gets published.
+4. Only published blog posts return content to print, so unapproved posts can’t
+   accidentally be published.
+
+Any other changes attempted on a post should have no effect. For example, if we
+try to approve a draft blog post before we’ve requested a review, the post
+should remain an unpublished draft.
+
+*** Defining Post and Creating a New Instance in the Draft State
+
+We know we need a public ~Post~ struct that holds some content, so we’ll start
+with the definition of the struct and an associated public ~new~ function to
+create an instance of ~Post~. We’ll also make a private ~State~ trait that will
+define the behavior that all state objects for a ~Post~ must have.
+
+#+BEGIN_SRC rust :results output
+pub struct Post {
+    state: Option<Box<dyn State>>,
+    content: String,
+}
+
+impl Post {
+    pub fn new() -> Post {
+        Post {
+            state: Some(Box::new(Draft {})),
+            content: String::new(),
+        }
+    }
+
+    pub fn add_text(&mut self, text: &str) {
+        self.content.push_str(text);
+    }
+}
+
+trait State {}
+
+struct Draft {}
+
+impl State for Draft {}
+#+END_SRC
+
+~Post~ will hold a trait object of ~Box<dyn State>~ inside an ~Option<T>~ in a
+private field named ~state~ to hold the state object. You’ll see why the
+~Option<T>~ is necessary in a bit.
+
+When we create a new ~Post~, we set its ~state~ field to a ~Some~ value that
+holds a ~Box~. This ~Box~ points to a new instance of the ~Draft~ struct. This
+ensures whenever we create a new instance of ~Post~, it will start out as a
+draft. Because the ~state~ field of ~Post~ is private, there is no way to create
+a ~Post~ in any other state!
+
+We have also added a method named ~add_text~ which we can pass a ~&str~ that is
+then added as the text content of the blog post. The ~add_text~ method takes a
+mutable reference to ~self~, because we’re changing the ~Post~ instance that
+we’re calling ~add_text~ on. This behavior doesn’t depend on the state the post
+is in, so it’s not part of the state pattern.
+
+*** Requesting a Review of the Post Changes Its State
+
+Next, we need to add functionality to request a review of a post, which should
+change its state from ~Draft~ to ~PendingReview~.
+
+#+BEGIN_SRC rust :results output
+pub struct Post {
+    state: Option<Box<dyn State>>,
+    content: String,
+}
+
+impl Post {
+    pub fn new() -> Post {
+        Post {
+            state: Some(Box::new(Draft {})),
+            content: String::new(),
+        }
+    }
+
+    pub fn add_text(&mut self, text: &str) {
+        self.content.push_str(text);
+    }
+
+    pub fn request_review(&mut self) {
+        if let Some(s) = self.state.take() {
+            self.state = Some(s.request_review())
+        }
+    }
+}
+
+trait State {
+    fn request_review(self: Box<Self>) -> Box<dyn State>;
+}
+
+struct Draft {}
+
+impl State for Draft {
+    fn request_review(self: Box<Self>) -> Box<dyn State> {
+        Box::new(PendingReview {})
+    }
+}
+
+struct PendingReview {}
+
+impl State for PendingReview {
+    fn request_review(self: Box<Self>) -> Box<dyn State> {
+        self
+    }
+}
+#+END_SRC
+
+We give ~Post~ a public method named ~request_review~ that will take a mutable
+reference to ~self~. Then we call an internal ~request_review~ method on the
+current state of ~Post~, and this second ~request_review~ method consumes the
+current state and returns a new state.
+
+We add the ~request_review~ method to the ~State~ trait. Note that rather than
+having ~self~, ~&self~, or ~&mut self~ as the first parameter of the method, we
+have ~self: Box<Self>~. This syntax means the method is only valid when called
+on a ~Box~ holding the type. This syntax takes ownership of ~Box<Self>~,
+invalidating the old state so the state value of the ~Post~ can transform into
+a new state.
+
+To consume the old state, the ~request_review~ method needs to take ownership of
+the state value. This is where the ~Option~ in the ~state~ field of ~Post~ comes
+in: we call the ~take~ method to take the ~Some~ value out of the ~state~ field
+and leave a ~None~ in its place, because Rust doesn’t let us have unpopulated
+fields in structs. This lets us move the ~state~ value out of ~Post~ rather than
+borrowing it. Removing the ~take~ call would move the value and invalidate
+~self.state~. ~take~ basically works like this:
+
+#+BEGIN_SRC rust :results output
+let mut x = Some(2);
+let y = x.take();
+assert_eq!(x, None);
+assert_eq!(y, Some(2));
+
+let mut x: Option<u32> = None;
+let y = x.take();
+assert_eq!(x, None);
+assert_eq!(y, None);
+#+END_SRC
+
+We need to set ~state~ to ~None~ temporarily rather than setting it directly
+with code like ~self.state = self.state.request_review();~ to get ownership of
+the ~state~ value. This ensures ~Post~ can’t use the old ~state~ value after
+we’ve transformed it into a new state.
+
+The ~request_review~ method on ~Draft~ returns a new, boxed instance of a new
+~PendingReview~ struct, which represents the state when a post is waiting for a
+review. The ~PendingReview~ struct also implements the ~request_review~ method
+but doesn’t do any transformations. Rather, it returns itself, because when we
+request a review on a post already in the ~PendingReview~ state, it should stay
+in the PendingReview state.
+
+*** Ensuring the Content of a Draft Post Is Empty
+
+Even after we’ve called ~add_text~ and added some content to our post, we still
+want the ~content~ method to return an empty string slice because the post is
+still in the draft state.
+
+*** Adding ~approve~ and ~content~ methods
+
+The ~approve~ method will be similar to the ~request_review~ method: it will set
+~state~ to the value that the current state says it should have when that state
+is approved.
+
+We add the ~approve~ method to the ~State~ trait and add a new struct that
+implements ~State~, the ~Published~ state. The ~approve~ method will have to be
+defined for the other states as well of course. The implementation is very
+similar to ~request_review~.
+
+We have also added a ~content~ method on ~Post~. We want the value returned from
+~content~ to depend on the current state of the ~Post~, so we’re going to have
+the ~Post~ delegate to a ~content~ method defined on its ~state~.
+
+Because the goal is to keep all these rules inside the structs that implement
+~State~, we call a ~content~ method on the value in ~state~ and pass the post
+instance (that is, ~self~) as an argument. Then we return the value that’s
+returned from using the ~content~ method on the ~state~ value.
+
+We call the ~as_ref~ method on the ~Option~ because we want a reference to the
+value inside the ~Option~ rather than ownership of the value. Because ~state~ is
+an ~Option<Box<dyn State>>~, when we call ~as_ref~, an ~Option<&Box<dyn State>>~
+is returned. If we didn’t call ~as_ref~, we would get an error because we can’t
+move ~state~ out of the borrowed ~&self~ of the function parameter. We then call
+the ~unwrap~ method, which we know will never panic because ~state~ will never
+be ~None~.
+
+At this point, when we call ~content~ on the ~&Box<dyn State>~, deref coercion
+will take effect on the ~&~ and the ~Box~ so the ~content~ method will
+ultimately be called on the type that implements the ~State~ trait. That means
+we need to add ~content~ to the ~State~ trait definition, and that is where
+we’ll put the logic for what content to return depending on which state we have:
+
+#+BEGIN_SRC rust :results output
+pub struct Post {
+    state: Option<Box<dyn State>>,
+    content: String,
+}
+
+impl Post {
+    pub fn new() -> Post {
+        Post {
+            state: Some(Box::new(Draft {})),
+            content: String::new(),
+        }
+    }
+
+    pub fn add_text(&mut self, text: &str) {
+        self.content.push_str(text);
+    }
+
+    pub fn content(&self) -> &str { // <--- Added content method
+        self.state.as_ref().unwrap().content(self)
+    }
+
+    pub fn request_review(&mut self) {
+        if let Some(s) = self.state.take() {
+            self.state = Some(s.request_review())
+        }
+    }
+
+    pub fn approve(&mut self) {
+        if let Some(s) = self.state.take() {
+            self.state = Some(s.approve())
+        }
+    }
+}
+
+trait State {
+    fn request_review(self: Box<Self>) -> Box<dyn State>;
+    fn approve(self: Box<Self>) -> Box<dyn State>;
+
+    fn content<'a>(&self, post: &'a Post) -> &'a str { // <--- Added content method
+        "" // <--- With default implementation
+    }
+}
+
+struct Draft {}
+
+impl State for Draft {
+    fn request_review(self: Box<Self>) -> Box<dyn State> {
+        Box::new(PendingReview {})
+    }
+
+    fn approve(self: Box<Self>) -> Box<dyn State> {
+        self
+    }
+}
+
+struct PendingReview {}
+
+impl State for PendingReview {
+    fn request_review(self: Box<Self>) -> Box<dyn State> {
+        self
+    }
+
+    fn approve(self: Box<Self>) -> Box<dyn State> {
+        Box::new(Published {})
+    }
+}
+
+struct Published {}
+
+impl State for Published {
+    fn request_review(self: Box<Self>) -> Box<dyn State> {
+        self
+    }
+
+    fn approve(self: Box<Self>) -> Box<dyn State> {
+        self
+    }
+
+    fn content<'a>(&self, post: &'a Post) -> &'a str { // <--- Content overridden here
+        &post.content
+    }
+}
+
+fn main() {
+    let mut post = Post::new();
+
+    post.add_text("I ate a salad for lunch today");
+    assert_eq!("", post.content());
+
+    post.request_review();
+    assert_eq!("", post.content());
+
+    post.approve();
+    assert_eq!("I ate a salad for lunch today", post.content());
+}
+#+END_SRC
+
+We add a default implementation for the ~content~ method that returns an empty
+string slice. That means we don’t need to implement ~content~ on the ~Draft~ and
+~PendingReview~ structs.
+
+Note that we need lifetime annotations on this method. We’re taking a reference
+to a ~post~ as an argument and returning a reference to part of that ~post~, so
+the lifetime of the returned reference is related to the lifetime of the ~post~
+argument.
+
+*** Encoding States and Behavior as Types
+
+#+BEGIN_SRC rust :results output
+pub struct Post {
+    content: String,
+}
+
+pub struct DraftPost {
+    content: String,
+}
+
+impl Post {
+    pub fn new() -> DraftPost {
+        DraftPost {
+            content: String::new(),
+        }
+    }
+
+    pub fn content(&self) -> &str {
+        &self.content
+    }
+}
+
+impl DraftPost {
+    pub fn add_text(&mut self, text: &str) {
+        self.content.push_str(text);
+    }
+
+    pub fn request_review(self) -> PendingReviewPost {
+        PendingReviewPost {
+            content: self.content,
+        }
+    }
+}
+
+pub struct PendingReviewPost {
+    content: String,
+}
+
+impl PendingReviewPost {
+    pub fn approve(self) -> Post {
+        Post {
+            content: self.content,
+        }
+    }
+}
+
+fn main() {
+    let mut post = Post::new();
+
+    post.add_text("I ate a salad for lunch today");
+
+    let post = post.request_review();
+
+    let post = post.approve();
+
+    assert_eq!("I ate a salad for lunch today", post.content());
+}
+#+END_SRC
 
 * Debug
 

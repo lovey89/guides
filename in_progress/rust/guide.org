@@ -94,6 +94,10 @@
   - [[#characteristics-of-object-oriented-languages][Characteristics of Object-Oriented Languages]]
   - [[#using-trait-objects-that-allow-for-values-of-different-types][Using Trait Objects That Allow for Values of Different Types]]
   - [[#implementing-an-object-oriented-design-pattern][Implementing an Object-Oriented Design Pattern]]
+- [[#patterns-and-matching][Patterns and Matching]]
+  - [[#all-the-places-patterns-can-be-used][All the Places Patterns Can Be Used]]
+  - [[#refutability-whether-a-pattern-might-fail-to-match][Refutability: Whether a Pattern Might Fail to Match]]
+  - [[#pattern-syntax][Pattern Syntax]]
 - [[#debug][Debug]]
 - [[#crates-and-dependencies][Crates and dependencies]]
 - [[#documentation][Documentation]]
@@ -10161,6 +10165,494 @@ fn main() {
     assert_eq!("I ate a salad for lunch today", post.content());
 }
 #+END_SRC
+
+* Patterns and Matching
+
+/Patterns/ are a special syntax in Rust for matching against the structure of
+types, both complex and simple. A pattern consists of some combination of the
+following:
+
+- Literals
+- Destructured arrays, enums, structs, or tuples
+- Variables
+- Wildcards
+- Placeholders
+
+Some example patterns include ~x~, ~(a, 3)~, and ~Some(Color::Red)~. 
+
+** All the Places Patterns Can Be Used
+
+This section discusses all the places where patterns are valid.
+
+*** ~match~ Arms
+
+Formally, ~match~ expressions are defined as the keyword ~match~, a value to
+match on, and one or more match arms that consist of a pattern and an expression
+to run if the value matches that arm’s pattern:
+
+#+BEGIN_SRC
+match VALUE {
+    PATTERN => EXPRESSION,
+    PATTERN => EXPRESSION,
+    PATTERN => EXPRESSION,
+}
+#+END_SRC
+
+E.g.
+
+#+BEGIN_SRC rust :results output
+let mut o: Option<i32> = Some(5);
+
+o = match o {
+    None => None,
+    Some(i) => Some(i + 1),
+};
+
+println!("{:?}", o)
+#+END_SRC
+
+One requirement for ~match~ expressions is that they need to be /exhaustive/ in
+the sense that all possibilities for the value in the match expression must be
+accounted for. One way to ensure you’ve covered every possibility is to have a
+catchall pattern for the last arm: for example, a variable name matching any
+value can never fail and thus covers every remaining case.
+
+*** Conditional ~if let~ Expressions
+
+~if let~ expressions can be used as a shorter way to write the equivalent of a
+~match~ that only matches one case. Optionally, ~if let~ can have a
+corresponding ~else~ containing code to run if the pattern in the ~if let~
+doesn’t match.
+
+You are allowed to mix and match ~if let~, ~else if~, and ~else if let~
+expressions. Rust doesn’t require that the conditions in such a sequence relate
+to each other. E.g.:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let favorite_color: Option<&str> = None;
+    let is_tuesday = false;
+    let age: Result<u8, _> = "34".parse();
+
+    if let Some(color) = favorite_color {
+        println!("Using your favorite color, {color}, as the background");
+    } else if is_tuesday {
+        println!("Tuesday is green day!");
+    } else if let Ok(age) = age { // <--- age becomes shadowed here
+        if age > 30 {
+            println!("Using purple as the background color");
+        } else {
+            println!("Using orange as the background color");
+        }
+    } else {
+        println!("Using blue as the background color");
+    }
+}
+#+END_SRC
+
+The downside of using ~if let~ expressions is that the compiler doesn’t check
+for exhaustiveness.
+
+*** ~while let~ Conditional Loops
+
+The ~while let~ conditional loop allows a while loop to run for as long as a
+pattern continues to match.
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let mut stack = Vec::new();
+
+    stack.push(1);
+    stack.push(2);
+    stack.push(3);
+
+    while let Some(top) = stack.pop() {
+        println!("{top}");
+    }
+}
+#+END_SRC
+
+The ~pop~ method takes the last element out of the vector and returns
+~Some(value)~. If the vector is empty, ~pop~ returns ~None~. When ~pop~ returns
+~None~, the loop stops.
+
+*** ~for~ Loops
+
+In a ~for~ loop, the value that directly follows the keyword ~for~ is a pattern.
+Here the ~for~ loop destructure, or break apart, a tuple as part of the for
+loop:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let v = vec!['a', 'b', 'c'];
+
+    for (index, value) in v.iter().enumerate() {
+        println!("{value} is at index {index}");
+    }
+}
+#+END_SRC
+
+We adapt an iterator using the ~enumerate~ method so it produces a value and the
+index for that value, placed into a tuple. The first value produced is the tuple
+~(0, 'a')~. When this value is matched to the pattern ~(index, value)~, index
+will be ~0~ and value will be ~'a'~, printing the first line of the output.
+
+*** ~let~ Statements
+
+Consider this straightforward variable assignment with let:
+
+#+BEGIN_SRC rust :results output
+let x = 5;
+#+END_SRC
+
+Actually, a ~let~ statement looks like this:
+
+#+BEGIN_SRC
+let PATTERN = EXPRESSION;
+#+END_SRC
+
+So in the ~let x = 5;~ example, ~x~ is a pattern that means "bind what matches
+here to the variable ~x~".
+
+To see the pattern matching aspect of ~let~ more clearly the following example
+uses a pattern with ~let~ to destructure a tuple.
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let (x, y, z) = (1, 2, 3);
+    println!("{x}");
+    println!("{y}");
+    println!("{z}");
+}
+#+END_SRC
+
+Rust binds ~1~ to ~x~, ~2~ to ~y~, and ~3~ to ~z~.
+
+*** Function Parameters
+
+Function parameters can also be patterns:
+
+#+BEGIN_SRC rust :results output
+fn print_coordinates(&(x, y): &(i32, i32)) {
+    println!("Current location: ({x}, {y})");
+}
+
+fn main() {
+    let point = (3, 5);
+    print_coordinates(&point);
+}
+#+END_SRC
+
+We can also use patterns in closure parameter lists in the same way as in
+function parameter lists, because closures are similar to functions.
+
+** Refutability: Whether a Pattern Might Fail to Match
+
+Patterns come in two forms: refutable and irrefutable. Patterns that will match
+for any possible value passed are /irrefutable/. An example would be ~x~ in the
+statement ~let x = 5;~ because ~x~ matches anything and therefore cannot fail to
+match. Patterns that can fail to match for some possible value are /refutable/.
+An example would be ~Some(x)~ in the expression ~if let Some(x) = a_value~
+because if the value in the ~a_value~ variable is ~None~ rather than ~Some~, the
+~Some(x)~ pattern will not match.
+
+Function parameters, ~let~ statements, and ~for~ loops can only accept
+irrefutable patterns, because the program cannot do anything meaningful when
+values don’t match. The ~if let~ and ~while let~ expressions accept refutable
+and irrefutable patterns, but the compiler warns against irrefutable patterns
+because by definition they’re intended to handle possible failure: the
+functionality of a conditional is in its ability to perform differently
+depending on success or failure.
+
+~match~ arms must use refutable patterns, except for the last arm, which should
+match any remaining values with an irrefutable pattern. Rust allows us to use an
+irrefutable pattern in a ~match~ with only one arm, but this syntax isn’t
+particularly useful and could be replaced with a simpler let statement.
+
+In general, you shouldn’t have to worry about the distinction between refutable
+and irrefutable patterns; however, you do need to be familiar with the concept
+of refutability so you can respond when you see it in an error message.
+
+** Pattern Syntax
+
+*** Matching Literals
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let x = 1;
+
+    match x {
+        1 => println!("one"),
+        2 => println!("two"),
+        3 => println!("three"),
+        _ => println!("anything"),
+    }
+}
+#+END_SRC
+
+This syntax is useful when you want your code to take an action if it gets a
+particular concrete value.
+
+*** Matching Named Variables
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let x = Some(5);
+    let y = 10;
+
+    match x {
+        Some(50) => println!("Got 50"),
+        Some(y) => println!("Matched, y = {y}"),  // <-- Doesn't mean Some(10) as y here shadows y above
+                                                  // This is the arm that will match
+        _ => println!("Default case, x = {x:?}"), // Only None will match this case
+    }
+
+    println!("at the end: x = {x:?}, y = {y}");
+}
+#+END_SRC
+
+*** Multiple Patterns
+
+In ~match~ expressions, you can match multiple patterns using the ~|~ syntax,
+which is the pattern or operator.
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let x = 1;
+
+    match x {
+        1 | 2 => println!("one or two"),
+        3 => println!("three"),
+        _ => println!("anything"),
+    }
+}
+#+END_SRC
+
+*** Matching Ranges of Values with ~..=~
+
+The ~..=~ syntax allows us to match to an inclusive range of values. Exclusive
+range of values doesn't seem to exist.
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let x = 5;
+
+    match x {
+        0..=5 => println!("one through five"),
+        _ => println!("something else"),
+    }
+}
+#+END_SRC
+
+Leaving one end blank seems to be allowed as well:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let x = -5;
+
+    match x {
+        ..=0 => println!("Smaller than or equal to 0"),
+        100.. => println!("Greater than or equal to 100"),
+        _ => println!("something else"),
+    }
+}
+#+END_SRC
+
+The compiler checks that the range isn’t empty at compile time, and because the
+only types for which Rust can tell if a range is empty or not are ~char~ and
+numeric values, ranges are only allowed with numeric or ~char~ values.
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let x = 'c';
+
+    match x {
+        'a'..='j' => println!("early ASCII letter"),
+        'k'..='z' => println!("late ASCII letter"),
+        _ => println!("something else"),
+    }
+}
+#+END_SRC
+
+*** Destructuring to Break Apart Values
+
+We can also use patterns to destructure structs, enums, and tuples to use
+different parts of these values.
+
+**** Destructuring Structs
+
+Here we have a ~Point~ struct with two fields, ~x~ and ~y~, that we can break
+apart using a pattern with a ~let~ statement.
+
+#+BEGIN_SRC rust :results output
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+fn main() {
+    let p = Point { x: 0, y: 7 };
+
+    let Point { x: a, y: b } = p;
+    assert_eq!(0, a);
+    assert_eq!(7, b);
+}
+#+END_SRC
+
+The names of the variables in the pattern don’t have to match the field names of
+the struct. However, it’s common to match the variable names to the field names
+to make it easier to remember which variables came from which fields. Because of
+this common usage, and because writing ~let Point { x: x, y: y } = p;~ contains
+a lot of duplication, Rust has a shorthand for patterns that match struct
+fields: you only need to list the name of the struct field, and the variables
+created from the pattern will have the same names.
+
+#+BEGIN_SRC rust :results output
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+fn main() {
+    let p = Point { x: 0, y: 7 };
+
+    let Point { x, y } = p;
+    assert_eq!(0, x);
+    assert_eq!(7, y);
+}
+#+END_SRC
+
+The outcome is that the variables ~x~ and ~y~ contain the values from the ~p~
+struct.
+
+We can also destructure with literal values as part of the struct pattern rather
+than creating variables for all the fields. Doing so allows us to test some of
+the fields for particular values while creating variables to destructure the
+other fields.
+
+#+BEGIN_SRC rust :results output
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+fn main() {
+    let p = Point { x: 0, y: 7 };
+
+    match p {
+        Point { x, y: 0 } => println!("On the x axis at {x}"),
+        Point { x: 0, y } => println!("On the y axis at {y}"),
+        Point { x, y } => {
+            println!("On neither axis: ({x}, {y})");
+        }
+    }
+}
+#+END_SRC
+
+**** Destructuring Enums
+
+We use the ~Message~ enum from earlier and write a ~match~ with patterns that
+will destructure each inner value:
+
+#+BEGIN_SRC rust :results output
+enum Message {
+    Quit,
+    Move { x: i32, y: i32 },
+    Write(String),
+    ChangeColor(i32, i32, i32),
+}
+
+fn main() {
+    let msg = Message::ChangeColor(0, 160, 255);
+
+    match msg {
+        Message::Quit => {
+            println!("The Quit variant has no data to destructure.");
+        }
+        Message::Move { x, y } => {
+            println!("Move in the x direction {x} and in the y direction {y}");
+        }
+        Message::Write(text) => {
+            println!("Text message: {text}");
+        }
+        Message::ChangeColor(r, g, b) => {
+            println!("Change the color to red {r}, green {g}, and blue {b}")
+        }
+    }
+}
+#+END_SRC
+
+For enum variants without any data, like ~Message::Quit~, we can’t destructure
+the value any further. We can only match on the literal ~Message::Quit~ value,
+and no variables are in that pattern.
+
+For struct-like enum variants, such as ~Message::Move~, we can use a pattern
+similar to the pattern we specify to match structs.
+
+For tuple-like enum variants, like ~Message::Write~ that holds a tuple with one
+element and ~Message::ChangeColor~ that holds a tuple with three elements, the
+pattern is similar to the pattern we specify to match tuples.
+
+**** Destructuring Nested Structs and Enums
+
+Matching can work on nested items too. Now the color in ~ChangeColor~ support
+RGB and HSV colors:
+
+#+BEGIN_SRC rust :results output
+enum Color {
+    Rgb(i32, i32, i32),
+    Hsv(i32, i32, i32),
+}
+
+enum Message {
+    Quit,
+    Move { x: i32, y: i32 },
+    Write(String),
+    ChangeColor(Color),
+}
+
+fn main() {
+    let msg = Message::ChangeColor(Color::Hsv(0, 160, 255));
+
+    match msg {
+        Message::ChangeColor(Color::Rgb(r, g, b)) => {
+            println!("Change color to red {r}, green {g}, and blue {b}");
+        }
+        Message::ChangeColor(Color::Hsv(h, s, v)) => {
+            println!("Change color to hue {h}, saturation {s}, value {v}")
+        }
+        _ => (),
+    }
+}
+#+END_SRC
+
+We can specify these complex conditions in one ~match~ expression, even though
+two enums are involved.
+
+**** Destructuring Structs and Tuples
+
+We can mix, match, and nest destructuring patterns in even more complex ways.
+The following example shows a complicated destructure where we nest structs and
+tuples inside a tuple and destructure all the primitive values out:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    struct Point {
+        x: i32,
+        y: i32,
+    }
+
+    let ((feet, inches), Point { x, y }) = ((3, 10), Point { x: 3, y: -10 });
+    println!("{feet}");
+    println!("{inches}");
+    println!("{x}");
+    println!("{y}");
+}
+#+END_SRC
+
+*** Ignoring Values in a Pattern
+
+TODO
 
 * Debug
 

@@ -10178,7 +10178,7 @@ following:
 - Wildcards
 - Placeholders
 
-Some example patterns include ~x~, ~(a, 3)~, and ~Some(Color::Red)~. 
+Some example patterns include ~x~, ~(a, 3)~, and ~Some(Color::Red)~.
 
 ** All the Places Patterns Can Be Used
 

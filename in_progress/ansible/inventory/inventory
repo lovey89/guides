@@ -1,0 +1,5 @@
+[fedora-server]
+fed1  ansible_ssh_private_key_file=../../dockerenv/fedora/id_rsa ansible_ssh_user=ansibleuser ansible_host=localhost ansible_port=2022
+
+[ubuntu-server]
+ubu1  ansible_ssh_private_key_file=../../dockerenv/ubuntu/id_rsa ansible_ssh_user=ansibleuser ansible_host=localhost ansible_port=1022

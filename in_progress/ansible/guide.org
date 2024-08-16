@@ -1,0 +1,91 @@
+* Install
+
+#+BEGIN_SRC bash :noeval
+brew install ansible
+ansible --version
+#+END_SRC
+
+* Create docker target environment
+
+** Ubuntu environment
+
+#+BEGIN_SRC bash :noeval
+cd dockerenv/ubuntu
+ssh-keygen -b 4096 -t rsa -f ./id_rsa -N ""
+docker build -t ubuntuansibletarget:latest .
+
+# Start env. I use --init because it seems to respect ctrl-c when I want to exit
+docker run --rm -p 1022:22 --init ubuntuansibletarget:latest
+
+# Test connection
+ssh -o "IdentitiesOnly=yes" -i id_rsa -p 1022 ansibleuser@localhost
+#+END_SRC
+
+** Fedora environment
+
+#+BEGIN_SRC bash :noeval
+cd dockerenv/fedora
+ssh-keygen -b 4096 -t rsa -f ./id_rsa -N ""
+docker build -t fedoraansibletarget:latest .
+
+# Start env. I use --init because it seems to respect ctrl-c when I want to exit
+docker run --rm -p 2022:22 --init fedoraansibletarget:latest
+
+# Test connection
+ssh -o "IdentitiesOnly=yes" -i id_rsa -p 2022 ansibleuser@localhost
+#+END_SRC
+
+* Intro
+
+#+BEGIN_SRC bash :noeval
+ansible -i inventory example -m ping -u centos
+ansible -i inventory example -m ping -u ansibleuser --key-file ../../dockerenv/id_rsa
+
+# If we add the key in the inventory file we can omit the key
+ansible -i inventory example -m ping -u ansibleuser
+
+# We can even add the user to the inventory file
+ansible -i inventory example -m ping
+
+# With an ansible.cfg file we can point to our inventory file and then
+# we can omit the -i option as well
+ansible ubuntu-server -m ping
+
+# -m is for module
+ansible ubuntu-server -m ping
+
+# default for -m is "command" and -a feeds the module arguments
+ansible ubuntu-server -a "ls -la"
+ansible ubuntu-server -a "date"
+#+END_SRC
+
+Ansible is idempotent. If we run it more than one time it will still yield the
+same result. The ~command~ module will always run otherwise
+
+#+BEGIN_SRC yaml
+---
+- name: Set up NTP on all servers.
+  hosts: all
+  become: yes # Run as sudo
+  tasks:
+    - name: Ensure NTP is installed.
+      yum: name=ntp state=present
+    - name: Ensure NTP is running.
+      services: name= ntpd state=started enabled=yes
+#+END_SRC
+
+* Inventory format
+
+#+BEGIN_SRC ini
+# Application servers
+[app]
+192.168.60.4
+192.168.60.5
+
+# Database servers
+[db]
+192.168.60.6
+
+# Group has all the servers
+[multi:children]
+#+END_SRC

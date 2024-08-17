@@ -10652,7 +10652,262 @@ fn main() {
 
 *** Ignoring Values in a Pattern
 
-TODO
+There are a few ways to ignore entire values or parts of values in a pattern:
+using the ~_~ pattern, using the ~_~ pattern within another pattern, using a
+name that starts with an underscore, or using ~..~ to ignore remaining parts of
+a value.
+
+**** Ignoring an Entire Value with ~_~
+
+We’ve used the underscore as a wildcard pattern that will match any value but
+/not bind to the value/. This is especially useful as the last arm in a match
+expression, but we can also use it in any pattern, including function
+parameters.
+
+#+BEGIN_SRC rust :results output
+fn foo(_: i32, y: i32) {
+    println!("This code only uses the y parameter: {y}");
+}
+
+fn main() {
+    foo(3, 4);
+}
+#+END_SRC
+
+**** Ignoring Parts of a Value with a Nested ~_~
+
+We can also use ~_~ inside another pattern to ignore just part of a value.
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let mut setting_value = Some(5);
+    let new_setting_value = Some(10);
+
+    match (setting_value, new_setting_value) {
+        (Some(_), Some(_)) => {
+            println!("Can't overwrite an existing customized value");
+        }
+        _ => {
+            setting_value = new_setting_value;
+        }
+    }
+
+    println!("setting is {setting_value:?}");
+}
+#+END_SRC
+
+We can also use underscores in multiple places within one pattern to ignore
+particular values:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let numbers = (2, 4, 8, 16, 32);
+
+    match numbers {
+        (first, _, third, _, fifth) => {
+            println!("Some numbers: {first}, {third}, {fifth}")
+        }
+    }
+}
+#+END_SRC
+
+**** Ignoring an Unused Variable by Starting Its Name with ~_~
+
+If you create a variable but don’t use it anywhere, Rust will usually issue a
+warning because an unused variable could be a bug. You can tell Rust not to warn
+you about the unused variable by starting the name of the variable with an
+underscore.
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let _x = 5;
+    let y = 10;
+}
+#+END_SRC
+
+Note that there is a subtle difference between using only ~_~ and using a name
+that starts with an underscore. The syntax ~_x~ still binds the value to the
+variable, whereas ~_~ doesn’t bind at all. This won't compile:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let s = Some(String::from("Hello!"));
+
+    if let Some(_s) = s { // <-- Value "partially" moved here
+        println!("found a string");
+    }
+
+    println!("{s:?}"); // <-- s not valid here
+}
+#+END_SRC
+
+But this example compiles just fine:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let s = Some(String::from("Hello!"));
+
+    if let Some(_) = s { // <-- Value not moved here
+        println!("found a string");
+    }
+
+    println!("{s:?}");
+}
+#+END_SRC
+
+**** Ignoring Remaining Parts of a Value with ~..~
+
+With values that have many parts, we can use the ~..~ syntax to use specific
+parts and ignore the rest, avoiding the need to list underscores for each
+ignored value. E.g.:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    struct Point {
+        x: i32,
+        y: i32,
+        z: i32,
+    }
+
+    let origin = Point { x: 0, y: 1, z: 2 };
+
+    match origin {
+        Point { x, .. } => println!("x is {x}"),
+    }
+
+    match origin {
+        Point { y, .. } => println!("y is {y}"), // The arguments doesn't have to be in order
+                                                 // so y can also be easily extracted
+    }
+
+    let Point{x:_, y:_, z} = origin; // Without ..
+    println!("{z}")
+}
+#+END_SRC
+
+The syntax ~..~ will expand to as many values as it needs to be:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let numbers = (2, 4, 8, 16, 32);
+
+    match numbers {
+        (first, .., last) => {
+            println!("Some numbers: {first}, {last}");
+        }
+    }
+}
+#+END_SRC
+
+*** Extra Conditionals with Match Guards
+
+A /match guard/ is an additional ~if~ condition, specified after the pattern in
+a ~match~ arm, that must also match for that arm to be chosen. Match guards are
+useful for expressing more complex ideas than a pattern alone allows. E.g.
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let num = Some(4);
+
+    match num {
+        Some(x) if x % 2 == 0 => println!("The number {x} is even"),
+        Some(x) => println!("The number {x} is odd"),
+        None => (),
+    }
+}
+#+END_SRC
+
+There is no way to express the ~if x % 2 == 0~ condition within a pattern, so
+the match guard gives us the ability to express this logic. The downside of this
+additional expressiveness is that the compiler doesn’t try to check for
+exhaustiveness when match guard expressions are involved. So even though the
+expression below handles all cases Rust can't see that and we will have to
+rewrite it.
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let num = Some(4);
+
+    let my = match num {
+        Some(x) if x % 2 == 0 => 1,
+        Some(x) if x % 2 == 1 => 2,
+        //Some(_) => 2,
+        None => 3,
+    };
+    println!("{my}")
+}
+#+END_SRC
+
+We can also now match against other variable in our ~match~ statement:
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let x = Some(5);
+    let y = 10;
+
+    match x {
+        Some(50) => println!("Got 50"),
+        Some(n) if n == y => println!("Matched, n = {n}"),
+        _ => println!("Default case, x = {x:?}"),
+    }
+
+    println!("at the end: x = {x:?}, y = {y}");
+}
+#+END_SRC
+
+When using with the /or/ operator ~|~ it will apply to all patterns. E.g.
+
+#+BEGIN_SRC
+4 | 5 | 6 if y => ...
+#+END_SRC
+
+is interpreted like
+
+#+BEGIN_SRC
+(4 | 5 | 6) if y => ...
+// Not
+4 | 5 | (6 if y) => ...
+#+END_SRC
+
+*** ~@~ Bindings
+
+The at operator ~@~ lets us create a variable that holds a value at the same
+time as we’re testing that value for a pattern match. We want to test that a
+~Message::Hello~ ~id~ field is within the range ~3..=7~. We also want to bind
+the value to the variable ~id_variable~ so we can use it in the code associated
+with the arm. We could name this variable ~id~, the same as the field, but for
+this example we’ll use a different name.
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    enum Message {
+        Hello { id: i32 },
+    }
+
+    let msg = Message::Hello { id: 5 };
+
+    match msg {
+        Message::Hello {
+            id: id_variable @ 3..=7,
+        } => println!("Found an id in range: {id_variable}"),
+        Message::Hello { id: 10..=12 } => {
+            println!("Found an id in another range") // <-- id var can't be used in this context
+        }
+        Message::Hello { id } => println!("Found some other id: {id}"),
+    }
+}
+#+END_SRC
+
+By specifying ~id_variable @~ before the range ~3..=7~, we’re capturing whatever
+value matched the range while also testing that the value matched the range
+pattern.
+
+In the second arm, where we only have a range specified in the pattern, the code
+associated with the arm doesn’t have a variable that contains the actual value
+of the ~id~ field. The ~id~ field’s value could have been 10, 11, or 12, but the
+code that goes with that pattern doesn’t know which it is. The pattern code
+isn’t able to use the value from the ~id~ field, because we haven’t saved the
+~id~ value in a variable.
 
 * Debug
 

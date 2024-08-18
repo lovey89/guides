@@ -12,7 +12,10 @@
   - [[#example-2][Example 2]]
   - [[#example-3][Example 3]]
   - [[#example-4][Example 4]]
+  - [[#other-keywords-to-investigate][Other keywords to investigate]]
 - [[#ansible-vault][Ansible vault]]
+- [[#playbook-organization][Playbook organization]]
+- [[#roles][Roles]]
 - [[#config][Config]]
   - [[#ansiblecfg][~ansible.cfg~]]
   - [[#inventory-format][Inventory format]]
@@ -401,13 +404,13 @@ You can overcome this behaviour by running ~ansible-playbook~ with
 ---
 - name: Install Apache.
   hosts: all
-  gather_facts: false # Will not make ansible_os_family available
+  #gather_facts: false # Will not make ansible_os_family available
   become: true
 
-  vars:
-    apache_package: httpd
-    apache_service: httpd
-    apache_config_dir: /etc/apache2/sites-enabled
+  #vars:
+  #  apache_package: httpd
+  #  apache_service: httpd
+  #  apache_config_dir: /etc/apache2/sites-enabled
 
   handler:
     # A handler works like a normal task and can also use notify to trigger other handlers
@@ -479,7 +482,37 @@ everything ansible knows about the system by using the ~setup~ module:
 ansible -i inventory centos -m setup
 #+END_SRC
 
+** Other keywords to investigate
+
+- ~when~: Control if the task should be run
+- ~changed_when~: Interpret yourself if the task resulted in a change
+- ~failed_when~: Interpret yourself if the task resulted in a fail
+- ~ignore_error~:
+- ~tags~: Tag a number of task and control which tasks should be run with ~--tags~
+- blocks: Allows you to do try except workflows
+
 * Ansible vault
+
+#+BEGIN_SRC yaml
+---
+- hosts: localhost
+  connection: local
+  gather_facts: no
+
+  vars_files:
+    - vars/api_key.yml
+
+  tasks:
+    - name: Echo the API key which was injected into the env.
+      shell: echo $API_KEY
+      environment:
+        API_KEY: "{{ myapp_api_key }}"
+      register: echo_result
+
+    - names: Show the result.
+      debug: var=echo_result.stdout
+#+END_SRC
+
 Encrypt a var file
 
 #+BEGIN_SRC bash :noeval
@@ -491,7 +524,96 @@ Use it:
 
 #+BEGIN_SRC bash :noeval
 ansible-playbook main.yml --ask-vault-pass
+ansible-playbook main.yml --vault-password-file path/to/file
 #+END_SRC
+
+Decrypt file
+
+#+BEGIN_SRC bash :noeval
+ansible-vault decrypt vars/api_key.yml
+#+END_SRC
+
+Edit file without decrypting it to separate file
+
+#+BEGIN_SRC bash :noeval
+ansible-vault edit vars/api_key.yml
+#+END_SRC
+
+Change password key:
+
+#+BEGIN_SRC bash :noeval
+ansible-vault rekey vars/api_key.yml
+#+END_SRC
+
+* Playbook organization
+
+Tasks can be included in a playbook.
+
+#+BEGIN_SRC yaml
+---
+- name: Install Apache.
+  hosts: all
+  become: true
+
+  handler:
+    # Basically this import will replace this line with the content of apache.yml
+    # so I guess that ordering is still important of imports
+    - import_tasks: handlers/apache.yml
+
+  pre_tasks:
+    - name: Load variables files.
+      include_vars: "{{ item }}"
+      with_first_found:
+        - "vars/apache_{{ ansible_os_family }}.yml"
+        - "vars/apache_default.yml"
+
+  tasks:
+    - import_tasks: tasks/apache.yml
+      #vars:
+      #  apache_package: apache3
+    # There's also something called include_tasks
+    #- include_tasks: tasks/log.yml
+
+#- import_playbook: app.yml
+#+END_SRC
+
+#+BEGIN_SRC yaml
+# handlers/apache.yml
+---
+- name: restart apache
+  service:
+    name: "{{ apache_service }}"
+    state: restarted
+#+END_SRC
+
+#+BEGIN_SRC yaml
+# tasks/apache.yml
+---
+- name: Install Apache.
+  package:
+    name: "{{ apache_package }}"
+    state: present
+
+- name: Copy test config file.
+  copy:
+    src: files/test.conf
+    dst: "{{ apache_config_dir }}/test.conf"
+  notify:
+    - restart apache
+
+- name: Make sure Apache is started now and at boot.
+  service:
+    name: "{{ apache_service }}"
+    state: started
+    enabled: true
+#+END_SRC
+
+You can also import a playbook using ~import_playbook~
+
+* Roles
+
+Roles let's you package up stuff which can be used for a single or multiple
+playbooks.
 
 * Config
 ** ~ansible.cfg~

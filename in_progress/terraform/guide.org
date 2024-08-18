@@ -1,0 +1,307 @@
+* Table of Contents :TOC:QUOTE:
+#+BEGIN_QUOTE
+- [[#links][Links]]
+- [[#install][Install]]
+- [[#build-infrastructure][Build infrastructure]]
+  - [[#docker][Docker]]
+- [[#change-infrastructure][Change infrastructure]]
+  - [[#docker-1][Docker]]
+- [[#destroy-infrastructure][Destroy infrastructure]]
+  - [[#docker-2][Docker]]
+- [[#define-input-variables][Define input variables]]
+  - [[#docker-3][Docker]]
+- [[#query-data-with-outputs][Query data with outputs]]
+  - [[#docker-4][Docker]]
+#+END_QUOTE
+
+* Links
+
+- https://developer.hashicorp.com/terraform/tutorials
+
+* Install
+
+#+BEGIN_SRC bash :noeval
+sudo dnf install -y dnf-plugins-core
+sudo dnf config-manager --add-repo https://rpm.releases.hashicorp.com/fedora/hashicorp.repo
+sudo dnf -y install terraform
+
+# Verify
+terraform -help # Current version is v1.9.4
+#+END_SRC
+
+* Build infrastructure
+** Docker
+
+*** Get started
+
+With Terraform, you can provision an NGINX server in less than a minute using
+Docker.
+
+We have already created the project in [[file:001_learn-terraform-docker-container][001_learn-terraform-docker-container]].
+This working directory houses the configuration files that you write to describe
+the infrastructure you want Terraform to create and manage. When you initialize
+and apply the configuration here, Terraform uses this directory to store
+required plugins, modules (pre-written configurations), and information about
+the real infrastructure it created.
+
+Navigate to [[file:001_learn-terraform-docker-container][001_learn-terraform-docker-container]] and initialize the project
+which downloads a plugin called provider that lets Terraform interact with
+Docker.
+
+#+BEGIN_SRC bash :noeval
+terraform init
+#+END_SRC
+
+Provision the NGINX server with ~apply~:
+
+#+BEGIN_SRC bash :noeval
+terraform apply
+#+END_SRC
+
+Verify that the container is created with the ~docker ps~ command and open a web
+browser and navigate to http://localhost:8000.
+
+Stop the container with ~terraform destroy~.
+
+*** Review the configuration
+
+The set of files used to describe infrastructure in Terraform is known as a
+/Terraform configuration/. Each configuration must be in its own working
+directory. This is a complete configuration that you can deploy with Terraform.
+
+**** ~terraform~ Block
+
+The ~terraform {}~ block contains Terraform settings, including the required
+providers Terraform will use to provision your infrastructure. For each
+provider, the ~source~ attribute defines an optional hostname, a namespace, and
+the provider type. Terraform installs providers from the [[https://registry.terraform.io/][Terraform Registry]] by
+default. In this example configuration, the ~docker~ provider's source is
+defined as ~kreuzwerker/docker~, which is shorthand for
+~registry.terraform.io/kreuzwerker/docker~.
+
+You can also set a version constraint for each provider defined in the
+~required_providers~ block. The ~version~ attribute is optional, but
+recommended. If no version is specified the most recent version will be
+downloaded.
+
+Docs: https://developer.hashicorp.com/terraform/language/providers/requirements
+
+**** ~provider~ Block
+
+The ~provider~ block configures the specified provider, in this case ~docker~. A
+provider is a plugin that Terraform uses to create and manage your resources.
+
+You can use multiple provider blocks in your Terraform configuration to manage
+resources from different providers. You can even use different providers
+together. For example, you could pass the Docker image ID to a Kubernetes
+service.
+
+**** ~resource~ Blocks
+
+Use ~resource~ blocks to define components of your infrastructure. A resource
+might be a physical or virtual component such as a Docker container, or it can
+be a logical resource such as a Heroku application.
+
+Resource blocks have two strings before the block: the resource type and the
+resource name. In this example, the first resource type is ~docker_image~ and
+the name is ~nginx~. The prefix of the type maps to the name of the provider. In
+the example configuration, Terraform manages the ~docker_image~ resource with
+the ~docker~ provider. Together, the resource type and resource name form a
+unique ID for the resource. For example, the ID for your Docker image is
+~docker_image.nginx~.
+
+Resource blocks contain arguments which you use to configure the resource.
+Arguments can include things like machine sizes, disk image names, or VPC IDs.
+The [[https://developer.hashicorp.com/terraform/language/providers][providers reference]] documents the required and optional arguments for each
+resource. For your container, the example configuration sets the Docker image as
+the image source for your ~docker_container~ resource.
+
+*** Initialize the directory
+
+When you create a new configuration — or check out an existing configuration
+from version control — you need to initialize the directory with ~terraform
+init~.
+
+Initializing a configuration directory downloads and installs the providers
+defined in the configuration, which in this case is the ~docker~ provider.
+
+Terraform downloads the ~docker~ provider and installs it in a hidden
+subdirectory of your current working directory, named ~.terraform~. The
+~terraform init~ command prints out which version of the provider was installed.
+Terraform also creates a lock file named ~.terraform.lock.hcl~ which specifies
+the exact provider versions used, so that you can control when you want to
+update the providers used for your project.
+
+*** Format and validate the configuration
+
+The ~terraform fmt~ command automatically updates configurations in the current
+directory for readability and consistency.
+
+When you run ~terraform fmt~, Terraform will print out the names of the files it
+modified, if any.
+
+You can also make sure your configuration is syntactically valid and internally
+consistent by using the ~terraform validate~ command.
+
+No extra arguments needs to be added to either ~terraform fmt~ or ~terraform
+validate~.
+
+*** Create infrastructure
+
+Apply the configuration now with the ~terraform apply~ command. Before it
+applies any changes, Terraform prints out the execution plan which describes the
+actions Terraform will take in order to change your infrastructure to match the
+configuration.
+
+Terraform will now pause and wait for your approval before proceeding. If
+anything in the plan seems incorrect or dangerous, it is safe to abort here with
+no changes made to your infrastructure. In this case the plan is acceptable, so
+type ~yes~ at the confirmation prompt to proceed.
+
+*** Inspect state
+
+When you applied your configuration, Terraform wrote data into a file called
+~terraform.tfstate~. Terraform stores the IDs and properties of the resources it
+manages in this file, so that it can update or destroy those resources going
+forward.
+
+The Terraform state file is the only way Terraform can track which resources it
+manages, and often contains sensitive information, so you must store your state
+file securely and restrict access to only trusted team members who need to
+manage your infrastructure. Terraform supports several [[https://developer.hashicorp.com/terraform/language/settings/backends/configuration][remote backends]] you can
+use to store and manage your state.
+
+Inspect the current state using ~terraform show~.
+
+*** Manually Managing State
+
+Terraform has a built-in command called ~terraform state~ for advanced state
+management. Use the ~list~ subcommand to list of the resources in your project's
+state.
+
+#+BEGIN_SRC bash :noeval
+terraform state list
+#+END_SRC
+
+* Change infrastructure
+
+Infrastructure is continuously evolving, and Terraform helps you manage that
+change. As you change Terraform configurations, Terraform builds an execution
+plan that only modifies what is necessary to reach your desired state.
+
+** Docker
+*** Update configuration
+
+Now update the external port number of your container. Change the
+~docker_container.nginx~ resource under the provider block in
+[[file:001_learn-terraform-docker-container/main.tf][001_learn-terraform-docker-container/main.tf]] by replacing the ~ports.external~
+value of ~8000~ with ~8080~.
+
+*** Apply changes
+
+This update changes the port number your container uses to serve your nginx
+server. The Docker provider knows that it cannot change the port of a container
+after it has been created, so Terraform will destroy the old container and
+create a new one.
+
+Run ~terraform apply~ again to see how Terraform will apply this change to the
+existing resources.
+
+The prefix ~-/+~ means that Terraform will destroy and recreate the resource,
+rather than updating it in-place. Terraform can update some attributes in-place
+(indicated with the ~~~ prefix), but changing the port for a Docker container
+requires recreating it. Terraform handles these details for you, and the
+execution plan displays what Terraform will do.
+
+The output will also reveal what forces Terraform to replace the container by
+displaying ~# forces replacement~ next to the field(s) that caused it.
+
+* Destroy infrastructure
+** Docker
+
+The ~terraform destroy~ command terminates resources managed by your Terraform
+project. This command is the inverse of ~terraform apply~ in that it terminates
+all the resources specified in your Terraform state. It does not destroy
+resources running elsewhere that are not managed by the current Terraform
+project.
+
+The ~-~ prefix indicates that the container will be destroyed. As with apply,
+Terraform shows its execution plan and waits for approval before making any
+changes. In more complicated cases with multiple resources, Terraform will
+destroy them in a suitable order to respect dependencies.
+
+* Define input variables
+
+Terraform configurations can include variables to make your configuration more
+dynamic and flexible.
+
+** Docker
+
+A project has already been setup at [[file:002_docker-container-with-variable][002_docker-container-with-variable]] which is
+very similar to [[file:001_learn-terraform-docker-container][001_learn-terraform-docker-container]]. The differences are
+explained below.
+
+*** Set the container name with a variable
+
+The current configuration includes a number of hard-coded values. Terraform
+variables allow you to write configuration that is flexible and easier to
+re-use.
+
+Create a new file called ~variables.tf~ with a block defining a new
+~container_name~ variable.
+
+#+BEGIN_SRC hcl
+variable "container_name" {
+  description = "Value of the name for the Docker container"
+  type        = string
+  default     = "ExampleNginxContainer"
+}
+#+END_SRC
+
+The name of the files are not important. Terraform loads all files in the
+current directory ending in ~.tf~, so you can name your configuration files
+however you choose.
+
+In ~main.tf~, we have updated the ~docker_container~ resource block to use the
+new variable by specifying ~name = var.container_name~. The ~container_name~
+variable block will default to its default value unless you declare a different
+value.
+
+*** Apply your configuration
+
+You can now apply your change with the default value with ~terraform apply~ or
+override the value with the ~-var~ option.
+
+Try both and see how terraform updates the state:
+
+#+BEGIN_SRC bash :noeval
+terraform apply
+terraform apply -var "container_name=YetAnotherName"
+#+END_SRC
+
+For more about variables see:
+https://developer.hashicorp.com/terraform/tutorials/configuration-language/variables
+
+* Query data with outputs
+
+We can use output values to organize data to be easily queried and displayed to
+the Terraform user.
+
+** Docker
+
+We continue with the [[file:002_docker-container-with-variable][002_docker-container-with-variable]] example:
+
+*** Output Docker container configuration
+
+We have also added a file [[file:002_docker-container-with-variable/outputs.tf][002_docker-container-with-variable/outputs.tf]].
+
+*** Inspect output values
+
+You must apply this configuration before you can use these output values. Apply
+your configuration now. Terraform prints output values to the screen when you
+apply your configuration. You can also query the outputs with the
+~terraform output~ command.
+
+You can use Terraform outputs to connect your Terraform projects with other
+parts of your infrastructure, or with other Terraform projects. To learn more,
+see: https://developer.hashicorp.com/terraform/tutorials/configuration-language/outputs

@@ -2,16 +2,16 @@
 #+BEGIN_QUOTE
 - [[#links][Links]]
 - [[#install][Install]]
-- [[#build-infrastructure][Build infrastructure]]
-  - [[#docker][Docker]]
-- [[#change-infrastructure][Change infrastructure]]
-  - [[#docker-1][Docker]]
-- [[#destroy-infrastructure][Destroy infrastructure]]
-  - [[#docker-2][Docker]]
-- [[#define-input-variables][Define input variables]]
-  - [[#docker-3][Docker]]
-- [[#query-data-with-outputs][Query data with outputs]]
-  - [[#docker-4][Docker]]
+- [[#getting-started][Getting started]]
+  - [[#build-infrastructure][Build infrastructure]]
+  - [[#change-infrastructure][Change infrastructure]]
+  - [[#destroy-infrastructure][Destroy infrastructure]]
+  - [[#define-input-variables][Define input variables]]
+  - [[#query-data-with-outputs][Query data with outputs]]
+- [[#the-command-line-interface][The Command Line Interface]]
+  - [[#initialize-terraform-configuration][Initialize Terraform configuration]]
+  - [[#create-a-terraform-plan][Create a Terraform plan]]
+- [[#questions][Questions]]
 #+END_QUOTE
 
 * Links
@@ -27,12 +27,13 @@ sudo dnf -y install terraform
 
 # Verify
 terraform -help # Current version is v1.9.4
+
+# Enable auto complete
+terraform -install-autocomplete
 #+END_SRC
 
-* Build infrastructure
-** Docker
-
-*** Get started
+* Getting started
+** Build infrastructure
 
 With Terraform, you can provision an NGINX server in less than a minute using
 Docker.
@@ -183,13 +184,12 @@ state.
 terraform state list
 #+END_SRC
 
-* Change infrastructure
+** Change infrastructure
 
 Infrastructure is continuously evolving, and Terraform helps you manage that
 change. As you change Terraform configurations, Terraform builds an execution
 plan that only modifies what is necessary to reach your desired state.
 
-** Docker
 *** Update configuration
 
 Now update the external port number of your container. Change the
@@ -216,8 +216,7 @@ execution plan displays what Terraform will do.
 The output will also reveal what forces Terraform to replace the container by
 displaying ~# forces replacement~ next to the field(s) that caused it.
 
-* Destroy infrastructure
-** Docker
+** Destroy infrastructure
 
 The ~terraform destroy~ command terminates resources managed by your Terraform
 project. This command is the inverse of ~terraform apply~ in that it terminates
@@ -230,12 +229,10 @@ Terraform shows its execution plan and waits for approval before making any
 changes. In more complicated cases with multiple resources, Terraform will
 destroy them in a suitable order to respect dependencies.
 
-* Define input variables
+** Define input variables
 
 Terraform configurations can include variables to make your configuration more
 dynamic and flexible.
-
-** Docker
 
 A project has already been setup at [[file:002_docker-container-with-variable][002_docker-container-with-variable]] which is
 very similar to [[file:001_learn-terraform-docker-container][001_learn-terraform-docker-container]]. The differences are
@@ -282,12 +279,10 @@ terraform apply -var "container_name=YetAnotherName"
 For more about variables see:
 https://developer.hashicorp.com/terraform/tutorials/configuration-language/variables
 
-* Query data with outputs
+** Query data with outputs
 
 We can use output values to organize data to be easily queried and displayed to
 the Terraform user.
-
-** Docker
 
 We continue with the [[file:002_docker-container-with-variable][002_docker-container-with-variable]] example:
 
@@ -305,3 +300,124 @@ apply your configuration. You can also query the outputs with the
 You can use Terraform outputs to connect your Terraform projects with other
 parts of your infrastructure, or with other Terraform projects. To learn more,
 see: https://developer.hashicorp.com/terraform/tutorials/configuration-language/outputs
+
+* The Command Line Interface
+** Initialize Terraform configuration
+
+The core Terraform workflow consists of three main steps after you have written
+your Terraform configuration:
+
+- *Initialize* prepares your workspace so Terraform can apply your
+  configuration.
+- Plan allows you to preview the changes Terraform will make before you apply
+  them.
+- Apply makes the changes defined by your plan to create, update, or destroy
+  resources.
+
+When you initialize a Terraform workspace, Terraform configures the backend,
+installs all providers and modules referred to in your configuration, and
+creates a version lock file if one doesn't already exist. In addition, you can
+use the terraform init command to change your workspace's backend and upgrade
+your workspace's providers and modules.
+
+*** Initialize your workspace
+
+#+BEGIN_SRC bash :noeval
+terraform init
+#+END_SRC
+
+When you initialize a workspace, Terraform will attempt to download the provider
+versions specified by the workspace's lock file. If the lock file does not
+exist, Terraform will use the ~required_providers~ block to determine the
+provider version and create a new lock file. If neither exists, Terraform will
+search for a matching provider and download the latest version.
+
+The lock file ~.terraform.lock.hcl~ should be commited to your repository to
+ensure that the same provider versions are used across the team.
+
+*** When to initialize Terraform
+
+You initialize your Terraform workspace with terraform init when:
+
+- You create new Terraform configuration and are ready to use it to create a
+  workspace and provision infrastructure.
+- You clone a version control repository containing Terraform configuration, and
+  are ready to use it to create a workspace and provision infrastructure.
+- You add, remove, or change the version of a module or provider in an existing
+  workspace.
+- You add, remove, or change the backend or cloud blocks within the terraform
+  block of an existing workspace.
+
+** Create a Terraform plan
+
+When you provision infrastructure, Terraform creates an execution plan before it
+applies any changes. Terraform creates the plan by comparing your Terraform
+configuration to the state of your infrastructure. The execution plan consists
+of a set of changes that create, update, or destroy resources. You can use the
+~terraform plan~ command to compare your configuration to your resource's state,
+review changes before you apply them, or to refresh your workspace's state.
+Terraform plan supports automation workflows in CI/CD pipelines by guaranteeing
+that the infrastructure changes Terraform applies match the ones you or your
+team approve, even if the deploy process completes across different machines or
+at different times.
+
+*** Create a plan
+
+There are three commands that tell Terraform to generate an execution plan:
+
+- The ~terraform plan~ command creates a plan consisting of a set of changes
+  that will make your resources match your configuration. This lets you preview
+  the actions Terraform would take to modify your infrastructure before applying
+  them. Terraform plan does not make any changes to your resources, you must
+  apply a plan for Terraform to make changes.
+
+  You can also save a plan with the ~-out~ flag. Later, you can apply the saved
+  plan, and Terraform will only perform the changes listed in the plan. In an
+  automated Terraform pipeline, applying a saved plan file ensures that
+  Terraform only makes the changes you expect, even if your pipeline runs across
+  multiple machines at different times.
+
+- The ~terraform apply~ command applies a Terraform plan. If you do not pass a
+  saved plan, then Terraform will a create a plan and prompt you for approval
+  before applying the plan.
+
+- The ~terraform destroy~ command creates an execution plan to delete all of the
+  resources managed by your workspace.
+
+Generate a plan:
+
+#+BEGIN_SRC bash :noeval
+terraform plan -out "tfplan"
+#+END_SRC
+
+The file ~tfplan~ is not in human readable format but you can inspect it with:
+
+#+BEGIN_SRC bash :noeval
+terraform show "tfplan"
+#+END_SRC
+
+You can also convert the code to json to easily inspect it with code:
+
+#+BEGIN_SRC bash :noeval
+terraform show -json "tfplan" | jq > tfplan.json
+#+END_SRC
+
+*Note:* Terraform plan files can contain sensitive data. Never commit a plan
+file to version control.
+
+*** Review the plan
+
+The ~.configuration~ JSON object is a snapshot of your configuration at the time
+of the ~terraform plan~.
+
+This configuration snapshot captures the versions of the providers recorded in
+your ~.terraform.lock.hcl~ file, ensuring that you use the same provider
+versions that generated the plan to apply it. Note that the configuration
+accounts for both the provider version used by the root module and child
+modules.
+
+
+
+* Questions
+
+What is the ~data~ keyword?

@@ -11,6 +11,11 @@
 - [[#the-command-line-interface][The Command Line Interface]]
   - [[#initialize-terraform-configuration][Initialize Terraform configuration]]
   - [[#create-a-terraform-plan][Create a Terraform plan]]
+  - [[#apply-terraform-configuration][Apply Terraform configuration]]
+  - [[#customize-terraform-configuration-with-variables][Customize Terraform configuration with variables]]
+  - [[#output-data-from-terraform][Output data from Terraform]]
+  - [[#manage-terraform-versions][Manage Terraform versions]]
+  - [[#lock-and-upgrade-provider-versions][Lock and upgrade provider versions]]
 - [[#questions][Questions]]
 #+END_QUOTE
 
@@ -405,18 +410,435 @@ terraform show -json "tfplan" | jq > tfplan.json
 *Note:* Terraform plan files can contain sensitive data. Never commit a plan
 file to version control.
 
-*** Review the plan
+*** Apply a saved plan
 
-The ~.configuration~ JSON object is a snapshot of your configuration at the time
-of the ~terraform plan~.
+#+BEGIN_SRC bash :noeval
+terraform apply "tfplan"
+#+END_SRC
 
-This configuration snapshot captures the versions of the providers recorded in
-your ~.terraform.lock.hcl~ file, ensuring that you use the same provider
-versions that generated the plan to apply it. Note that the configuration
-accounts for both the provider version used by the root module and child
-modules.
+** Apply Terraform configuration
 
+When you apply changes to your infrastructure, Terraform uses the providers and
+modules installed during initialization to execute the steps stored in an
+execution plan. These steps create, update, and delete infrastructure to match
+your resource configuration.
 
+*** Apply configuration
+
+Apply the configuration with:
+
+#+BEGIN_SRC bash :noeval
+terraform apply
+#+END_SRC
+
+When you approve the plan and apply this configuration, Terraform will:
+
+1. Lock your workspace's state, so that no other instances of Terraform will
+   attempt to modify your state or apply changes to your resources. If Terraform
+   detects an existing lock file (~.terraform.tfstate.lock.info~), it will
+   report an error and exit.
+2. Create a plan, and wait for you to approve it. Alternatively, you can provide
+   a saved plan created with the ~terraform plan~ command, in which case
+   Terraform will not prompt for approval.
+3. Execute the steps defined in the plan using the providers you installed when
+   you initialized your configuration. Terraform executes steps in parallel when
+   possible, and sequentially when one resource depends on another.
+4. Update your workspace's state with a snapshot of the new state of your
+   resources.
+5. Unlock your workspace's state.
+6. Report the changes it made, as well as any output values defined in your
+   configuration.
+
+*** Errors during apply
+
+When Terraform encounters an error during an apply step, it will:
+
+1. Log the error and report it to the console.
+2. Update the state file with any changes to your resources.
+3. Unlock the state file.
+4. Exit.
+
+Your infrastructure may be in an invalid state after a Terraform apply step
+errors out. Terraform does not support automatically rolling back a
+partially-completed apply. After you resolve the error, you must apply your
+configuration again to update your infrastructure to the desired state.
+
+If the state has changed between the time you have created a plan and the time
+you apply it since Terraform assumes as certain state.
+
+Common reasons for apply errors include:
+
+1. A change to a resource outside of Terraform's control.
+2. Networking or other transient errors.
+3. An expected error from the upstream API, such as a duplicate resource name or
+   reaching a resource limit.
+4. An unexpected error from the upstream API, such as an internal server error.
+5. A bug in the Terraform provider code, or Terraform itself.
+
+Depending on the cause of the error, you may need to resolve the underlying
+issue by either modifying your configuration or diagnosing and resolving the
+error from the cloud provider API. You can use the ~terraform show~ command to
+print out your state. This command does not refresh your state, so the
+information in your state can be out of date.
+
+The next time you plan a change to this project, Terraform will update the
+current state of your resources from the underlying APIs using the providers you
+have installed. At this point Terraform may know how to fix the problem itself.
+
+*** Replace Resources
+
+When using Terraform, you will usually apply an entire configuration change at
+once. Terraform and its providers will determine the changes to make and the
+order to make them in. However, there are some cases where you may need to
+replace or modify individual resources. Terraform provides two arguments to the
+~plan~ and ~apply~ commands that allow you to interact with specific resources:
+~-replace~ and ~-target~.
+
+Use the ~-replace~ argument when a resource has become unhealthy or stops
+working in ways that are outside of Terraform's control.
+
+The ~-replace~ argument requires a resource address. List the resources in your
+configuration with ~terraform state list~.
+
+Use the ~-target~ command line argument when you apply to target individual
+resources rather than apply the entire configuration.
+
+** Customize Terraform configuration with variables
+
+Terraform's input variables don't change values during a Terraform run such as
+plan, apply, or destroy. Instead, they allow users to more safely customize
+their infrastructure by assigning different values to the variables before
+execution begins, rather than editing configuration files manually.
+
+*** Parameterize your configuration
+
+Variable declarations can appear anywhere in your configuration files. However,
+it's recommended to put them into a separate file called ~variables.tf~ to make
+it easier for users to understand how they can customize the configuration.
+
+To parameterize an argument with an input variable, you must first define the
+variable, then replace the hardcoded value with a reference to that variable in
+your configuration. E.g.
+
+#+BEGIN_SRC hcl
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-west-2"
+}
+#+END_SRC
+
+The fields are:
+
+- ~Description~: A short description to document the purpose of the variable.
+- ~Type~: The type of data contained in the variable.
+- ~Default~: The default value.
+
+If you do not set a default value for a variable, you must assign a value before
+Terraform can apply the configuration. Terraform does not support unassigned
+variables.
+
+Variable values must be literal values, and cannot use computed values like
+resource attributes, expressions, or other variables. You can refer to variables
+in your configuration with ~var.<variable_name>~.
+
+*** Types of variables
+**** Simple types
+
+Apart from the ~string~ type there is also a ~number~ and ~bool~ type. These are
+called /simple/ types.
+
+When Terraform interprets values, either hard-coded or from variables, it will
+convert them into the correct type if possible. So you can supply ~"2"~ instead
+of ~2~ and it will work as well.
+
+~bool~ can have the values ~true~ / ~false~.
+
+**** Complex type
+
+Terraform also supports several collection variable types.
+
+- *List*: A sequence of values of the same type.
+- *Map*: A lookup table, matching keys to values, all of the same type.
+- *Set*: An unordered collection of unique values, all of the same type.
+
+***** ~list~
+
+The type of a ~list~ is given with it's type. E.g. ~list(string)~. But they can
+also consit of complex types. E.g. ~list(list)~. Here's an example of a list:
+
+#+BEGIN_SRC hcl
+variable "private_subnet_cidr_blocks" {
+  description = "Available cidr blocks for private subnets."
+  type        = list(string)
+  default     = [
+    "10.0.101.0/24",
+    "10.0.102.0/24",
+    "10.0.103.0/24",
+    "10.0.104.0/24",
+  ]
+}
+#+END_SRC
+
+You can retrieve elements in a list by index. Retrieve the second element from a
+list by index with square brackets: ~var.private_subnet_cidr_blocks[1]~.
+
+To get a slice you use the ~slice()~ function. E.g.:
+~slice(var.private_subnet_cidr_blocks, 0, 3)~ will get element 0, 1 and 2 from
+the list.
+
+***** ~map~
+
+An example of a map looks like this:
+
+#+BEGIN_SRC hcl
+variable "resource_tags" {
+  description = "Tags to set for all resources"
+  type        = map(string)
+  default     = {
+    project     = "project-alpha",
+    environment = "dev"
+  }
+}
+#+END_SRC
+
+Setting the type to ~map(string)~ tells Terraform to expect strings for the
+values in the map. Map keys are always strings.
+
+To retrieve the value of the ~environment~ key from the ~resource_tags~ map:
+~var.resource_tags["environment"]~.
+
+You can also replace a full block with a map. E.g.
+
+#+BEGIN_SRC hcl
+tags = {
+  project     = "project-alpha",
+  environment = "dev"
+}
+#+END_SRC
+
+can be replaced with:
+
+#+BEGIN_SRC hcl
+tags = var.resource_tags
+#+END_SRC
+
+*** Assign values to variables
+
+Terraform requires a value for every variable. There are several ways to assign
+variable values.
+
+**** Use command line flag
+
+You can use ~-var~ to set a variable. E.g.
+
+#+BEGIN_SRC bash :noeval
+terraform apply -var ec2_instance_type=t2.micro
+# or
+terraform plan -var ec2_instance_type=t2.micro
+#+END_SRC
+
+**** Assign values with a file
+
+Terraform automatically loads all files in the current directory with the exact
+name ~terraform.tfvars~ or matching ~*.auto.tfvars~. You can also use the
+~-var-file~ flag to specify other files by name.
+
+These files use syntax similar to Terraform configuration files (HCL), but they
+cannot contain configuration such as resource definitions. Like Terraform
+configuration files, these files can also contain JSON.
+
+In addition to command line flags and variable files, you can use environment
+variables to set input variables.
+
+*** Interpolate variables in strings
+
+Terraform configuration supports string interpolation - inserting the output of
+an expression into a string. This allows you to use variables, local values, and
+the output of functions to create strings in your configuration. You use the
+~${variable}~ syntax.
+
+E.g.
+
+#+BEGIN_SRC hcl
+resource "docker_container" "nginx" {
+  image = docker_image.nginx.image_id
+  name  = "Container_${var.container_name}"
+
+  ports {
+    internal = 80
+    external = 8080
+  }
+}
+#+END_SRC
+
+*** Validate variables
+
+You can also validate that the provided variables follow a certain format.
+
+#+BEGIN_SRC hcl
+variable "resource_tags" {
+  description = "Tags to set for all resources"
+  type        = map(string)
+  default     = {
+    project     = "my-project",
+    environment = "dev"
+  }
+
+  validation {
+    condition     = length(var.resource_tags["project"]) <= 16 && length(regexall("[^a-zA-Z0-9-]", var.resource_tags["project"])) == 0
+    error_message = "The project tag must be no more than 16 characters, and only contain letters, numbers, and hyphens."
+  }
+
+  validation {
+    condition     = length(var.resource_tags["environment"]) <= 8 && length(regexall("[^a-zA-Z0-9-]", var.resource_tags["environment"])) == 0
+    error_message = "The environment tag must be no more than 8 characters, and only contain letters, numbers, and hyphens."
+  }
+}
+#+END_SRC
+
+Using variable validation can be a good way to catch configuration errors early.
+
+** Output data from Terraform
+
+Terraform output values let you export structured data about your resources. You
+can use this data to configure other parts of your infrastructure with
+automation tools, or as a data source for another Terraform workspace. Outputs
+are also how you expose data from a child module to a root module.
+
+*** Output information
+
+You can add output declarations anywhere in your Terraform configuration files.
+However, it's recommended to put them in a separate file called ~outputs.tf~ to
+make it easier for users to understand your configuration and review its
+expected outputs. E.g.:
+
+#+BEGIN_SRC hcl
+output "container_id" {
+  description = "ID of the Docker container"
+  value       = docker_container.nginx.id
+}
+
+output "image_id" {
+  description = "ID of the Docker image"
+  value       = docker_image.nginx.id
+}
+#+END_SRC
+
+While the ~description~ argument is optional, you should include it in all
+output declarations to document the intent and content of the output.
+
+You can use the result of any Terraform expression as the value of an output.
+Add the following definitions to ~outputs.tf~. E.g.
+
+#+BEGIN_SRC hcl
+output "lb_url" {
+  description = "URL of load balancer"
+  value       = "http://${module.elb_http.elb_dns_name}/"
+}
+
+output "web_server_count" {
+  description = "Number of web servers provisioned"
+  value       = length(module.ec2_instances.instance_ids)
+}
+#+END_SRC
+
+ In order to see these outputs, you need to update the state by applying this
+ new configuration, even though the infrastructure will not change.
+
+*** Query outputs
+
+After creating the outputs, use the ~terraform output~ command to query all of
+them. You can also query output by name with ~terraform output <name>~.
+
+By default Terraform wraps string outputs in quotes. You can disable that with
+the ~-raw~ flag. E.g. ~terraform output -raw container_id~
+
+*** Redact sensitive outputs
+
+You can designate Terraform outputs as sensitive. Terraform will redact the
+values of sensitive outputs to avoid accidentally printing them out to the
+console. Use sensitive outputs to share sensitive data from your configuration
+with other Terraform modules, automation tools, or HCP Terraform workspaces.
+
+Terraform will redact sensitive outputs when planning, applying, or destroying
+your configuration, or when you query all of your outputs. Terraform will not
+redact sensitive outputs in other cases, such as when you query a specific
+output by name, query all of your outputs in JSON format, or when you use
+outputs from a child module in your root module.
+
+E.g.
+
+#+BEGIN_SRC hcl
+output "db_password" {
+  description = "Database administrator password"
+  value       = aws_db_instance.database.password
+  sensitive   = true
+}
+#+END_SRC
+
+*** Generate machine-readable output
+
+To get machine-readable format for automation, use the ~-json~ flag:
+
+#+BEGIN_SRC bash :noeval
+terraform output -json
+#+END_SRC
+
+** Manage Terraform versions
+*** Terraform version constraints
+
+The following table summarizes some of the ways you can pin the Terraform
+version in the ~required_version~ setting in the ~terraform {}~ block:
+
+| Required Version    | Meaning                                           | Considerations                                          |
+|---------------------+---------------------------------------------------+---------------------------------------------------------|
+| ~1.7.5~             | Only Terraform v1.7.5 exactly                     |                                                         |
+| ~>= 1.7.5~          | Any Terraform v1.7.5 or greater                   | Includes Terraform v2.0.0 and above                     |
+| ~~> 1.7.5~          | Any Terraform v1.7.x, but not v1.8 or later       | Minor version updates are intended to be non-disruptive |
+| ~>= 1.7.5, < 1.9.5~ | Terraform v1.7.5 or greater, but less than v1.9.5 |                                                         |
+
+As a best practice, consider using ~~>~ style version constraints to pin your
+major and minor Terraform version. Doing so will allow you and your team to use
+patch version updates without updating your Terraform configuration. You can
+then plan when you want to upgrade your configuration to use a new version of
+Terraform, and carefully review the changes to ensure that your project still
+works as intended.
+
+** Lock and upgrade provider versions
+
+Terraform providers manage resources by communicating between Terraform and
+target APIs. Whenever the target APIs change or add functionality, provider
+maintainers may update and version the provider.
+
+If you do not scope provider version appropriately, Terraform will download the
+latest provider version that fulfills the version constraint. This may lead to
+unexpected infrastructure changes. By specifying carefully scoped provider
+versions and using the dependency lock file, you can ensure Terraform is using
+the correct provider version so your configuration is applied consistently.
+
+The provider versions downloaded when running ~terraform init~ will be written
+to ~.terraform.lock.hcl~ if it doesn't exists. Otherwise the exact version
+written in the lock file will be downloaded. If the lock file is not found it
+will download the latest version of the providers that you have defined in the
+~required_providers {}~ block
+
+*** Upgrade the provider version
+
+The ~-upgrade~ flag will upgrade all providers to the latest version consistent
+within the version constraints specified in your configuration.
+
+#+BEGIN_SRC bash :noeval
+terraform init -upgrade
+#+END_SRC
+
+It can also be used for downgrading if the version constrants are modified to
+a lower provider version.
+
+Always run a Terraform plan after changing your provider versions. Occasionally
+a provider upgrade will require that you to modify your configuration to work
+with the new provider version. If the plan or apply steps fail, do not commit
+the lock file to version control until you've resolved the error.
 
 * Questions
 

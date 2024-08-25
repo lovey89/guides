@@ -16,6 +16,10 @@
   - [[#output-data-from-terraform][Output data from Terraform]]
   - [[#manage-terraform-versions][Manage Terraform versions]]
   - [[#lock-and-upgrade-provider-versions][Lock and upgrade provider versions]]
+  - [[#target-resources][Target resources]]
+  - [[#manage-resource-state][Manage resource state]]
+  - [[#import][Import]]
+  - [[#use-refresh-only-mode-to-sync-terraform-state][Use refresh-only mode to sync Terraform state]]
 - [[#questions][Questions]]
 #+END_QUOTE
 
@@ -785,6 +789,22 @@ To get machine-readable format for automation, use the ~-json~ flag:
 terraform output -json
 #+END_SRC
 
+*** Maps and lists
+
+When you include the ~-json~ flag in your Terraform output commands, Terraform
+converts maps and lists to the equivalent JSON data structures. E.g.
+
+#+BEGIN_SRC tf
+output "bucket_details" {
+  description = "S3 bucket details."
+  value = {
+    arn    = aws_s3_bucket.data.arn,
+    region = aws_s3_bucket.data.region,
+    id     = aws_s3_bucket.data.id
+  }
+}
+#+END_SRC
+
 ** Manage Terraform versions
 *** Terraform version constraints
 
@@ -821,7 +841,7 @@ The provider versions downloaded when running ~terraform init~ will be written
 to ~.terraform.lock.hcl~ if it doesn't exists. Otherwise the exact version
 written in the lock file will be downloaded. If the lock file is not found it
 will download the latest version of the providers that you have defined in the
-~required_providers {}~ block
+~required_providers {}~ block.
 
 *** Upgrade the provider version
 
@@ -839,6 +859,322 @@ Always run a Terraform plan after changing your provider versions. Occasionally
 a provider upgrade will require that you to modify your configuration to work
 with the new provider version. If the plan or apply steps fail, do not commit
 the lock file to version control until you've resolved the error.
+
+** Target resources
+
+When you apply changes to your Terraform projects, Terraform generates a plan
+that includes all of the differences between your configuration and the
+resources currently managed by your project, if any. When you apply the plan,
+Terraform will add, remove, and modify resources as proposed by the plan.
+
+In a typical Terraform workflow, you apply the entire plan at once. Occasionally
+you may want to apply only part of a plan, such as when Terraform's state has
+become out of sync with your resources due to a network failure, a problem with
+the upstream cloud platform, or a bug in Terraform or its providers. To support
+this, Terraform lets you target specific resources when you plan, apply, or
+destroy your infrastructure. Targeting individual resources can be useful for
+troubleshooting errors, but should not be part of your normal workflow.
+
+You can use Terraform's ~-target~ option to target specific resources, modules,
+or collections of resources.
+
+*** Try it out
+
+Use project [[file:003_learn-terraform-plan][003_learn-terraform-plan]]:
+
+#+BEGIN_SRC bash :noeval
+terraform init
+terraform apply
+#+END_SRC
+
+Update the ~random_pet~ config:
+
+#+BEGIN_SRC diff
+ resource "random_pet" "instance" {
+-  length    = 2
++  length    = 5
+ }
+#+END_SRC
+
+Plan the change:
+
+#+BEGIN_SRC bash :noeval
+terraform plan
+#+END_SRC
+
+Terraform plans to change the ~random_pet~ resource along with any resources
+dependent on it.
+
+Now target only ~random_pet.instance~:
+
+#+BEGIN_SRC bash :noeval
+terraform plan -target=random_pet.instance
+#+END_SRC
+
+Now only ~random_pet.instance~ will be updated. Try targeting
+~docker_container.nginx~ instead:
+
+#+BEGIN_SRC bash :noeval
+terraform plan -target=docker_container.nginx
+#+END_SRC
+
+Terraform determines that ~docker_container.nginx~ depends on
+~random_pet.instance~, and that the instance name configuration has changed.
+Because of this dependency, Terraform will update both. Resource targeting
+updates resources that the target depends on, but not resources that depend on
+it.
+
+You can also provide ~-target~ multiple times.
+
+** Manage resource state
+
+Terraform stores information about your infrastructure in a state file. This
+state file keeps track of resources created by your configuration and maps them
+to real-world resources.
+
+Terraform compares your configuration with the state file and your existing
+infrastructure to create plans and make changes to your infrastructure. When you
+run ~terraform apply~ or ~terraform destroy~ against your initialized
+configuration, Terraform writes metadata about your configuration to the state
+file and updates your infrastructure resources accordingly. Occasionally, you
+may need to manipulate your projects state outside of the standard workflow. For
+example, you may want to remove a resource from your project without destroying
+the real-world resource associated with it.
+
+*** Move a resource to a different state file
+
+You can move a state to a different state file with ~terraform state mv~
+
+*** Remove a resource from state
+
+Use a ~removed~ block to remove specific resources from your state. This does
+not destroy the infrastructure itself, instead it indicates that your Terraform
+configuration will no longer manage the resource.
+
+Comment out the block of the resource that you don't want Terraform to manage
+anylonger and add a ~removed~ block:
+
+#+BEGIN_SRC tf
+removed {
+  from = aws_instance.example_new
+
+  lifecycle {
+    destroy = false
+  }
+}
+
+# resource "aws_instance" "example_new" {
+#   ami                    = data.aws_ami.ubuntu.id
+#   instance_type          = "t2.micro"
+#   vpc_security_group_ids = [aws_security_group.sg_8080.id]
+#   user_data              = <<-EOF
+#               #!/bin/bash
+#               apt-get update
+#               apt-get install -y apache2
+#               sed -i -e 's/80/8080/' /etc/apache2/ports.conf
+#               echo "Hello World" > /var/www/html/index.html
+#               systemctl restart apache2
+#               EOF
+#   tags = {
+#     Name = "terraform-learn-state-ec2"
+#   }
+# }
+#+END_SRC
+
+Then plan and apply the configuration.
+
+** Import
+
+Terraform supports bringing your existing infrastructure under its management.
+By importing resources into Terraform, you can consistently manage your
+infrastructure using a common workflow.
+
+When you create new infrastructure with Terraform, you usually use the following
+workflow:
+
+1. Write Terraform configuration that defines the infrastructure you want to
+   create.
+2. Review the Terraform plan to ensure the configuration will result in the
+   expected infrastructure.
+3. Apply the configuration to have Terraform create your infrastructure.
+
+You can use configuration to import existing resources into your state file with
+the plan-and-apply workflow. You can use the ~terraform import~ command, but
+configuration-driven import is safer, works with CICD pipelines, and allows you
+to preview the import operation before modifying state. You can also optionally
+use Terraform to generate an initial configuration for the resources you will
+import.
+
+Using configuration to import resources involves the following steps:
+
+1. Identify the existing infrastructure you will import.
+2. Define an import block for the resources.
+3. Run terraform plan to review the import plan and optionally generate
+   configuration for the resources.
+4. Prune generated configuration to only the required arguments.
+5. Apply the configuration to bring the resource into your Terraform state file.
+
+*** Define import block to import docker container
+
+Configuration-driven import relies on the ~import~ block, which has two required
+arguments:
+
+- ~id~ is the provider-specific identifier for the infrastructure you want to
+  import
+- ~to~ is the identifier Terraform will give the resource in state, consisting
+  of the resource type and name
+
+The ~id~ for a docker container is the SHA256 container ID you get by running
+
+#+BEGIN_SRC bash :noeval
+docker inspect --format="{{.ID}}" <container_name>
+#+END_SRC
+
+Add an ~import~ block to your configuration:
+
+#+BEGIN_SRC tf
+import {
+  id = <container_id_hash>
+  to = docker_container.web
+}
+#+END_SRC
+
+*** Generate configuration
+
+When importing a resource, you must both bring the resource into your state
+file, and define a corresponding ~resource~ block for it in your configuration.
+Although you can manually define the resource yourself, configuration-driven
+import can generate configuration for you to use as a starting point.
+
+The generated configuration contains all possible arguments for the imported
+resources, including those set to default values and those without values. it's
+recommended that you prune the generated configuration to only required
+arguments and arguments whose values differ from defaults, to reduce the size of
+your configuration.
+
+Use ~terraform plan~ with the ~-generate-config-out~ flag to generate
+configuration for the container you will import. Terraform builds a plan and
+outputs the generated configuration for the container to the specified file.
+
+E.g.
+
+#+BEGIN_SRC bash :noeval
+terraform plan -generate-config-out=generated.tf
+#+END_SRC
+
+Here you may see that Terraform plans to replace the imported resource due to
+conflicts in the generated configuration and the imported instance. This is why
+we usually need to prune the generated config and get rid of default
+configuration. In the end our docker container resource should look something
+like this:
+
+#+BEGIN_SRC tf
+resource "docker_container" "web" {
+  env = []
+  image = "..."
+  name  = "hashicorp-learn"
+  ports {
+    external = 8080
+    internal = 80
+    ip       = "0.0.0.0"
+    protocol = "tcp"
+  }
+}
+#+END_SRC
+
+Run ~terraform plan~ to verify that it will not replace the container.
+
+Docker don't store all attributes that Terraform uses to create a container.
+Since Docker does not track these attributes, Terraform did not include them in
+the generated configuration. When you apply your configuration, the Docker
+provider will assign the default values for these attributes and save them in
+state, but they will not affect the running container.
+
+It's recommended when you import a resource to make the first operation on the
+resource a no-op. Basically, an operation that will not update the imported
+resource.
+
+*** Create image resource
+
+You can bring some resources under Terraform's management without using the
+~import~ block. This is often the case for resources defined by a single unique
+ID or tag, such as Docker images.
+
+In your ~generated.tf~ file, the ~docker_container.web~ resource specifies the
+SHA256 hash ID of the image used to create the container. This is how Docker
+stores the image ID internally, so the import operation loaded the image ID
+directly into your state. However, identifying the image by its tag or name
+would make your configuration easier to understand.
+
+Retrieve the image's tag name by running the following command:
+
+#+BEGIN_SRC bash :noeval
+docker image inspect -f {{.RepoTags}} `docker inspect --format="{{.Image}}" <container_name>`
+#+END_SRC
+
+Then add the following configuration to your terraform configuration file to
+represent this image as a resource.
+
+#+BEGIN_SRC tf
+resource "docker_image" "nginx" {
+  name         = "nginx:latest"
+}
+#+END_SRC
+
+Run ~terraform apply~. This will load the ~docker_image.nginx~ resource into
+state. The image resource must exist in state before you can reference it. If
+you would reference it in this step, the container would be recreated since
+Terraform wouldn't know the ID during the plan step.
+
+Now that Terraform created a resource for the image, you can reference it in
+your container's configuration. Change the ~image~ value for
+~docker_container.web~ to reference the new image resource.
+
+Since ~docker_image.nginx.latest~ matches the hardcoded image ID you replaced,
+~terraform apply~ returns a no-op.
+
+*** Limitations and other considerations
+
+- Importing manipulates the Terraform state file during the apply. You may want
+  to create a backup before importing new infrastructure.
+- Terraform import does not detect or generate relationships between
+  infrastructure. You can manually add relationships to the configuration before
+  you apply changes.
+- Terraform import does not detect which default attributes you can skip
+  setting.
+- Not all providers and resources support Terraform import.
+- Importing a resource into Terraform does not mean that Terraform can destroy
+  and recreate it. For example, the imported infrastructure could rely on other
+  unmanaged infrastructure or configuration.
+
+** Use refresh-only mode to sync Terraform state
+
+Terraform relies on the contents of your workspace's state file to generate an
+execution plan to make changes to your resources. To ensure the accuracy of the
+proposed changes, your state file must be up to date.
+
+In Terraform, refreshing your state file updates Terraform's knowledge of your
+infrastructure, as represented in your state file, with the actual state of your
+infrastructure. Terraform ~plan~ and ~apply~ operations run an implicit
+in-memory refresh as part of their functionality, reconciling any drift from
+your state file before suggesting infrastructure changes. You can also update
+your state file without making modifications to your infrastructure using the
+~-refresh-only~ flag for ~plan~ and ~apply~ operations.
+
+*** Run a refresh-only plan
+
+A common error scenario that can prompt Terraform to refresh the contents of
+your state file is mistakenly modifying your credentials or provider
+configuration. E.g. providing the wrong cloud region.
+
+You can compare your infrastructure with your statefile with
+~terraform plan -refresh-only~. This will not update your state file. If the
+changes in the plan are acceptable, you could run a
+~terraform apply -refresh-only~ and approve the operation to overwrite your
+state file without modifying your infrastructure.
+
+A refresh-only ~apply~ operation also updates outputs, if necessary.
+
 
 * Questions
 

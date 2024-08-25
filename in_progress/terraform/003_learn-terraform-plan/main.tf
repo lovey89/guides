@@ -28,6 +28,10 @@ resource "docker_image" "nginx" {
 resource "docker_container" "nginx" {
   image = docker_image.nginx.image_id
   name  = random_pet.instance.id
+  lifecycle {
+    // Workaround to ignore fields that always changes
+    ignore_changes = [env, dns, dns_search, domainname, network_mode, working_dir, labels, cpu_shares, memory, memory_swap]
+  }
 
   ports {
     internal = 80

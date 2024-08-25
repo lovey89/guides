@@ -21,7 +21,15 @@
   - [[#import][Import]]
   - [[#use-refresh-only-mode-to-sync-terraform-state][Use refresh-only mode to sync Terraform state]]
 - [[#write-terraform-configuration][Write Terraform Configuration]]
-- [[#questions][Questions]]
+  - [[#define-infrastructure-with-terraform-resources][Define infrastructure with Terraform resources]]
+  - [[#protect-sensitive-input-variables][Protect sensitive input variables]]
+  - [[#simplify-terraform-configuration-with-locals][Simplify Terraform configuration with locals]]
+  - [[#query-data-sources][Query data sources]]
+  - [[#create-resource-dependencies][Create resource dependencies]]
+  - [[#manage-similar-resources-with-count][Manage similar resources with ~count~]]
+  - [[#manage-similar-resources-with-for_each][Manage similar resources with ~for_each~]]
+  - [[#perform-dynamic-operations-with-functions][Perform dynamic operations with functions]]
+  - [[#create-dynamic-expressions][Create dynamic expressions]]
 #+END_QUOTE
 
 * Links
@@ -1177,7 +1185,7 @@ state file without modifying your infrastructure.
 A refresh-only ~apply~ operation also updates outputs, if necessary.
 
 * Write Terraform Configuration
-*** Define infrastructure with Terraform resources
+** Define infrastructure with Terraform resources
 
 Terraform uses ~resource~ blocks to manage infrastructure, such as virtual
 networks, compute instances, or higher-level components such as DNS records.
@@ -1335,6 +1343,675 @@ resource "aws_instance" "web" {
 
 Apply the change.
 
-* Questions
+** Protect sensitive input variables
 
-What is the ~data~ keyword?
+Often you need to configure your infrastructure using sensitive or secret
+information such as usernames, passwords, API tokens, or Personally Identifiable
+Information (PII). When you do so, you need to ensure that you do not
+accidentally expose this data in CLI output, log output, or source control.
+Terraform provides several features to help avoid accidentally exposing
+sensitive data.
+
+*** Sensitive credentials
+
+Declare the variables as you normally would in the ~variables.tf~ file.
+
+#+BEGIN_SRC tf
+variable "db_username" {
+  description = "Database administrator username"
+  type        = string
+  sensitive   = true
+}
+
+variable "db_password" {
+  description = "Database administrator password"
+  type        = string
+  sensitive   = true
+}
+#+END_SRC
+
+Note that we also added a ~sensitive~ field. They will now be redacted in the
+output of ~plan~, ~apply~ and ~destroy~
+
+*** Set values with a ~.tfvars~ file
+
+Terraform supports setting variable values with variable definition (~.tfvars~)
+files. You can use multiple variable definition files, and many practitioners
+use a separate file to set sensitive or secret values.
+
+Create a new file called ~secret.tfvars~ to assign values to the new variables.
+
+#+BEGIN_SRC tf
+db_username = "admin"
+db_password = "insecurepassword"
+#+END_SRC
+
+Apply these changes using the ~-var-file~ parameter.
+
+#+BEGIN_SRC bash :noeval
+terraform apply -var-file="secret.tfvars"
+#+END_SRC
+
+*** Set values with variables
+
+You can also set variables using environment variables.
+
+When Terraform runs, it looks in your environment for variables that match the
+pattern ~TF_VAR_<VARIABLE_NAME>~, and assigns those values to the corresponding
+Terraform variables in your configuration. E.g.
+
+#+BEGIN_SRC bash :noeval
+export TF_VAR_db_username=admin TF_VAR_db_password=adifferentpassword
+#+END_SRC
+
+*** Reference sensitive variables
+
+When you use sensitive variables in your Terraform configuration, you can use
+them as you would any other variable. Terraform will redact these values in
+command output and log files, and raise an error when it detects that they will
+be exposed in other ways.
+
+If this would be in you ~outputs.tf~ file:
+
+#+BEGIN_SRC tf
+output "db_connect_string" {
+  description = "MySQL database connection string"
+  value       = "Server=${aws_db_instance.database.address}; Database=ExampleDB; Uid=${var.db_username}; Pwd=${var.db_password}"
+}
+#+END_SRC
+
+You would get an error when applys the configuration as the output is
+referencing sensitive variables. To correct this you can flag this output as
+sensitive to hide it in the output:
+
+#+BEGIN_SRC diff
+output "db_connect_string" {
+  description = "MySQL database connection string"
+  value       = "Server=${aws_db_instance.database.address}; Database=ExampleDB; Uid=${var.db_username}; Pwd=${var.db_password}"
++ sensitive   = true
+}
+#+END_SRC
+
+*** Sensitive values in state
+
+When you run Terraform commands with a local state file, Terraform stores the
+state as plain text, including variable values, even if you have flagged them as
+~sensitive~. Terraform needs to store these values in your state so that it can
+tell if you have changed them since the last time you applied your
+configuration.
+
+** Simplify Terraform configuration with locals
+
+Terraform local values (or "locals") assign a name to an expression or value.
+Using locals simplifies your Terraform configuration - since you can reference
+the local multiple times, you reduce duplication in your code. Locals can also
+help you write more readable configuration by using meaningful names rather than
+hard-coding values.
+
+Unlike variables found in programming languages, Terraform's locals do not
+change values during or between Terraform runs such as plan, apply, or destroy.
+You can use locals to give a name to the result of any Terraform expression, and
+re-use that name throughout your configuration. Unlike input variables, locals
+are not set directly by users of your configuration.
+
+*** Use locals to name resources
+
+If multiple resources share the same suffix you can make use of locals. In your
+~main.tf~ file define e.g.:
+
+#+BEGIN_SRC tf
+locals {
+  name_suffix = "${var.resource_tags["project"]}-${var.resource_tags["environment"]}"
+}
+#+END_SRC
+
+As in any Terraform configuration, the order of your resource definitions and
+values does not affect how Terraform interprets them. To make your configuration
+more readable, consider putting local definitions near the top of your files.
+
+Now you can use this ~name_suffix~ local for all your resources by referring to
+it with ~local.name_suffix~:
+
+#+BEGIN_SRC tf
+ module "vpc" {
+   source  = "terraform-aws-modules/vpc/aws"
+   version = "2.66.0"
+
+   name = "vpc-${local.name_suffix}"
+   ## ...
+ }
+
+ module "app_security_group" {
+   source  = "terraform-aws-modules/security-group/aws//modules/web"
+   version = "3.17.0"
+
+   name        = "web-sg-${local.name_suffix}"
+   ## ...
+ }
+
+ module "lb_security_group" {
+   source  = "terraform-aws-modules/security-group/aws//modules/web"
+   version = "3.17.0"
+
+   name        = "lb-sg-${local.name_suffix}"
+   ## ...
+ }
+
+ module "elb_http" {
+   source  = "terraform-aws-modules/elb/aws"
+   version = "2.4.0"
+
+   # Ensure load balancer name is unique
+   name = "lb-${random_string.lb_id.result}-${local.name_suffix}"
+   ## ...
+ }
+#+END_SRC
+
+*** Combine variables with local values
+
+In the previous example we used the map variable ~resource_tags~ to define our
+local variable. We can split that variable into two and then redefine
+~resource_tags~ as a local variable. In ~variables.tf~:
+
+#+BEGIN_SRC tf
+variable "project_name" {
+  description = "Name of the project."
+  type        = string
+  default     = "my-project"
+}
+
+variable "environment" {
+  description = "Name of the environment."
+  type        = string
+  default     = "dev"
+}
+
+// Still give the user the possibility to add more tags
+variable "resource_tags" {
+  description = "Tags to set for all resources"
+  type        = map(string)
+  default     = { }
+}
+#+END_SRC
+
+In ~main.tf~:
+
+#+BEGIN_SRC tf
+locals {
+  name_suffix = "${var.project_name}-${var.environment}"
+
+  required_tags = {
+    project     = var.project_name,
+    environment = var.environment
+  }
+
+  // Merge two maps
+  tags = merge(var.resource_tags, local.required_tags)
+}
+#+END_SRC
+
+All of your configuration's local values can be defined in a single ~locals~
+block, or you can use multiple blocks.
+
+Finally, add an output named ~tags~ to your ~outputs.tf~ file. This output will
+display the tags you used in this configuration. Based on your local value, the
+tags are a combination of ~var.resource_tags~ and ~local.required_tags~.
+
+#+BEGIN_SRC tf
+output "tags" {
+  value = local.tags
+}
+#+END_SRC
+
+** Query data sources
+
+Terraform ~data~ sources let you dynamically fetch data from APIs or other
+Terraform state backends. Examples of data sources include machine image IDs
+from a cloud provider or Terraform outputs from other configurations. Data
+sources make your configuration more flexible and dynamic and let you reference
+values from other configurations, helping you scope your configuration while
+still referencing any dependent resource attributes.
+
+Data sources provide information about entities that are not managed by the
+current Terraform configuration.
+
+** Create resource dependencies
+
+Most of the time, Terraform infers dependencies between resources based on the
+configuration given, so that resources are created and destroyed in the correct
+order. Occasionally, however, Terraform cannot infer dependencies between
+different parts of your infrastructure, and you will need to create an explicit
+dependency with the ~depends_on~ argument.
+
+Terraform automatically infers when one resource depends on another by studying
+the resource attributes used in interpolation expressions. Terraform uses this
+dependency information to determine the correct order in which to create the
+different resources. To do so, it creates a dependency graph of all of the
+resources defined by the configuration.
+
+*** Manage explicit dependencies
+
+Implicit dependencies are the primary way that Terraform understands the
+relationships between your resources. Sometimes there are dependencies between
+resources that are not visible to Terraform, however. The ~depends_on~ argument
+is accepted by any resource or module block and accepts a list of resources to
+create explicit dependencies for.
+
+To illustrate this, assume you have an application running on your EC2 instance
+that expects to use a specific Amazon S3 bucket. This dependency is configured
+inside the application, and thus not visible to Terraform. You can use
+~depends_on~ to explicitly declare the dependency. You can also specify multiple
+resources in the ~depends_on~ argument, and Terraform will wait until all of
+them have been created before creating the target resource.
+
+Since Terraform will wait to create the dependent resource until after the
+specified resource is created, adding explicit dependencies can increase the
+length of time it takes for Terraform to create your infrastructure.
+
+E.g.
+
+#+BEGIN_SRC tf
+resource "aws_s3_bucket" "example" { }
+
+resource "aws_instance" "example_c" {
+  ami           = data.aws_ami.amazon_linux.id
+  instance_type = "t2.micro"
+
+  depends_on = [aws_s3_bucket.example]
+}
+
+module "example_sqs_queue" {
+  source  = "terraform-aws-modules/sqs/aws"
+  version = "3.3.0"
+
+  depends_on = [aws_s3_bucket.example, aws_instance.example_c]
+}
+#+END_SRC
+
+Both implicit and explicit dependencies affect the order in which resources are
+destroyed as well as created. A resource is destroyed before the resources they
+depend on.
+
+** Manage similar resources with ~count~
+
+The ~count~ argument replicates the given resource or module a specific number
+of times with an incrementing counter. It works best when resources will be
+identical, or nearly so.
+
+*** Declare a variable for instance number
+
+Add the ~instances_per_subnet~ variable to ~variables.tf~ to define how many
+instances each private subnet will have.
+
+#+BEGIN_SRC tf
+variable "instances_per_subnet" {
+  description = "Number of EC2 instances in each private subnet"
+  type        = number
+  default     = 2
+}
+#+END_SRC
+
+*** Scale EC2 configuration with ~count~
+
+Edit ~main.tf~ to use ~count~ to provision multiple EC2 instances with the ~app~
+resource block, based on the value of the new ~instances_per_subnet~ variable
+and the number of private subnets.
+
+#+BEGIN_SRC tf
+resource "aws_instance" "app" {
+  depends_on = [module.vpc]
+
+  // Count used here
+  count = var.instances_per_subnet * length(module.vpc.private_subnets)
+
+  ami           = data.aws_ami.amazon_linux.id
+  instance_type = var.instance_type
+
+  // Count used here
+  subnet_id              = module.vpc.private_subnets[count.index % length(module.vpc.private_subnets)]
+  vpc_security_group_ids = [module.app_security_group.this_security_group_id]
+
+  ## ...
+}
+#+END_SRC
+
+Each instance provisioned by the resource block with ~count~ will have a
+different incrementing value for ~count.index~ - starting with zero. This
+configuration uses ~count.index~ and modulo division to assign each instance to
+a private subnet.
+
+Because the default value of ~instances_per_subnet~ is ~2~, Terraform will
+provision two EC2 instances per private subnet.
+
+*** Update the load balancer
+
+Update the load balancer configuration in the ~elb_http~ block to attach the
+instances to the load balancer.
+
+#+BEGIN_SRC tf
+module "elb_http" {
+  source  = "terraform-aws-modules/elb/aws"
+  version = "3.0.1"
+
+##...
+
+  security_groups = [module.lb_security_group.this_security_group_id]
+  subnets         = module.vpc.public_subnets
+
+  // Reference to instances here
+  number_of_instances = length(aws_instance.app)
+  instances           = aws_instance.app.*.id
+
+  listener = [{
+    instance_port     = "80"
+    instance_protocol = "HTTP"
+    lb_port           = "80"
+    lb_protocol       = "HTTP"
+  }]
+
+##...
+#+END_SRC
+
+he name of resources or modules provisioned with ~count~ refers to the entire
+collection. In this example, ~aws_instance.app~ now refers to all of the EC2
+instances. You can reference individual items in collections with the same
+notation as list indexing. For example, ~aws_instance.app[0]~ refers to the
+first instance Terraform provisions.
+
+You can create a list of all of the values of a given attribute for the items in
+the collection with a star. For instance, ~aws_instance.app.*.id~ will be a list
+of all of the IDs of the instances.
+
+You can also output all IDs of the instances by adding the following to
+~outputs.tf~:
+
+#+BEGIN_SRC tf
+output "instance_ids" {
+  description = "IDs of EC2 instances"
+  value       = aws_instance.app.*.id
+}
+#+END_SRC
+
+** Manage similar resources with ~for_each~
+
+Terraform's ~for_each~ meta-argument allows you to configure a set of similar
+resources by iterating over a data structure to configure a resource or module
+for each item in the data structure. You can use ~for_each~ to customize a set
+of similar resources that share the same lifecycle.
+
+*** Define a map to configure each project
+
+Define a map for project configuration in ~variables.tf~ that ~for_each~ will
+iterate over to configure each resource.
+
+#+BEGIN_SRC tf
+variable "project" {
+  description = "Map of project names to configuration."
+  type        = map(any)
+
+  default = {
+    client-webapp = {
+      public_subnets_per_vpc  = 2,
+      private_subnets_per_vpc = 2,
+      instances_per_subnet    = 2,
+      instance_type           = "t2.micro",
+      environment             = "dev"
+    },
+    internal-webapp = {
+      public_subnets_per_vpc  = 1,
+      private_subnets_per_vpc = 1,
+      instances_per_subnet    = 2,
+      instance_type           = "t2.nano",
+      environment             = "test"
+    }
+  }
+}
+#+END_SRC
+
+*** Add ~for_each~ to the VPC
+
+Now use ~for_each~ to iterate over the ~project~ map in the VPC module block of
+~main.tf~, which will create one VPC for each key/value pair in the map.
+
+#+BEGIN_SRC tf
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "3.14.2"
+
+  for_each = var.project
+
+  cidr = var.vpc_cidr_block
+
+  azs             = data.aws_availability_zones.available.names
+  private_subnets = slice(var.private_subnet_cidr_blocks, 0, each.value.private_subnets_per_vpc)
+  public_subnets  = slice(var.public_subnet_cidr_blocks, 0, each.value.public_subnets_per_vpc)
+##...
+#+END_SRC
+
+This Terraform configuration defines multiple VPCs, assigning each key/value
+pair in the ~var.project~ map to ~each.key~ and ~each.value~ respectively. When
+you use ~for_each~ with a list or set, ~each.key~ is the index of the item in
+the collection, and ~each.value~ is the value of the item.
+
+In this example, the project map includes values for the number of private and
+public subnets in each VPC.
+
+Update the ~app_security_group~ module to iterate over the project variable to
+get the security group name, VPC ID, and CIDR blocks for each project.
+
+#+BEGIN_SRC tf
+module "app_security_group" {
+  source  = "terraform-aws-modules/security-group/aws//modules/web"
+  version = "4.9.0"
+
+  for_each = var.project
+
+  name        = "web-server-sg-${each.key}-${each.value.environment}"
+  description = "Security group for web-servers with HTTP ports open within VPC"
+  vpc_id      = module.vpc[each.key].vpc_id
+
+  ingress_cidr_blocks = module.vpc[each.key].public_subnets_cidr_blocks
+}
+#+END_SRC
+
+You can differentiate between instances of resources and modules configured with
+~for_each~ by using the keys of the map you use. In this example, using
+~module.vpc[each.key].vpc_id~ to define the VPC means that the security group
+for a given project will be assigned to the corresponding VPC.
+
+*** Outputs
+
+Finally, replace the entire contents of ~outputs.tf~ in your root module with
+the following:
+
+#+BEGIN_SRC tf
+output "public_dns_names" {
+  description = "Public DNS names of the load balancers for each project."
+  value       = { for p in sort(keys(var.project)) : p => module.elb_http[p].elb_dns_name }
+}
+
+output "vpc_arns" {
+  description = "ARNs of the vpcs for each project."
+  value       = { for p in sort(keys(var.project)) : p => module.vpc[p].vpc_arn }
+}
+
+output "instance_ids" {
+  description = "IDs of EC2 instances."
+  value       = { for p in sort(keys(var.project)) : p => module.ec2_instances[p].instance_ids }
+}
+#+END_SRC
+
+The ~for~ expressions used here will map the project names to the corresponding
+values in the Terraform output.
+
+~for~ and ~for_each~ are different features. ~for_each~ provisions similar
+resources in module and resource blocks. ~for~ creates a list or map by
+iterating over a collection, such as another list or map.
+
+** Perform dynamic operations with functions
+
+The Terraform configuration language allows you to write declarative expressions
+to create infrastructure. While the configuration language is not a programming
+language, you can use several built-in functions to perform operations
+dynamically.
+
+In this tutorial, you will:
+
+- use the ~templatefile~ function to dynamically create an EC2 instance user
+  data script.
+- use the ~lookup~ function to reference values from a map.
+- use the ~file~ function to read the contents of a file.
+
+*** Use ~templatefile~ to dynamically generate a script
+
+AWS lets you configure EC2 instances to run a user-provided script -- called a
+user-data script -- at boot time. You can use Terraform's ~templatefile~
+function to interpolate values into the script at resource creation time. This
+makes the script more adaptable and re-usable.
+
+You can add a ~user_data.tftpl~ file, which will be the user data script for
+your EC2 instance. This template file is a shell script to configure and deploy
+an application. Notice the ~${department}~ and ~${name}~ references -- Terraform
+will interpolate these values using the ~templatefile~ function.
+
+#+BEGIN_SRC bash :noeval
+#!/bin/bash
+
+# Install necessary dependencies
+sudo DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade
+sudo apt-get update
+sudo apt-get -y -qq install curl wget git vim apt-transport-https ca-certificates
+sudo apt -y -qq install golang-go
+
+# Setup sudo to allow no-password sudo for your group and adding your user
+sudo groupadd -r ${department}
+sudo useradd -m -s /bin/bash ${name}
+sudo usermod -a -G ${department} ${name}
+sudo cp /etc/sudoers /etc/sudoers.orig
+echo "${name} ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/${name}
+
+# Create GOPATH for your user & download the webapp from github
+sudo -H -i -u ${name} -- env bash << EOF
+cd /home/${name}
+export GOROOT=/usr/lib/go
+export GOPATH=/home/${name}/go
+export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+git clone https://github.com/hashicorp/learn-go-webapp-demo.git
+cd learn-go-webapp-demo
+go run webapp.go
+EOF
+#+END_SRC
+
+Next, create a ~variables.tf~ file. This file includes definitions for the
+~user_name~ and ~user_department~ input variables, which the configuration uses
+to set the values for the corresponding template file keys.
+
+#+BEGIN_SRC tf
+variable "user_name" {
+  description = "The user creating this infrastructure"
+  default     = "terraform"
+}
+
+variable "user_department" {
+  description = "The organization the user belongs to: dev, prod, qa"
+  default     = "learn"
+}
+#+END_SRC
+
+Now create ~main.tf~. Add the ~user_data~ attribute to the ~aws_instance~
+resource block. The ~templatefile~ function takes two arguments: the template
+file name and a map of template value assignments.
+
+#+BEGIN_SRC tf
+resource "aws_instance" "web" {
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = "t2.micro"
+  subnet_id                   = aws_subnet.subnet_public.id
+  vpc_security_group_ids      = [aws_security_group.sg_8080.id]
+  associate_public_ip_address = true
+  user_data                   = templatefile("user_data.tftpl", { department = var.user_department, name = var.user_name })
+}
+#+END_SRC
+
+*** Use ~lookup~ function to select AMI
+
+The ~lookup~ function retrieves the value of a single element from a map, given
+its key.
+
+Add the following configuration to your ~variables.tf~ file to declare a new
+input variable.
+
+#+BEGIN_SRC tf
+variable "aws_amis" {
+  type = map
+  default = {
+    "us-east-1" = "ami-04b70fa74e45c3917"
+    "us-west-2" = "ami-08012c0a9ee8e21c4"
+    "us-east-2" = "ami-09040d770ffe2224f"
+  }
+}
+#+END_SRC
+
+In your ~aws_instance~ resource, update the ami attribute to use the lookup
+function.
+
+#+BEGIN_SRC diff
+resource "aws_instance" "web" {
+- ami                         = data.aws_ami.ubuntu.id
++ ami                         = lookup(var.aws_amis, var.aws_region)
+  instance_type               = "t2.micro"
+  subnet_id                   = aws_subnet.subnet_public.id
+  vpc_security_group_ids      = [aws_security_group.sg_8080.id]
+  associate_public_ip_address = true
+  user_data                   = templatefile("user_data.tftpl", { department = var.user_department, name = var.user_name })
+}
+#+END_SRC
+
+The ~ami~ is a required attribute for the ~aws_instance~ resource, so the
+~lookup~ function must return a valid value for Terraform to apply your
+configuration. The ~lookup~ function arguments are a map, the key to access in
+the map, and an optional default value in case the key does not exist.
+
+Next, add the following configuration for an ~ami_value~ output to your
+~outputs.tf~ file. This output lets you verify the AMI returned by the ~lookup~
+function.
+
+#+BEGIN_SRC tf
+output "ami_value" {
+  value = lookup(var.aws_amis, var.aws_region)
+}
+#+END_SRC
+
+*** Use the ~file~ function
+
+Add the following configuration to ~main.tf~ to create a new security group and
+AWS key pair.
+
+
+
+#+BEGIN_SRC tf
+resource "aws_security_group" "sg_22" {
+  name = "sg_22"
+  vpc_id = aws_vpc.vpc.id
+
+  ingress {
+    from_port = 22
+    to_port  = 22
+    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_key_pair" "ssh_key" {
+  key_name = "ssh_key"
+  public_key = file("ssh_key.pub")
+}
+#+END_SRC
+
+This configuration uses the ~file~ function to read the contents of a file to
+configure an SSH key pair. The ~file~ function does not interpolate values into
+file contents; you should only use it with files that do not need modification.
+
+** Create dynamic expressions
+
+TODO

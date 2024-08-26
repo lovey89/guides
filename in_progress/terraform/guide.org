@@ -30,6 +30,8 @@
   - [[#manage-similar-resources-with-for_each][Manage similar resources with ~for_each~]]
   - [[#perform-dynamic-operations-with-functions][Perform dynamic operations with functions]]
   - [[#create-dynamic-expressions][Create dynamic expressions]]
+  - [[#use-checks-to-validate-infrastructure][Use checks to validate infrastructure]]
+- [[#reuse-configuration-with-modules][Reuse Configuration with Modules]]
 #+END_QUOTE
 
 * Links
@@ -2014,4 +2016,63 @@ file contents; you should only use it with files that do not need modification.
 
 ** Create dynamic expressions
 
-TODO
+The Terraform configuration language supports complex expressions to allow you
+to compute or generate values for your infrastructure configuration. Expressions
+can be simple string or integer values, or more complex values to make your
+configuration more dynamic.
+
+*** Use a conditional expression
+
+Conditional expressions select a value based on whether the expression evaluates
+to ~true~ or ~false~.
+
+In this configuration, you will use the ~locals~ block to create a resource name
+based on a conditional value and capture that name in a map of resource tags.
+
+#+BEGIN_SRC tf
+resource "random_id" "id" {
+  byte_length = 8
+}
+
+locals {
+  name  = (var.name != "" ? var.name : random_id.id.hex)
+  owner = var.team
+  common_tags = {
+    Owner = local.owner
+    Name  = local.name
+  }
+}
+#+END_SRC
+
+*** Use a ~splat~ expression
+
+The ~splat~ expression captures all objects in a list that share an attribute.
+The special ~*~ symbol iterates over all of the elements of a given list and
+returns information based on the shared attribute you define.
+
+Without the splat expression, Terraform would not be able to output the entire
+array of your instances and would only return the first item in the array.
+
+**** Create a splat expression
+
+This output will return the private DNS of all instances created by the
+~aws_instance.ubuntu~ resource.
+
+#+BEGIN_SRC tf
+output "private_addresses" {
+  description = "Private DNS for AWS instances"
+  value       = aws_instance.ubuntu[*].private_dns
+}
+#+END_SRC
+
+This expression mirrors capturing a specific element in an array. If you only
+wanted to return the third instance IP in the array of instances, you could do
+that by replacing the ~*~ with ~2~.
+
+** Use checks to validate infrastructure
+
+
+
+* Reuse Configuration with Modules
+
+Validate modules with custom conditions: https://developer.hashicorp.com/terraform/tutorials/configuration-language/custom-conditions

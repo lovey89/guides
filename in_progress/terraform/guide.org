@@ -32,6 +32,7 @@
   - [[#create-dynamic-expressions][Create dynamic expressions]]
   - [[#use-checks-to-validate-infrastructure][Use checks to validate infrastructure]]
 - [[#reuse-configuration-with-modules][Reuse Configuration with Modules]]
+  - [[#modules-overview][Modules overview]]
 #+END_QUOTE
 
 * Links
@@ -2071,8 +2072,261 @@ that by replacing the ~*~ with ~2~.
 
 ** Use checks to validate infrastructure
 
+Terraform checks let you define assertions to validate as part of your
+infrastructure management workflow. Unlike variable validation or custom
+conditions, check blocks are decoupled from the lifecycle of a specific resource
+or data source. Checks let you take advantage of Terraform's abstraction of the
+differences between different provider APIs. Because Terraform standardizes how
+you interact with all provider APIs, you can use the familiar Terraform language
+features and syntax to define conditions to validate in your Terraform runs.
+Checks also let you verify your assumptions about your infrastructure on an
+ongoing basis instead of just at the time of provisioning.
 
+*** Define a check
+
+Checks can validate any condition that you can define with Terraform
+configuration. A check can validate an attribute of your infrastructure, or the
+functionality of the resource itself. Rather than writing custom scripts to test
+assertions about your infrastructure, you can use Terraform language features to
+validate your infrastructure health.
+
+E.g.
+
+#+BEGIN_SRC tf
+check "certificate" {
+  assert {
+    condition     = aws_acm_certificate.cert.status == "ISSUED"
+    error_message = "Certificate status is ${aws_acm_certificate.cert.status}"
+  }
+}
+#+END_SRC
+
+Defines a check we call ~certificate~. A ~check~ block consists of one or more
+~assert~ statements. The assertions contain the condition to verify and the
+error message to display if the assertion fails. This check verifies the TLS
+certificate's status.
+
+*** Create infrastructure and validate checks
+
+Terraform will evaluate any checks included in your configuration as the last
+step of the ~apply~ operation. If the check fails Terraform will not prevent you
+from applying new changes.
+
+Terraform evaluates checks after generating the plan. Unlike custom conditions
+or variable validation errors, failed checks do not block applies. Terraform
+will notify if there are any failures or issues to address, letting you decide
+whether to proceed with the operation.
+
+Unlike other configuration validation mechanisms, checks are decoupled from
+other components and resources in your configuration. These differ from variable
+validation, which lets you ensure the inputs to your configuration satisfy your
+requirements, and custom conditions, which let you define conditions as part of
+your resource definitions. These conditions are tied to the specific resource
+lifecycle, rather than your configuration as a whole.
+
+*** Use a data source within a check
+
+You can reference data sources in check block assertions. Terraform queries the
+data source when it evaluates your configuration's checks, at the end of each
+Terraform operation. This lets you access the most up-to-date data about your
+environment when a workspace manages many resources and takes longer to complete
+Terraform operations.
+
+#+BEGIN_SRC tf
+check "response" {
+  data "http" "terramino" {
+    url      = "https://${aws_lb.terramino.dns_name}"
+    insecure = true
+  }
+
+  assert {
+    condition     = data.http.terramino.status_code == 200
+    error_message = "Terramino response is ${data.http.terramino.status_code}"
+  }
+}
+#+END_SRC
+
+This check defines a data source that captures the response of a GET request to
+your Terramino service and asserts that the status code is ~200~.
+
+You can reference any data sources or resource attributes in your configuration
+to define check conditions, but you cannot access data sources defined within
+check blocks in the rest of your configuration. The data source namespace is
+scoped within the check block, and evaluates at the time of the check. If
+needed, you can specify the ~depends_on~ meta-argument for a data source within
+the check to enforce an evaluation order.
+
+Apply your change. Open your ~terraform.tfstate~ file and find the
+~check_results~ field. Terraform records your check's statuses.
+
+#+BEGIN_SRC tf
+"check_results": [
+  {
+    "object_kind": "check",
+    "config_addr": "check.certificate",
+    "status": "pass",
+    "objects": [
+      {
+        "object_addr": "check.certificate",
+        "status": "pass"
+      }
+    ]
+  },
+  {
+    "object_kind": "check",
+    "config_addr": "check.response",
+    "status": "pass",
+    "objects": [
+      {
+        "object_addr": "check.response",
+        "status": "pass"
+      }
+    ]
+  }
+]
+#+END_SRC
 
 * Reuse Configuration with Modules
 
 Validate modules with custom conditions: https://developer.hashicorp.com/terraform/tutorials/configuration-language/custom-conditions
+
+** Modules overview
+
+As you manage your infrastructure with Terraform, you will create increasingly
+complex configurations. There is no intrinsic limit to the complexity of a
+single Terraform configuration file or directory, so it is possible to continue
+writing and updating your configuration files in a single directory. However, if
+you do, you may encounter one or more problems:
+
+- Understanding and navigating the configuration files will become increasingly
+  difficult.
+- Updating the configuration will become more risky, as an update to one section
+  may cause unintended consequences to other parts of your configuration.
+- There will be an increasing amount of duplication of similar blocks of
+  configuration, for instance when configuring separate dev/staging/production
+  environments, which will cause an increasing burden when updating those parts
+  of your configuration.
+- You may wish to share parts of your configuration between projects and teams,
+  and will quickly find that cutting and pasting blocks of configuration between
+  projects is error prone and hard to maintain.
+- Engineers will need more Terraform expertise to understand and modify your
+  configuration. This makes self-service workflows for other teams more
+  difficult, slowing down their development.
+
+*** What are modules for?
+
+Here are some of the ways that modules help solve the problems listed above:
+
+- Organize configuration - Modules make it easier to navigate, understand, and
+  update your configuration by keeping related parts of your configuration
+  together. Even moderately complex infrastructure can require hundreds or
+  thousands of lines of configuration to implement. By using modules, you can
+  organize your configuration into logical components.
+
+- Encapsulate configuration - Another benefit of using modules is to encapsulate
+  configuration into distinct logical components. Encapsulation can help prevent
+  unintended consequences, such as a change to one part of your configuration
+  accidentally causing changes to other infrastructure, and reduce the chances
+  of simple errors like using the same name for two different resources.
+
+- Re-use configuration - Writing all of your configuration from scratch can be
+  time consuming and error prone. Using modules can save time and reduce costly
+  errors by re-using configuration written either by yourself, other members of
+  your team, or other Terraform practitioners who have published modules for you
+  to use. You can also share modules that you have written with your team or the
+  general public, giving them the benefit of your hard work.
+
+- Provide consistency and ensure best practices - Modules also help to provide
+  consistency in your configurations. Not only does consistency make complex
+  configurations easier to understand, it also helps to ensure that best
+  practices are applied across all of your configuration. For instance, cloud
+  providers give many options for configuring object storage services, such as
+  Amazon S3 or Google Cloud Storage buckets. There have been many high-profile
+  security incidents involving incorrectly secured object storage, and given the
+  number of complex configuration options involved, it's easy to accidentally
+  misconfigure these services.
+
+- Self service - Modules make your configuration easier for other teams to use.
+  The HCP Terraform registry lets other teams find and re-use your published and
+  approved Terraform modules. You can also build and publish no-code ready
+  modules, which let teams without Terraform expertise provision their own
+  infrastructure that complies with your organization's standards and policies.
+
+Using modules can help reduce these errors. For example, you might create a
+module to describe how all of your organization's public website buckets will be
+configured, and another module for private buckets used for logging
+applications. Also, if a configuration for a type of resource needs to be
+updated, using modules allows you to make that update in a single place and have
+it be applied to all cases where you use that module.
+
+*** What is a Terraform module?
+
+A Terraform module is a set of Terraform configuration files in a single
+directory. Even a simple configuration consisting of a single directory with one
+or more ~.tf~ files is a module. When you run Terraform commands directly from
+such a directory, it is considered the *root module*. So in this sense, every
+Terraform configuration is part of a module. You may have a simple set of
+Terraform configuration files such as:
+
+#+BEGIN_SRC
+.
+├── LICENSE
+├── README.md
+├── main.tf
+├── variables.tf
+├── outputs.tf
+#+END_SRC
+
+**** Calling modules
+
+Terraform commands will only directly use the configuration files in one
+directory, which is usually the current working directory. However, your
+configuration can use module blocks to call modules in other directories. When
+Terraform encounters a module block, it loads and processes that module's
+configuration files.
+
+A module that is called by another configuration is sometimes referred to as a
+"child module" of that configuration.
+
+**** Local and remote modules
+
+Modules can either be loaded from the local filesystem, or a remote source.
+Terraform supports a variety of remote sources, including the Terraform
+Registry, most version control systems, HTTP URLs, and HCP Terraform or
+Terraform Enterprise private module registries.
+
+*** Module best practices
+
+In many ways, Terraform modules are similar to the concepts of libraries,
+packages, or modules found in most programming languages, and provide many of
+the same benefits. Just like almost any non-trivial computer program, real-world
+Terraform configurations should almost always use modules to provide the
+benefits mentioned above.
+
+We recommend that every Terraform practitioner use modules by following these
+best practices:
+
+1. Name your provider ~terraform-<PROVIDER>-<NAME>~. You must follow this
+   convention in order to publish to the HCP Terraform or Terraform Enterprise
+   module registries.
+
+2. Start writing your configuration with modules in mind. Even for modestly
+   complex Terraform configurations managed by a single person, you'll find the
+   benefits of using modules outweigh the time it takes to use them properly.
+
+3. Use local modules to organize and encapsulate your code. Even if you aren't
+   using or publishing remote modules, organizing your configuration in terms of
+   modules from the beginning will significantly reduce the burden of
+   maintaining and updating your configuration as your infrastructure grows in
+   complexity.
+
+4. Use the public Terraform Registry to find useful modules. This way you can
+   more quickly and confidently implement your configuration by relying on the
+   work of others to implement common infrastructure scenarios.
+
+5. Publish and share modules with your team. Most infrastructure is managed by a
+   team of people, and modules are important way that teams can work together to
+   create and maintain infrastructure. As mentioned earlier, you can publish
+   modules either publicly or privately. Module users can reference published
+   child modules in a root module, or deploy no-code ready modules through the
+   HCP Terraform UI.

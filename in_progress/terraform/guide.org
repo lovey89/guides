@@ -33,6 +33,8 @@
   - [[#use-checks-to-validate-infrastructure][Use checks to validate infrastructure]]
 - [[#reuse-configuration-with-modules][Reuse Configuration with Modules]]
   - [[#modules-overview][Modules overview]]
+  - [[#use-registry-modules-in-configuration][Use registry modules in configuration**]]
+  - [[#build-and-use-a-local-module][Build and use a local module]]
 #+END_QUOTE
 
 * Links
@@ -2330,3 +2332,346 @@ best practices:
    modules either publicly or privately. Module users can reference published
    child modules in a root module, or deploy no-code ready modules through the
    HCP Terraform UI.
+
+** Use registry modules in configuration** 
+
+#+BEGIN_SRC tf
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "3.18.1"
+
+  name = var.vpc_name
+  cidr = var.vpc_cidr
+
+  azs             = var.vpc_azs
+  private_subnets = var.vpc_private_subnets
+  public_subnets  = var.vpc_public_subnets
+
+  enable_nat_gateway = var.vpc_enable_nat_gateway
+
+  tags = var.vpc_tags
+}
+
+module "ec2_instances" {
+  source  = "terraform-aws-modules/ec2-instance/aws"
+  version = "4.3.0"
+
+  count = 2
+  name  = "my-ec2-cluster-${count.index}"
+
+  ami                    = "ami-0c5204531f799e0c6"
+  instance_type          = "t2.micro"
+  vpc_security_group_ids = [module.vpc.default_security_group_id]
+  subnet_id              = module.vpc.public_subnets[0]
+
+  tags = {
+    Terraform   = "true"
+    Environment = "dev"
+  }
+}
+#+END_SRC
+
+This configuration includes two blocks:
+
+1. The ~module "vpc"~ block configures a Virtual Private Cloud (VPC) module,
+   which provisions networking resources such as a VPC, subnets, and internet
+   and NAT gateways based on the arguments provided.
+2. The ~module "ec2_instances"~ block defines two EC2 instances provisioned
+   within the VPC created by the module.
+
+*** Set values for module input variables
+
+Modules can contain both required and optional arguments. You must specify all
+required arguments to use the module. Most module arguments correspond to the
+module's input variables. Optional inputs will use the module's default values
+if not explicitly defined.
+
+*** Review root input variables
+
+Using input variables with modules is similar to using variables in any
+Terraform configuration. A common pattern is to identify which module arguments
+you may want to change in the future, and create matching variables in your
+configuration's ~variables.tf~ file with sensible default values. You can pass
+the variables to the module block as arguments.
+
+*** Review root output values
+
+Modules also have output values. You can reference them with the
+~module.MODULE_NAME.OUTPUT_NAME~ naming convention.
+
+You can reference module outputs in other parts of your configuration. Terraform
+will not display module outputs by default. You must create a corresponding
+output in your root module and set it to the module's output. E.g.
+
+#+BEGIN_SRC tf
+output "vpc_public_subnets" {
+  description = "IDs of the VPC's public subnets"
+  value       = module.vpc.public_subnets
+}
+
+output "ec2_instance_public_ips" {
+  description = "Public IP addresses of EC2 instances"
+  value       = module.ec2_instances[*].public_ip
+}
+#+END_SRC
+
+*** Understand how modules work
+
+When using a new module for the first time, you must run either ~terraform init~
+or ~terraform get~ to install the module. When you run these commands, Terraform
+will install any new modules in the ~.terraform/modules~ directory within your
+configuration's working directory. For local modules, Terraform will create a
+symlink to the module's directory. Because of this, any changes to local modules
+will be effective immediately, without having to reinitialize or re-run
+~terraform get~.
+
+** Build and use a local module
+
+While using existing Terraform modules correctly is an important skill, every
+Terraform practitioner will also benefit from learning how to create modules. In
+fact, it's recommended that every Terraform configuration be created with the
+assumption that it may be used as a module, because doing so will help you
+design your configurations to be flexible, reusable, and composable.
+
+As you may already know, Terraform treats every configuration as a module. When
+you run ~terraform~ commands the target directory containing Terraform
+configuration is treated as the root module.
+
+*** Module structure
+
+Terraform treats any local directory referenced in the ~source~ argument of a
+~module~ block as a module. A typical file structure for a new module is:
+
+#+BEGIN_SRC
+.
+├── LICENSE
+├── README.md
+├── main.tf
+├── variables.tf
+├── outputs.tf
+#+END_SRC
+
+None of these files are required, or have any special meaning to Terraform when
+it uses your module. You can create a module with a single ~.tf~ file, or use
+any other file structure you like.
+
+*** Create a module
+
+You will create a local submodule within your existing configuration that uses
+the s3 bucket resource from the AWS provider.
+
+In your existing terraform project,  create a directory called ~modules~, with a
+directory called ~aws-s3-static-website-bucket~ inside of it.
+
+#+BEGIN_SRC bash :noeval
+mkdir -p modules/aws-s3-static-website-bucket
+#+END_SRC
+
+Hosting a static website with S3 is a fairly common use case. While it isn't too
+difficult to figure out the correct configuration to provision a bucket this
+way, encapsulating this configuration within a module will provide your users
+with a quick and easy way create buckets they can use to host static websites
+that adhere to best practices. Another benefit of using a module is that the
+module name can describe exactly what buckets created with it are for. In this
+example, the aws-s3-static-website-bucket module creates s3 buckets that host
+static websites.
+
+*** Add module configuration
+
+You will work with three Terraform configuration files inside the
+~aws-s3-static-website-bucket~ directory: ~main.tf~, ~variables.tf~, and
+~outputs.tf~.
+
+Add an S3 bucket resource to ~main.tf~ inside the
+~modules/aws-s3-static-website-bucket~ directory:
+
+#+BEGIN_SRC tf
+resource "aws_s3_bucket" "s3_bucket" {
+  bucket = var.bucket_name
+
+  tags = var.tags
+}
+
+resource "aws_s3_bucket_website_configuration" "s3_bucket" {
+  bucket = aws_s3_bucket.s3_bucket.id
+
+  index_document {
+    suffix = "index.html"
+  }
+
+  error_document {
+    key = "error.html"
+  }
+}
+
+resource "aws_s3_bucket_acl" "s3_bucket" {
+  bucket = aws_s3_bucket.s3_bucket.id
+
+  acl = "public-read"
+}
+
+resource "aws_s3_bucket_policy" "s3_bucket" {
+  bucket = aws_s3_bucket.s3_bucket.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "PublicReadGetObject"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = "s3:GetObject"
+        Resource = [
+          aws_s3_bucket.s3_bucket.arn,
+          "${aws_s3_bucket.s3_bucket.arn}/*",
+        ]
+      },
+    ]
+  })
+}
+#+END_SRC
+
+This configuration creates a public S3 bucket hosting a website with an index
+page and an error page.
+
+Notice that there is no ~provider~ block in this configuration. When Terraform
+processes a module block, it will inherit the provider from the enclosing
+configuration. Because of this, we recommend that you do not include ~provider~
+blocks in modules.
+
+Just like the root module of your configuration, modules will define and use
+variables.
+
+Define the following variables in ~variables.tf~ inside the
+~modules/aws-s3-static-website-bucket~ directory:
+
+#+BEGIN_SRC tf
+# Input variable definitions
+
+variable "bucket_name" {
+  description = "Name of the s3 bucket. Must be unique."
+  type        = string
+}
+
+variable "tags" {
+  description = "Tags to set on the bucket."
+  type        = map(string)
+  default     = {}
+}
+#+END_SRC
+
+Variables within modules work almost exactly the same way that they do for the
+root module. When you run a Terraform command on your root configuration, there
+are various ways to set variable values, such as passing them on the
+commandline, or with a ~.tfvars~ file. When using a module, variables are set by
+passing arguments to the module in your configuration. You will set some of
+these variables when calling this module from your root module's ~main.tf~.
+
+Variables declared in modules that aren't given a default value are required,
+and so must be set whenever you use the module.
+
+You should also consider which values to add as outputs, since outputs are the
+only supported way for users to get information about resources configured by
+the module.
+
+Add outputs to your module in the ~outputs.tf~ file inside the
+~modules/aws-s3-static-website-bucket~ directory:
+
+#+BEGIN_SRC tf
+# Output variable definitions
+
+output "arn" {
+  description = "ARN of the bucket"
+  value       = aws_s3_bucket.s3_bucket.arn
+}
+
+output "name" {
+  description = "Name (id) of the bucket"
+  value       = aws_s3_bucket.s3_bucket.id
+}
+
+output "domain" {
+  description = "Domain name of the bucket"
+  value       = aws_s3_bucket_website_configuration.s3_bucket.website_domain
+}
+#+END_SRC
+
+Like variables, outputs in modules perform the same function as they do in the
+root module but are accessed in a different way. You can access a module's
+output from the configuration that calls the module through the following
+syntax: ~module.<MODULE NAME>.<OUTPUT NAME>~. Module outputs are read-only
+attributes.
+
+Now that you have created your module, return to the ~main.tf~ in your root
+module and add a reference to the new module:
+
+#+BEGIN_SRC tf
+module "website_s3_bucket" {
+  source = "./modules/aws-s3-static-website-bucket"
+
+  bucket_name = "<UNIQUE BUCKET NAME>"
+
+  tags = {
+    Terraform   = "true"
+    Environment = "dev"
+  }
+}
+#+END_SRC
+
+*** Define outputs
+
+Earlier, you added several outputs to the ~aws-s3-static-website-bucket~ module,
+making those values available to your root module configuration.
+
+Add the following to the ~outputs.tf~ file in your root module directory (not
+the one in ~modules/aws-s3-static-website-bucket~) to create additional outputs
+for your S3 bucket.
+
+#+BEGIN_SRC tf
+# Output variable definitions
+
+output "vpc_public_subnets" {
+  description = "IDs of the VPC's public subnets"
+  value       = module.vpc.public_subnets
+}
+
+output "ec2_instance_public_ips" {
+  description = "Public IP addresses of EC2 instances"
+  value       = module.ec2_instances[*].public_ip
+}
+
+output "website_bucket_arn" {
+  description = "ARN of the bucket"
+  value       = module.website_s3_bucket.arn
+}
+
+output "website_bucket_name" {
+  description = "Name (id) of the bucket"
+  value       = module.website_s3_bucket.name
+}
+
+output "website_bucket_domain" {
+  description = "Domain name of the bucket"
+  value       = module.website_s3_bucket.domain
+}
+#+END_SRC
+
+*** Install the local module
+
+Whenever you add a new module to a configuration, Terraform must install the
+module before it can be used. Both the ~terraform get~ and ~terraform init~
+commands will install and update modules. The ~terraform init~ command will also
+initialize backends and install plugins.
+
+*** Upload files to the bucket
+
+You have now configured and used your own module to create a static website. You
+may want to visit this static website. Right now there is nothing inside your
+bucket, so there would be nothing to see if you visit the bucket's website. In
+order to see any content, you will need to upload objects to your bucket.
+
+E.g:
+
+#+BEGIN_SRC bash :noeval
+aws s3 cp modules/aws-s3-static-website-bucket/www/ s3://$(terraform output -raw website_bucket_name)/ --recursive
+#+END_SRC

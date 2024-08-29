@@ -1,3 +1,39 @@
+* Table of Contents :TOC:QUOTE:
+#+BEGIN_QUOTE
+- [[#interesting-links][Interesting links]]
+- [[#joins][Joins]]
+- [[#insert-data-from-another-table-with-default-values-postgres][Insert data from another table with default values (postgres)]]
+- [[#insertupdate-and-retrieve-the-updated-rows][Insert/Update and retrieve the updated rows]]
+- [[#get-constraints-from-postgrespl][Get constraints from Postgrespl]]
+- [[#get-currently-running-queries-in-postgresql][Get currently running queries in Postgresql]]
+- [[#get-currently-open-connections-in-postgresql][Get currently open connections in Postgresql]]
+- [[#abort-queries-in-postgresql][Abort queries in Postgresql]]
+- [[#order-by-range-hack-solution][Order by range (hack solution)]]
+- [[#find-duplicates][Find duplicates]]
+- [[#find-duplicates-multiple-columns][Find duplicates (multiple columns)]]
+- [[#give-internal-ranking-to-groups][Give internal ranking to groups]]
+- [[#doing-a-where-in-on-multiple-columns-in-postgresql][Doing a ~WHERE IN~ on multiple columns in Postgresql]]
+- [[#getting-the-total-number-of-elements-when-using-pagenation][Getting the total number of elements when using pagenation]]
+- [[#recursive-calls-in-postgresql][Recursive calls in postgresql]]
+- [[#update-values-in-one-table-given-values-in-another-table-postgresql][Update values in one table given values in another table (postgresql)]]
+- [[#run-an-where-in-and-also-keep-the-values-not-found-in-the-result][Run an ~WHERE IN~ and also keep the values not found in the result]]
+- [[#generate-guid][Generate guid]]
+- [[#how-to-update-rows-of-two-tables-that-have-foreign-key-restrictions][How to update rows of two tables that have foreign key restrictions]]
+- [[#comparing-timestamps][Comparing timestamps]]
+- [[#handle-json][Handle JSON]]
+  - [[#convert-json-to-set-of-records][Convert json to set of records]]
+- [[#query-data][Query data]]
+  - [[#ordering][Ordering]]
+#+END_QUOTE
+
+* Interesting links
+
+[[http://rachbelaid.com/postgres-full-text-search-is-good-enough/]]
+https://niallburkley.com/blog/index-columns-for-like-in-postgres/
+http://www.sql-join.com/sql-join-types/
+https://www.sitepoint.com/simply-sql-the-from-clause/
+https://stackoverflow.com/questions/64016778/better-to-use-serial-primary-key-or-generated-always-as-identity-for-primary-key
+
 * Joins
 
 [[./img/sql_joins.jpg]]
@@ -277,9 +313,31 @@ order by mytimestampfield;
 
 [[https://stackoverflow.com/questions/27283951/how-to-subtract-days-or-months-from-datetime-using-postgresql-netezza]]
 
-* Interesting links
+* Handle JSON
 
-[[http://rachbelaid.com/postgres-full-text-search-is-good-enough/]]
-https://niallburkley.com/blog/index-columns-for-like-in-postgres/
-http://www.sql-join.com/sql-join-types/
-https://www.sitepoint.com/simply-sql-the-from-clause/
+https://www.postgresql.org/docs/9.4/functions-json.html
+
+** Convert json to set of records
+
+Builds an arbitrary set of records from a JSON array of objects. As with all
+functions returning ~record~, the caller must explicitly define the structure of
+the record with an ~AS~ clause.
+
+#+BEGIN_SRC sql
+select *
+from json_to_recordset('[{"a":1,"b":"foo"},{"a":"2","c":"bar"}]') as x(a int, b text);
+#+END_SRC
+
+* Query data
+** Ordering
+*** Custom ordering
+
+#+BEGIN_SRC sql
+ORDER BY
+  CASE WHEN(
+    id = 8
+  THEN 1000000
+  ELSE id
+  END
+DESC
+#+END_SRC

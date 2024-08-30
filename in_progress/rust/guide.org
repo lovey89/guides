@@ -107,6 +107,7 @@
   - [[#test-is-an-array-slice-and-a-vector-slice-the-same][Test: Is an array slice and a vector slice the same?]]
   - [[#test-iterating-over-arrays-and-vectors][Test: Iterating over arrays and vectors]]
 - [[#questions][Questions]]
+- [[#things-to-investigate][Things to investigate]]
 #+END_QUOTE
 
 * Links
@@ -11033,3 +11034,8 @@ with the ~Copy~ trait?
 - Global variables?
 - Casting
 - ~Refcell<Rc<_>>~ vs ~Rc<Refcell<_>>~
+
+* Things to investigate
+
+What is ~pub(crate)~:
+https://doc.rust-lang.org/reference/visibility-and-privacy.html

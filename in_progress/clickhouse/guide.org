@@ -1,0 +1,5 @@
+* Show how table was created
+
+#+BEGIN_SRC sql
+show create table <table_name> ;
+#+END_SRC

@@ -33,8 +33,10 @@
   - [[#use-checks-to-validate-infrastructure][Use checks to validate infrastructure]]
 - [[#reuse-configuration-with-modules][Reuse Configuration with Modules]]
   - [[#modules-overview][Modules overview]]
-  - [[#use-registry-modules-in-configuration][Use registry modules in configuration**]]
+  - [[#use-registry-modules-in-configuration][Use registry modules in configuration]]
   - [[#build-and-use-a-local-module][Build and use a local module]]
+  - [[#customize-modules-with-object-attributes][Customize modules with object attributes]]
+  - [[#handle-multiple-environments][Handle multiple environments]]
 #+END_QUOTE
 
 * Links
@@ -2333,7 +2335,7 @@ best practices:
    child modules in a root module, or deploy no-code ready modules through the
    HCP Terraform UI.
 
-** Use registry modules in configuration** 
+** Use registry modules in configuration
 
 #+BEGIN_SRC tf
 module "vpc" {
@@ -2675,3 +2677,227 @@ E.g:
 #+BEGIN_SRC bash :noeval
 aws s3 cp modules/aws-s3-static-website-bucket/www/ s3://$(terraform output -raw website_bucket_name)/ --recursive
 #+END_SRC
+
+** Customize modules with object attributes
+
+Terraform modules let you organize and re-use Terraform configuration. They make
+your infrastructure deployments consistent and help your team adhere to your
+organization's best practices. Input variables let module users customize
+attributes of the module. You can define module attributes using strings,
+numbers, booleans, lists, maps, and objects.
+
+Object type attributes contain a fixed set of named values of different types.
+Using objects in your modules lets you group related attributes together, making
+it easier for users to understand how to use your module. You can make
+attributes within objects optional, which make it easier for you to ship new
+module versions without changing the variables that module users need to
+define.
+
+*** Work with object attributes
+
+Instead of variable that are defined something like this in your ~variables.tf~
+file:
+
+#+BEGIN_SRC tf
+variable "index_document_suffix" {
+  description = "Suffix for index documents."
+  type        = string
+  default     = "index.html"
+}
+##...
+variable "terraform_managed_files" {
+  description = "Flag to indicate whether Terraform should upload files to the bucket."
+  type        = bool
+  default     = true
+}
+
+variable "www_path" {
+  description = "Local absolute or relative path containing files to upload to website bucket."
+  type        = string
+  default     = null
+}
+
+variable "terraform_managed_files" {
+  description = "Flag to indicate whether Terraform should upload files to the bucket."
+  type        = bool
+  default     = true
+}
+#+END_SRC
+
+You can create an object instead to link related variables together:
+
+#+BEGIN_SRC tf
+variable "files" {
+  description = "Configuration for website files."
+  type = object({
+    terraform_managed     = bool
+    error_document_key    = optional(string, "error.html")
+    index_document_suffix = optional(string, "index.html")
+    www_path              = optional(string)
+  })
+}
+#+END_SRC
+
+The ~files~ variable defines an object with fields corresponding to the
+variables you removed. Since it does not set a ~default~ value, it is required
+whenever practitioners use your module. Objects map a specific set of named keys
+to values. Keeping related attributes in a single object helps your users
+understand how to use your module.
+
+The ~terraform_managed~ field is required, while the other three are optional.
+
+Both ~error_document_key~ and ~index_document_suffix~ fields configure default
+values for the attributes after specifying that they are optional. Since no
+default value is set for www_path, Terraform will set it to null, unless the
+module user specifies a value for it.
+
+You can now refer to these variables with ~var.files.<name>~, e.g.
+~var.files.index_document_suffix~. The ~files~ variable can now be configured
+when calling your module with e.g.:
+
+#+BEGIN_SRC tf
+files = {
+  terraform_managed = false
+}
+# Or
+files = {
+  terraform_managed = true
+  www_path          = "${path.root}/www"
+}
+# Or
+files = {
+  terraform_managed     = true
+  www_path              = "${path.root}/www"
+  index_document_suffix = "main.html"
+  error_document_key    = "error.html"
+}
+#+END_SRC
+
+*** Use a list of objects to configure CORS
+
+Cross-Origin Resource Sharing (CORS) allows web developers to control where and
+how users access resources in their website. CORS configuration limits access to
+websites based on request headers, method, or originating domain. Add a new
+variable to ~modules/aws-s3-static-website/variables.tf~ to control your S3
+bucket's CORS configuration.
+
+#+BEGIN_SRC tf
+variable "cors_rules" {
+  description = "List of CORS rules."
+  type = list(object({
+    allowed_headers = optional(set(string)),
+    allowed_methods = set(string),
+    allowed_origins = set(string),
+    expose_headers  = optional(set(string)),
+    max_age_seconds = optional(number)
+  }))
+  default = []
+}
+#+END_SRC
+
+The ~cors_rules~ variable contains a list of objects. Since the default value is
+an empty list (~[]~), users do not need to set this input variable to deploy the
+module. When they do use it, they must set ~allowed_methods~ and
+~allowed_origins~ for each object in the list; the other attributes are
+optional. This matches the behavior of the ~aws_s3_bucket_cors_configuration~
+resource you will use to configure CORS.
+
+Use the ~cors_rules~ variable by adding a new resource:
+
+#+BEGIN_SRC tf
+resource "aws_s3_bucket_cors_configuration" "web" {
+  count = length(var.cors_rules) > 0 ? 1 : 0
+
+  bucket = aws_s3_bucket.web.id
+
+  dynamic "cors_rule" {
+    for_each = var.cors_rules
+
+    content {
+      allowed_headers = cors_rule.value["allowed_headers"]
+      allowed_methods = cors_rule.value["allowed_methods"]
+      allowed_origins = cors_rule.value["allowed_origins"]
+      expose_headers  = cors_rule.value["expose_headers"]
+      max_age_seconds = cors_rule.value["max_age_seconds"]
+    }
+  }
+}
+#+END_SRC
+
+This resource uses the ~dynamic~ block to create a ~cors_rule~ block for each
+item in the ~var.cors_rules~ list. When the list is empty, the ~count~
+meta-argument will evaluate to ~0~, and Terraform will not provision this
+resource. Otherwise, the ~dynamic~ block will create a CORS rule for each object
+in the list. Since optional object attributes default to ~null~, Terraform will
+not set values for them unless the module user specifies them.
+
+** Handle multiple environments
+
+Some Terraform projects start as a /monolith/, a Terraform project managed by a
+single main configuration file in a single directory, with a single state file.
+Small projects may be convenient to maintain this way. However, as your
+infrastructure grows, restructuring your monolith into logical units will make
+your Terraform configurations less confusing and safer to manage.
+
+*** Separate states
+
+State separation signals more mature usage of Terraform; with additional
+maturity comes additional complexity. There are two primary methods to separate
+state between environments: directories and workspaces.
+
+To separate environments with potential configuration differences, use a
+directory structure. Use workspaces for environments that do not greatly deviate
+from one another, to avoid duplicating your configurations.
+
+**** Separate states with different directories
+
+By creating separate directories for each environment, you can shrink the blast
+radius of your Terraform operations and ensure you will only modify intended
+infrastructure. Terraform stores your state files on disk in their corresponding
+configuration directories. Terraform operates only on the state and
+configuration in the working directory by default.
+
+Directory-separated environments rely on duplicate Terraform code. This may be
+useful if you want to test changes in a development environment before promoting
+them to production. However, the directory structure runs the risk of creating
+drift between the environments over time. If you want to reconfigure a project
+with a single state file into directory-separated states, you must perform
+advanced state operations to move the resources.
+
+After reorganizing your environments into directories, your file structure
+should look like the one below, where ~assets~ is a directory containing
+resources for both environments.
+
+#+BEGIN_SRC
+.
+├── assets
+│   ├── index.html
+├── prod
+│   ├── main.tf
+│   ├── variables.tf
+│   ├── terraform.tfstate
+│   └── terraform.tfvars
+└── dev
+    ├── main.tf
+    ├── variables.tf
+    ├── terraform.tfstate
+    └── terraform.tfvars
+
+#+END_SRC
+
+You can refer to the ~assets~ directory with
+~file("${path.module}/../assets/index.html")~
+
+You now do your terraform operations in the ~dev~ and ~prod~ directories
+separately, including ~terraform init~.
+
+**** Separate staes with workspaces
+
+Workspace-separated environments use the same Terraform code but have different
+state files, which is useful if you want your environments to stay as similar to
+each other as possible, for example if you are providing development
+infrastructure to a team that wants to simulate running in production.
+
+However, you must manage your workspaces in the CLI and be aware of the
+workspace you are working in to avoid accidentally performing operations on the
+wrong environment.

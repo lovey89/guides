@@ -2901,3 +2901,85 @@ infrastructure to a team that wants to simulate running in production.
 However, you must manage your workspaces in the CLI and be aware of the
 workspace you are working in to avoid accidentally performing operations on the
 wrong environment.
+
+All Terraform configurations start out in the ~default~ workspace. Type
+~terraform workspace list~ to have Terraform print out the list of your
+workspaces with the currently selected one denoted by a ~*~.
+
+Using workspaces organizes the resources in your state file by environments.
+Also outputs are handled per workspace. Create variables files for each
+environment: ~dev.tfvars~ and ~prod.tfvars~.
+
+***** Create environments
+
+Create a new workspace in the Terraform CLI with the ~workspace~ command.
+
+#+BEGIN_SRC tf
+terraform workspace new dev
+#+END_SRC
+
+Any previous state files from your ~default~ workspace are hidden from your
+~dev~ workspace, but your directory and file structure do not change.
+
+Inititialize the directory:
+
+#+BEGIN_SRC bash :noeval
+terraform init
+#+END_SRC
+
+Apply the configuration:
+
+#+BEGIN_SRC bash :noeval
+terraform apply -var-file=dev.tfvars
+#+END_SRC
+
+Then create a ~prod~ environment:
+
+#+BEGIN_SRC bash :noeval
+terraform workspace new prod
+#+END_SRC
+
+Apply the configuration:
+
+#+BEGIN_SRC
+terraform apply -var-file=prod.tfvars
+#+END_SRC
+
+***** State storage in workspaces
+
+When you use the default workspace with the local backend, your
+~terraform.tfstate~ file is stored in the root directory of your Terraform
+project. When you add additional workspaces your state location changes;
+Terraform internals manage and store state files in the directory
+~terraform.tfstate.d~.
+
+Your directory will look similar to the one below.
+
+#+BEGIN_SRC
+.
+├── README.md
+├── assets
+│   └── index.html
+├── dev.tfvars
+├── main.tf
+├── outputs.tf
+├── prod.tfvars
+├── terraform.tfstate.d
+│   ├── dev
+│   │   └── terraform.tfstate
+│   ├── prod
+│   │   └── terraform.tfstate
+├── terraform.tfvars
+└── variables.tf
+#+END_SRC
+
+***** Destroy the environment
+
+To destroy your infrastructure in a multiple workspace deployment, you must
+select the intended workspace and run ~terraform destroy -var-file=~ with the
+~.tfvars~ file that corresponds to your workspace.
+
+#+BEGIN_SRC bash :noeval
+terraform workspace select dev
+terraform destroy -var-file=dev.tfvars
+#+END_SRC

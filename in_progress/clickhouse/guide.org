@@ -1,3 +1,25 @@
+* Table of Contents :TOC:QUOTE:
+#+BEGIN_QUOTE
+- [[#create-local-clickhouse-database-container][Create local clickhouse database container]]
+- [[#show-how-table-was-created][Show how table was created]]
+#+END_QUOTE
+
+* Create local clickhouse database container
+
+#+BEGIN_SRC bash :noeval
+docker run --rm -p 8123:8123 --ulimit nofile=262144:262144 clickhouse/clickhouse-server
+#+END_SRC
+
+| Description | Value         |
+|-------------+---------------|
+| Host        | ~localhost~   |
+| Port        | ~8123~        |
+| Database    | ~default~     |
+| Username    | ~default~     |
+| Password    | /No password/ |
+
+Or navigate to http://localhost:8123/play
+
 * Show how table was created
 
 #+BEGIN_SRC sql

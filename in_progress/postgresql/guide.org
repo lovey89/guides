@@ -1,5 +1,6 @@
 * Table of Contents :TOC:QUOTE:
 #+BEGIN_QUOTE
+- [[#create-local-postgres-database-container][Create local postgres database container]]
 - [[#interesting-links][Interesting links]]
 - [[#joins][Joins]]
 - [[#insert-data-from-another-table-with-default-values-postgres][Insert data from another table with default values (postgres)]]
@@ -25,6 +26,20 @@
 - [[#query-data][Query data]]
   - [[#ordering][Ordering]]
 #+END_QUOTE
+
+* Create local postgres database container
+
+#+BEGIN_SRC bash :noeval
+docker run --rm -p 5432:5432 -e POSTGRES_PASSWORD=password postgres
+#+END_SRC
+
+| Description | Value       |
+|-------------+-------------|
+| Host        | ~localhost~ |
+| Port        | ~5432~      |
+| Database    | ~postgres~  |
+| Username    | ~postgres~  |
+| Password    | ~password~  |
 
 * Interesting links
 

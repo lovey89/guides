@@ -37,6 +37,8 @@
   - [[#build-and-use-a-local-module][Build and use a local module]]
   - [[#customize-modules-with-object-attributes][Customize modules with object attributes]]
   - [[#handle-multiple-environments][Handle multiple environments]]
+  - [[#use-configuration-to-move-resources][Use configuration to move resources]]
+  - [[#validate-modules-with-custom-conditions][Validate modules with custom conditions]]
 #+END_QUOTE
 
 * Links
@@ -2191,9 +2193,6 @@ Apply your change. Open your ~terraform.tfstate~ file and find the
 #+END_SRC
 
 * Reuse Configuration with Modules
-
-Validate modules with custom conditions: https://developer.hashicorp.com/terraform/tutorials/configuration-language/custom-conditions
-
 ** Modules overview
 
 As you manage your infrastructure with Terraform, you will create increasingly
@@ -2983,3 +2982,107 @@ select the intended workspace and run ~terraform destroy -var-file=~ with the
 terraform workspace select dev
 terraform destroy -var-file=dev.tfvars
 #+END_SRC
+
+** Use configuration to move resources
+
+As your Terraform configuration grows in complexity, updating resources becomes
+more risky: an update to one resource may cause unintended changes to other
+parts of your infrastructure. One way to address this is to refactor your
+existing Terraform code into separate modules. In addition to limiting the scope
+of potential changes, modules help abstract your resources, making your
+configuration easier to understand.
+
+When you move existing resources from a parent to a child module, your Terraform
+resource IDs will change. Because of this, you must let Terraform know that you
+intend to move resources rather than replace them, or Terraform will destroy and
+recreate your resources with the new ID.
+
+The ~moved~ configuration block lets you track your resource moves in the
+configuration itself. With the ~moved~ configuration block, you can plan,
+preview, and validate resource moves, enabling you to safely refactor your
+configuration.
+
+** Validate modules with custom conditions
+
+Terraform lets you define custom conditions in your module configuration to
+validate resources, data sources, and outputs. When planning and applying
+changes to your infrastructure, Terraform evaluates these condition blocks and
+reports an error if a condition fails. Terraform supports preconditions, which
+it evaluates before it provisions the enclosing block, and postconditions, which
+it evaluates afterward.
+
+*** Add preconditions
+
+Terraform allows you to add preconditions and postconditions to the lifecycle of
+resource, data source, or output blocks. Terraform evaluates preconditions
+before the enclosing block, validating that your configuration is compliant
+before it applies it. Terraform evaluates post conditions after the enclosing
+block, letting you confirm that the results of applied changes are compliant
+before it applies the rest of your configuration.
+
+E.g.
+
+#+BEGIN_SRC tf
+data "aws_ec2_instance_type" "app" {
+  instance_type = var.aws_instance_type
+}
+
+resource "aws_instance" "app" {
+  count = var.aws_instance_count
+
+  instance_type = var.aws_instance_type
+  ami           = var.aws_ami_id
+
+  subnet_id              = var.aws_private_subnet_ids[count.index % length(var.aws_private_subnet_ids)]
+  vpc_security_group_ids = [module.app_security_group.security_group_id]
+
+  lifecycle {
+    precondition {
+      condition     = var.aws_instance_count % length(var.aws_private_subnet_ids) == 0
+      error_message = "The number of instances (${var.aws_instance_count}) must be evenly divisible by the number of private subnets (${length(var.aws_private_subnet_ids)})."
+    }
+
+    precondition {
+      condition     = data.aws_ec2_instance_type.app.ebs_optimized_support != "unsupported"
+      error_message = "The EC2 instance type (${var.aws_instance_type}) must support EBS optimization."
+    }
+  }
+}
+#+END_SRC
+
+The first precondition verifies that each private subnet contains the same
+number of instances. It does so by dividing the number of instances by the
+number of subnets, and checking that the remainder is ~0~. This condition
+ensures that application traffic is spread evenly across the subnets used by
+your application.
+
+The second precondition verifies that the chosen EC2 instance type supports EBS
+optimization. In order to do so, it accesses the instance type's
+~ebs_optimized_support~ attribute from the data source.
+
+Terraform reports errors whenever a condition fails, and will not continue to
+plan or apply your configuration. You must resolve the errors before you can
+successfully deploy this configuration.
+
+*** Add a postcondition
+
+#+BEGIN_SRC tf
+data "aws_vpc" "app" {
+  id = var.aws_vpc_id
+
+  lifecycle {
+    postcondition {
+      condition     = self.enable_dns_support == true
+      error_message = "The selected VPC must have DNS support enabled."
+    }
+  }
+}
+#+END_SRC
+
+The postcondition refers to the data source using the ~self~ value. Terraform
+will not create the VPC until you apply the example configuration, so it cannot
+validate this condition until after it has begun provisioning your
+infrastructure. When you run ~terraform apply~, Terraform will start applying
+the configuration, and will create the VPC before it reads its attributes from
+the data source. After it does so, it will evaluate the postcondition and report
+an error if it fails.

@@ -5,6 +5,7 @@
 - [[#create-docker-target-environment][Create docker target environment]]
   - [[#ubuntu-environment][Ubuntu environment]]
   - [[#fedora-environment][Fedora environment]]
+  - [[#create-multiple-containers-with-the-docker-compose-command][Create multiple containers with the ~docker compose~ command]]
 - [[#ad-hoc-commands][Ad-hoc commands]]
 - [[#module-documentation][Module documentation]]
 - [[#playbooks][Playbooks]]
@@ -51,7 +52,7 @@ docker build -t ubuntuansibletarget:latest .
 docker run --rm -p 1022:22 --init ubuntuansibletarget:latest
 
 # Test connection
-ssh -o "IdentitiesOnly=yes" -i id_rsa -p 1022 ansibleuser@localhost
+ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i id_rsa -p 1022 ansibleuser@localhost
 #+END_SRC
 
 ** Fedora environment
@@ -65,7 +66,29 @@ docker build -t fedoraansibletarget:latest .
 docker run --rm -p 2022:22 --init fedoraansibletarget:latest
 
 # Test connection
-ssh -o "IdentitiesOnly=yes" -i id_rsa -p 2022 ansibleuser@localhost
+ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i id_rsa -p 2022 ansibleuser@localhost
+#+END_SRC
+
+** Create multiple containers with the ~docker compose~ command
+
+After the containers above has been built you can create multiple of them by
+running:
+
+#+BEGIN_SRC bash :noeval
+cd dockerenv
+docker compose up ; docker compose down
+#+END_SRC
+
+This will run the containers in the foreground and will remove the containers
+automatically when stopped.
+
+Try connecting to each machine:
+
+#+BEGIN_SRC bash :noeval
+ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i ubuntu/id_rsa -p 1022 ansibleuser@localhost whoami
+ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i ubuntu/id_rsa -p 1122 ansibleuser@localhost whoami
+ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i fedora/id_rsa -p 2022 ansibleuser@localhost whoami
+ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i fedora/id_rsa -p 2122 ansibleuser@localhost whoami
 #+END_SRC
 
 * Ad-hoc commands

@@ -1,0 +1,187 @@
+* Links
+
+- https://magpi.raspberrypi.com/articles/pi-zero-w-smart-usb-flash-drive
+- https://github.com/Mearman/Pi-Zero-USB-Gadget
+- https://github.com/thagrol/Guides includes a guide for Raspberry Pi 4 that
+  could potentially also have wired network with a PoE hat
+
+* Limitations
+
+The Raspberry Pi Zero 2 W only has one data usb port. It can only act as host or
+peripheral at any given time. So you can't use it both for usb storage and
+connect a ethernet dongle for wired network
+(https://forums.raspberrypi.com/viewtopic.php?t=347847). It can switch between
+the modes automatically but can only be used for one purpose at a time.
+
+This solution is a bit unstable. Both the Raspberry Pi and the connected
+computer will think that they have exclusive access to the storage and caching
+on both sides may cause issues. To get around this the Raspberry can remount the
+filesystem in order to get the latest data (given that the other device has
+flushed its cache in order to write to the storage) or can unload and load the
+~g_mass_storage~ kernel module in order to remount the storage on the connected
+computer. So be very careful with reading and writing of things that has just
+been updated.
+
+* Setup
+** You need
+
+- A Raspberry Pi Zero 2 W
+
+** Prepare the Raspberry Pi
+
+Download the Raspberry Pi imager from https://www.raspberrypi.com/software/ (if
+you are running Fedora it can be downloaded from
+https://src.fedoraproject.org/rpms/rpi-imager). Prepare a sd card with Raspberry
+Pi OS (64 bit). When I did this I used version 12 (bookworm) of Raspberry Pi OS.
+
+During the preparation of the sd card you can enter credentials for wifi (only
+2.4 GHz is supported) and enable ssh. Hopefully you won't need to connect it to
+a monitor with a keyboard then.
+
+If you need to configure a wifi later you can do that with the ~raspi-config~
+command.
+
+** Turn of wifi power saver
+
+It looks like as if the wifi module sometimes go into some kind of power saver
+mode which is annoying when you connect over ssh. Disable it with the command:
+
+#+BEGIN_SRC bash :noeval
+sudo iw dev wlan0 set power_save off
+#+END_SRC
+
+Or to run it on boot, add:
+
+#+BEGIN_SRC bash :noeval
+iw dev wlan0 set power_save off
+#+END_SRC
+
+Somewhere in ~/etc/rc.local~.
+
+Verify that it's off by looking for ~Power Management:off~ in the output from
+the command ~iwconfig~.
+
+* Prepare a file to act as usb storage
+
+#+BEGIN_SRC bash :noeval
+# Create a ~2 GB large file at /piusb.bin
+sudo dd bs=1M if=/dev/zero of=/piusb.bin count=2048
+
+# Format it with FAT32 file system
+sudo mkdosfs /piusb.bin -F 32 -I
+
+# Create a file where we can later mount it
+sudo mkdir /mnt/usb_share
+
+# Mount the file
+sudo mount -t vfat /piusb.bin /mnt/usb_share
+
+# Create a test file
+echo "Content" | sudo tee /mnt/usb_share/test.txt
+
+# Unmount the file
+sudo umount /mnt/usb_share
+#+END_SRC
+
+* Enable the raspberry usb port to act as a peripheral
+** Enable the USB driver
+
+The [[https://www.raspberrypi.com/documentation/computers/config_txt.html][config.txt]] file is used instead of BIOS on a Raspberry pi.
+
+#+BEGIN_SRC bash :noeval
+sudo cp /boot/firmware/config.txt /boot/firmware/config.txt.bak
+#echo "dtoverlay=dwc2,dr_mode=peripheral" | sudo tee -a /boot/firmware/config.txt
+echo "dtoverlay=dwc2" | sudo tee -a /boot/firmware/config.txt
+
+sudo cp /etc/modules /etc/modules.bak
+echo "dwc2" | sudo tee -a /etc/modules
+#+END_SRC
+
+The files should now look something like this:
+
+~/boot/firmware/config.txt~:
+
+#+BEGIN_SRC
+...
+[cm5]
+dtoverlay=dwc2,dr_mode=host
+
+[all]
+dtparam=act_led_trigger=actpwr
+dtoverlay=dwc2
+#+END_SRC
+
+~/etc/modules~:
+
+#+BEGIN_SRC
+...
+# Parameters can be specified after the module name.
+
+i2c-dev
+dwc2
+#+END_SRC
+
+Reboot now
+
+** Enable ~g_mass_storage~ module
+
+At this point you should connect the data usb port on the Raspberry to a usb
+port on another computer to see if it shows up as a usb storage. Note that the
+Raspberry Pi Zero 2 W can get power through the data port as well so *don't*
+power it through both the data port and power port!
+
+#+BEGIN_SRC bash :noeval
+# Start
+sudo modprobe g_mass_storage file=/piusb.bin stall=0
+# Expose it as a read only device
+#sudo modprobe g_mass_storage file=/piusb.bin stall=0 ro=1
+#+END_SRC
+
+Now it should show up as a usb storage on the connected computer and a file
+called ~test.txt~ should already exist on it. Create a new file.
+
+Mount the file on the Raspberry and see if it shows up:
+
+#+BEGIN_SRC bash :noeval
+sudo mount -t vfat /piusb.bin /mnt/usb_share
+ls /mnt/usb_share
+#+END_SRC
+
+Due to caching it may not show up directly. Try to remount it:
+
+#+BEGIN_SRC bash :noeval
+sudo umount /mnt/usb_share && sudo mount -t vfat /piusb.bin /mnt/usb_share
+ls /mnt/usb_share
+#+END_SRC
+
+Try adding a new file from the Raspberry. It will probably not show up directly
+on the connected computer. You can then disconnect the usb storage:
+
+#+BEGIN_SRC bash :noeval
+# Stop
+sudo modprobe -r g_mass_storage
+sudo modprobe g_mass_storage file=/piusb.bin stall=0
+# Or
+sudo modprobe -r g_mass_storage && sudo modprobe g_mass_storage file=/piusb.bin stall=0
+#+END_SRC
+
+*** Enable ~g_mass_storage~ module on boot
+
+- https://www.cyberciti.biz/faq/linux-how-to-load-a-kernel-module-automatically-at-boot-time/
+- https://bbs.archlinux.org/viewtopic.php?id=268896
+
+Create the two files with the content:
+
+In ~/etc/modules-load.d/g_mass_storage.conf~:
+
+#+BEGIN_SRC
+g_mass_storage
+#+END_SRC
+
+In ~/etc/modprobe.d/g_mass_storage.conf~:
+
+#+BEGIN_SRC
+options g_mass_storage file=/piusb.bin stall=0
+#+END_SRC
+
+Reboot

@@ -184,4 +184,9 @@ In ~/etc/modprobe.d/g_mass_storage.conf~:
 options g_mass_storage file=/piusb.bin stall=0
 #+END_SRC
 
-Reboot
+Reboot.
+
+My understanding is that the content of ~/etc/modprobe.d/g_mass_storage.conf~
+defines a set of default variables to the modules so it looks like as if you
+can run ~sudo modprobe -r g_mass_storage && sudo modprobe g_mass_storage~ to
+remount the device on the connected computer.

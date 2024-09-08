@@ -4,13 +4,13 @@ ubuntus:
       ansible_host: localhost
       ansible_port: 1022
       ansible_ssh_user: ansibleuser
-      ansible_ssh_private_key_file: ../dockerenv/ubuntu/id_rsa
+      ansible_ssh_private_key_file: dockerenv/ubuntu/id_rsa # Relative the ansible.cfg file
       ansible_ssh_extra_args: '-o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null"'
     ubuntu1:
       ansible_host: localhost
       ansible_port: 1122
       ansible_ssh_user: ansibleuser
-      ansible_ssh_private_key_file: ../dockerenv/ubuntu/id_rsa
+      ansible_ssh_private_key_file: dockerenv/ubuntu/id_rsa
       ansible_ssh_extra_args: '-o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null"'
 
 fedoras:
@@ -19,11 +19,23 @@ fedoras:
       ansible_host: localhost
       ansible_port: 2022
       ansible_ssh_user: ansibleuser
-      ansible_ssh_private_key_file: ../dockerenv/fedora/id_rsa
+      ansible_ssh_private_key_file: dockerenv/fedora/id_rsa
       ansible_ssh_extra_args: '-o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null"'
     fedora1:
       ansible_host: localhost
       ansible_port: 2122
       ansible_ssh_user: ansibleuser
-      ansible_ssh_private_key_file: ../dockerenv/fedora/id_rsa
+      ansible_ssh_private_key_file: dockerenv/fedora/id_rsa
       ansible_ssh_extra_args: '-o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null"'
+
+mix_group:
+  hosts:
+    fedora0:
+    ubuntu0:
+
+# You can mix children and hosts in the same group
+mix_group_2:
+  children:
+    ubuntus:
+  hosts:
+    fedora0:

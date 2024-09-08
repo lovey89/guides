@@ -1,32 +1,31 @@
 * Table of Contents :TOC:QUOTE:
 #+BEGIN_QUOTE
 - [[#links][Links]]
-- [[#install][Install]]
-- [[#create-docker-target-environment][Create docker target environment]]
-  - [[#ubuntu-environment][Ubuntu environment]]
-  - [[#fedora-environment][Fedora environment]]
-  - [[#create-multiple-containers-with-the-docker-compose-command][Create multiple containers with the ~docker compose~ command]]
-- [[#ad-hoc-commands][Ad-hoc commands]]
-- [[#module-documentation][Module documentation]]
+- [[#getting-started][Getting started]]
+  - [[#install][Install]]
+  - [[#configure-ansible][Configure ansible]]
+  - [[#create-docker-target-environment][Create docker target environment]]
+- [[#building-an-inventory][Building an inventory]]
+  - [[#intro][Intro]]
+  - [[#how-to-build-your-inventory][How to build your inventory]]
 - [[#playbooks][Playbooks]]
-  - [[#example-1][Example 1]]
-  - [[#example-2][Example 2]]
-  - [[#example-3][Example 3]]
-  - [[#example-4][Example 4]]
-  - [[#other-keywords-to-investigate][Other keywords to investigate]]
-- [[#ansible-vault][Ansible vault]]
-- [[#playbook-organization][Playbook organization]]
-- [[#roles][Roles]]
-- [[#config][Config]]
-  - [[#ansiblecfg][~ansible.cfg~]]
-  - [[#inventory-format][Inventory format]]
+- [[#old][Old]]
+  - [[#ad-hoc-commands][Ad-hoc commands]]
+  - [[#module-documentation][Module documentation]]
+  - [[#playbooks-1][Playbooks]]
+  - [[#ansible-vault][Ansible vault]]
+  - [[#playbook-organization][Playbook organization]]
+  - [[#roles][Roles]]
+  - [[#config][Config]]
 #+END_QUOTE
 
 * Links
 
 - https://www.jeffgeerling.com/blog/2020/ansible-101-jeff-geerling-youtube-streaming-series (ansible 2.9)?
+- https://docs.ansible.com/ansible/latest/getting_started/basic_concepts.html (glossary)
 
-* Install
+* Getting started
+** Install
 
 #+BEGIN_SRC bash :noeval
 # For fedora
@@ -39,9 +38,51 @@ brew install ansible
 ansible --version
 #+END_SRC
 
-* Create docker target environment
+*** Install on the managed node
 
-** Ubuntu environment
+Ansible does not have to be installed but you need python and a user account
+that can connect through SSH.
+
+** Configure ansible
+
+You don't have to follow these steps as there is already a [[file:ansible.cfg][ansible.cfg]] created.
+
+You can generate an Ansible configuration file, ~ansible.cfg~, that lists all
+default settings as follows:
+
+#+BEGIN_SRC bash :noeval
+ansible-config init --disabled > ansible.cfg
+#+END_SRC
+
+Include available plugins to create a more complete Ansible configuration as
+follows:
+
+#+BEGIN_SRC bash :noeval
+ansible-config init --disabled -t all > ansible.cfg
+#+END_SRC
+
+The configuration files are searched for in the following order:
+
+- ~ANSIBLE_CONFIG~ (environment variable if set)
+- ~ansible.cfg~ (in the current directory)
+- ~~/.ansible.cfg~ (in the home directory)
+- ~/etc/ansible/ansible.cfg~
+
+Not all configuration options are present in the command line, just the ones
+deemed most useful or common. Settings in the command line will override those
+passed through the configuration file and the environment.
+
+For more information see the [[https://docs.ansible.com/ansible/latest/reference_appendices/config.html#ansible-configuration-settings][Ansible Configuration Settings documentation]].
+
+*** A note about comments in ~ansible.cfg~
+
+The configuration file is one variant of an ~.ini~ format. Both the hash sign
+(~#~) and semicolon (~;~) are allowed as comment markers when the comment starts
+the line. However, if the comment is inline with regular values, only the
+semicolon is allowed to introduce the comment.
+
+** Create docker target environment
+*** Ubuntu environment
 
 #+BEGIN_SRC bash :noeval
 cd dockerenv/ubuntu
@@ -55,7 +96,7 @@ docker run --rm -p 1022:22 --init ubuntuansibletarget:latest
 ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i id_rsa -p 1022 ansibleuser@localhost
 #+END_SRC
 
-** Fedora environment
+*** Fedora environment
 
 #+BEGIN_SRC bash :noeval
 cd dockerenv/fedora
@@ -69,7 +110,7 @@ docker run --rm -p 2022:22 --init fedoraansibletarget:latest
 ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i id_rsa -p 2022 ansibleuser@localhost
 #+END_SRC
 
-** Create multiple containers with the ~docker compose~ command
+*** Create multiple containers with the ~docker compose~ command
 
 After the containers above has been built you can create multiple of them by
 running:
@@ -91,7 +132,200 @@ ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile
 ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i fedora/id_rsa -p 2122 ansibleuser@localhost whoami
 #+END_SRC
 
-* Ad-hoc commands
+* Building an inventory
+** Intro
+
+The ~inventory.yaml~ basic format looks something like this:
+
+#+BEGIN_SRC yaml
+myhosts: # Group name
+  hosts:
+    my_host_01:
+      ansible_host: 192.0.2.50 # Ip for the my_host_01 alias
+    my_host_02:
+      ansible_host: 192.0.2.51
+    my_host_03:
+      ansible_host: 192.0.2.52
+#+END_SRC
+
+*** Variables
+
+Variables set values for managed nodes, such as the IP address, FQDN, operating
+system, and SSH user, so you do not need to pass them when running Ansible
+commands.
+
+Variables can apply to specific hosts.
+
+#+BEGIN_SRC yaml
+webservers:
+  hosts:
+    webserver01:
+      ansible_host: 192.0.2.140
+      http_port: 80
+    webserver02:
+      ansible_host: 192.0.2.150
+      http_port: 443
+#+END_SRC
+
+Variables can also apply to all hosts in a group:
+
+#+BEGIN_SRC yaml
+webservers:
+  hosts:
+    webserver01:
+      ansible_host: 192.0.2.140
+      http_port: 80
+    webserver02:
+      ansible_host: 192.0.2.150
+      http_port: 443
+  vars:
+    ansible_user: my_server_user
+#+END_SRC
+
+*** Metagroups
+
+Create a metagroup that organizes multiple groups in your inventory with the following syntax:
+
+#+BEGIN_SRC yaml
+metagroupname:
+  children:
+#+END_SRC
+
+The following inventory illustrates a basic structure for a data center. This
+example inventory contains a ~network~ metagroup that includes all network
+devices and a ~datacenter~ metagroup that includes the ~network~ group and all
+webservers.
+
+#+BEGIN_SRC yaml
+leafs:
+  hosts:
+    leaf01:
+      ansible_host: 192.0.2.100
+    leaf02:
+      ansible_host: 192.0.2.110
+
+spines:
+  hosts:
+    spine01:
+      ansible_host: 192.0.2.120
+    spine02:
+      ansible_host: 192.0.2.130
+
+network:
+  children:
+    leafs:
+    spines:
+
+webservers:
+  hosts:
+    webserver01:
+      ansible_host: 192.0.2.140
+    webserver02:
+      ansible_host: 192.0.2.150
+
+datacenter:
+  children:
+    network:
+    webservers:
+#+END_SRC
+
+*** Example
+
+Start checking the inventory file that has been configured for the container
+defined earlier:
+
+#+BEGIN_SRC bash :noeval
+ansible-inventory -i inventory/inventory.yaml --list
+# Because we have a ansible.cfg file which points to the inventory file we can
+# just run
+ansible-inventory --list
+#+END_SRC
+
+In our inventory I ahve defined some variables for each host as we don't want to
+use the defaults.
+
+Try pinging each of them:
+
+#+BEGIN_SRC bash :noeval
+ansible all -m ping -i inventory/inventory.yaml
+# Because we have a ansible.cfg file which points to the inventory file we can
+# just run
+ansible all -m ping
+#+END_SRC
+
+The inventory can be in both ~.yaml~ and ~.ini~ format. I prefer ~.yaml~ and
+will only use ~.yaml~ in my examples.
+
+** How to build your inventory
+
+Ansible automates tasks on managed nodes or “hosts” in your infrastructure,
+using a list or group of lists known as inventory. You can pass host names at
+the command line, but most Ansible users create inventory files. Your inventory
+defines the managed nodes you automate, with groups so you can run automation
+tasks on multiple hosts at the same time. Once your inventory is defined, you
+use patterns to select the hosts or groups you want Ansible to run against.
+
+The default location for this file is ~/etc/ansible/hosts~. You can specify a
+different inventory file at the command line using the ~-i <path>~ option or in
+a configuration file using the ~inventory~ key.
+
+As your inventory expands, you may need more than a single file to organize your
+hosts and groups. Some alternatives are:
+
+- You can create a directory with multiple inventory files
+- You can pull inventory dynamically. For example, you can use a dynamic
+  inventory plugin to list resources in one or more cloud providers
+- You can use multiple sources for inventory, including both dynamic inventory
+  and static files
+
+
+
+* Playbooks
+
+Playbooks are automation blueprints, in ~.yaml~ format, that Ansible uses to
+deploy and configure managed nodes.
+
+- Playbook :: A list of plays that define the order in which Ansible performs
+  operations, from top to bottom, to achieve an overall goal.
+- Play :: An ordered list of tasks that maps to managed nodes in an inventory.
+- Task :: A reference to a single module that defines the operations that
+  Ansible performs.
+- Module :: A unit of code or binary that Ansible runs on managed nodes. Ansible
+  modules are grouped in collections with a Fully Qualified Collection Name
+  (FQCN) for each module.
+
+Try running the following playbook:
+
+[[file:examples/001_hello_world.yaml][001_hello_world.yaml]]
+
+#+BEGIN_SRC yaml
+- name: My first play
+  hosts: ubuntus # Run on all machines in the ubuntus group
+  tasks:
+   - name: Ping my hosts
+     ansible.builtin.ping:
+
+   - name: Print message
+     ansible.builtin.debug:
+      msg: Hello world
+#+END_SRC
+
+Run it with:
+
+#+BEGIN_SRC bash :noeval
+ansible-playbook examples/001_hello_world.yaml
+#+END_SRC
+
+In the output you will see your tasks being run as well as an ~Gathering Facts~
+task that is run implicitly. By default, Ansible gathers information about your
+inventory that it can use in the playbook.
+
+Th play recap summarizes the results of all tasks in the playbook per host. In
+this example, there are three tasks so ~ok=3~ indicates that each task ran
+successfully.
+
+* Old
+** Ad-hoc commands
 
 #+BEGIN_SRC bash :noeval
 ansible -i inventory example -m ping -u centos
@@ -163,7 +397,7 @@ modules, ansible can know if something was updated or not.
       services: name= ntpd state=started enabled=yes
 #+END_SRC
 
-* Module documentation
+** Module documentation
 
 #+BEGIN_SRC bash :noeval
 ansible-doc <module_name>
@@ -176,11 +410,11 @@ Modules to investigate:
 - cron
 - git
 
-* Playbooks
+** Playbooks
 
 Convention to call the main playbook ~main.yml~
 
-** Example 1
+*** Example 1
 
 #+BEGIN_SRC yaml
 ---
@@ -249,7 +483,7 @@ ansbile-playbook -i inventory multi --limit=!:db
 ansible-inventory --list -i inventory
 #+END_SRC
 
-** Example 2
+*** Example 2
 
 #+BEGIN_SRC yaml
 ---
@@ -318,7 +552,7 @@ Check if it's valid:
 ansible-playbook -i inventory main.yml --syntax-check
 #+END_SRC
 
-** Example 3
+*** Example 3
 
 #+BEGIN_SRC yaml
 ---
@@ -421,7 +655,7 @@ tasks:
 You can overcome this behaviour by running ~ansible-playbook~ with
 ~--force-handlers~.
 
-** Example 4
+*** Example 4
 
 #+BEGIN_SRC yaml
 ---
@@ -505,7 +739,7 @@ everything ansible knows about the system by using the ~setup~ module:
 ansible -i inventory centos -m setup
 #+END_SRC
 
-** Other keywords to investigate
+*** Other keywords to investigate
 
 - ~when~: Control if the task should be run
 - ~changed_when~: Interpret yourself if the task resulted in a change
@@ -514,7 +748,7 @@ ansible -i inventory centos -m setup
 - ~tags~: Tag a number of task and control which tasks should be run with ~--tags~
 - blocks: Allows you to do try except workflows
 
-* Ansible vault
+** Ansible vault
 
 #+BEGIN_SRC yaml
 ---
@@ -568,7 +802,7 @@ Change password key:
 ansible-vault rekey vars/api_key.yml
 #+END_SRC
 
-* Playbook organization
+** Playbook organization
 
 Tasks can be included in a playbook.
 
@@ -633,20 +867,20 @@ Tasks can be included in a playbook.
 
 You can also import a playbook using ~import_playbook~
 
-* Roles
+** Roles
 
 Roles let's you package up stuff which can be used for a single or multiple
 playbooks.
 
-* Config
-** ~ansible.cfg~
+** Config
+*** ~ansible.cfg~
 
 #+BEGIN_SRC
 [ssh_connection]
 pipelining = True
 #+END_SRC
 
-** Inventory format
+*** Inventory format
 
 #+BEGIN_SRC ini
 # Application servers

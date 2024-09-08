@@ -1,0 +1,9 @@
+- name: My first play
+  hosts: ubuntus # Run on all machines in the ubuntus group
+  tasks:
+   - name: Ping my hosts
+     ansible.builtin.ping:
+
+   - name: Print message
+     ansible.builtin.debug:
+      msg: Hello world

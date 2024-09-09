@@ -278,7 +278,279 @@ hosts and groups. Some alternatives are:
 - You can use multiple sources for inventory, including both dynamic inventory
   and static files
 
+*** Adding ranges of hosts
 
+If you have a lot of hosts with a similar pattern, you can add them as a range
+rather than listing each hostname separately:
+
+#+BEGIN_SRC yaml
+# ...
+  webservers:
+    hosts:
+      www[01:50].example.com:
+# ...
+  webservers:
+    hosts:
+      www[01:50:2].example.com: # To only have all odd numbers
+#+END_SRC
+
+For numeric patterns, leading zeros can be included or removed, as desired.
+Ranges are inclusive. You can also define alphabetic ranges:
+
+#+BEGIN_SRC yaml
+# ...
+  databases:
+    hosts:
+      db-[a:f].example.com:
+#+END_SRC
+
+*** Passing multiple inventory sources
+
+To target two inventory sources from the command line:
+
+#+BEGIN_SRC bash :noeval
+ansible-playbook get_logs.yml -i staging -i production
+#+END_SRC
+
+*** Organizing inventory in a directory
+
+You can consolidate multiple inventory sources in a single directory. The
+simplest version of this is a directory with multiple files instead of a single
+inventory file.
+
+You can also combine multiple inventory source types in an inventory directory.
+This can be useful for combining static and dynamic hosts and managing them as
+one inventory. The following inventory directory combines an inventory plugin
+source, a dynamic inventory script, and a file with static hosts:
+
+#+BEGIN_SRC
+inventory/
+  openstack.yml          # configure inventory plugin to get hosts from OpenStack cloud
+  dynamic-inventory.py   # add additional hosts with dynamic inventory script
+  on-prem                # add static hosts and groups
+  parent-groups          # add static hosts and groups
+#+END_SRC
+
+You can target this inventory directory as follows:
+
+#+BEGIN_SRC bash :noeval
+ansible-playbook example.yml -i inventory
+#+END_SRC
+
+*** Adding variables to inventory
+
+You can store variable values that relate to a specific host or group in
+inventory. To start with, you may add variables directly to the hosts and groups
+in your main inventory file.
+
+**** Assigning a variable to one machine: host variables
+
+You can easily assign a variable to a single host and then use it later in
+playbooks. You can do this directly in your inventory file.
+
+#+BEGIN_SRC yaml
+atlanta:
+  hosts:
+    host1:
+      http_port: 80
+      maxRequestsPerChild: 808
+    host2:
+      http_port: 303
+      maxRequestsPerChild: 909
+#+END_SRC
+
+Connection variables also work well as host variables:
+
+#+BEGIN_SRC yaml
+my_group:
+  hosts:
+    other1.example.com:
+      ansible_connection: ssh
+      ansible_user: myuser
+    other2.example.com:
+      ansible_connection: ssh
+      ansible_user: myotheruser
+#+END_SRC
+
+**** Inventory aliases
+
+You can also define aliases in your inventory using host variables:
+
+#+BEGIN_SRC yaml
+# ...
+  hosts:
+    jumper:
+      ansible_port: 5555
+      ansible_host: 192.0.2.50
+#+END_SRC
+
+In this example, running Ansible against the host alias ~jumper~ will connect to
+~192.0.2.50~ on port ~5555~. In previous examples we have defined the host/ip
+instead of an alias. In our [[file:inventory/inventory.yaml][inventory.yaml]] we use aliases since all machines are
+located on the same machine (~localhost~).
+
+**** Assigning a variable to many machines: group variables
+
+If all hosts in a group share a variable value, you can apply that variable to
+an entire group at once.
+
+#+BEGIN_SRC yaml
+atlanta:
+  hosts:
+    host1:
+    host2:
+  vars:
+    ntp_server: ntp.atlanta.example.com
+    proxy: proxy.atlanta.example.com
+#+END_SRC
+
+Group variables are a convenient way to apply variables to multiple hosts at
+once. Before executing, however, Ansible always flattens variables, including
+inventory variables, to the host level. If a host is a member of multiple
+groups, Ansible reads variable values from all of those groups. If you assign
+different values to the same variable in different groups, Ansible chooses which
+value to use based on internal rules for merging (see below).
+
+**** Inheriting variable values: group variables for groups of groups
+
+You can apply variables to parent groups (nested groups or groups of groups) as
+well as to child groups.
+
+#+BEGIN_SRC yaml
+usa:
+  children:
+    southeast: # Group level 1
+      children:
+        atlanta: #Group level 2
+          hosts:
+            host1:
+            host2:
+        raleigh: #Group level 2
+          hosts:
+            host2:
+            host3:
+      vars:
+        some_server: foo.southeast.example.com
+        halon_system_timeout: 30
+        self_destruct_countdown: 60
+        escape_pods: 2
+    northeast: # Group level 1
+    northwest: # Group level 1
+    southwest: # Group level 1
+#+END_SRC
+
+A child group’s variables will have higher precedence (override) than a parent
+group’s variables.
+
+**** Organizing host and group variables
+
+Although you can store variables in the main inventory file, storing separate
+host and group variables files may help you organize your variable values more
+easily. You can also use lists and hash data in host and group variables files,
+which you cannot do in your main inventory file.
+
+Valid file extensions include ~.yml~, ~.yaml~, ~.json~, or no file extension.
+
+Ansible loads host and group variable files by searching paths relative to the
+inventory file or the playbook file. If your inventory file at
+~/etc/ansible/hosts~ contains a host named ~foosball~ that belongs to two
+groups, ~raleigh~ and ~webservers~, that host will use variables in YAML files
+at the following locations:
+
+#+BEGIN_SRC
+/etc/ansible/group_vars/raleigh # can optionally end in '.yml', '.yaml', or '.json'
+/etc/ansible/group_vars/webservers
+/etc/ansible/host_vars/foosball
+#+END_SRC
+
+For example, if you group hosts in your inventory by datacenter, and each
+datacenter uses its own NTP server and database server, you can create a file
+called ~/etc/ansible/group_vars/raleigh~ to store the variables for the raleigh
+group:
+
+#+BEGIN_SRC yaml
+---
+ntp_server: acme.example.org
+database_server: storage.example.org
+#+END_SRC
+
+You can also create /directories/ named after your groups or hosts. Ansible will
+read all the files in these directories in lexicographical order. An example
+with the ~raleigh~ group:
+
+#+BEGIN_SRC
+/etc/ansible/group_vars/raleigh/db_settings
+/etc/ansible/group_vars/raleigh/cluster_settings
+#+END_SRC
+
+All hosts in the ~raleigh~ group will have the variables defined in these files
+available to them. This can be very useful to keep your variables organized when
+a single file gets too big, or when you want to use Ansible Vault on some group
+variables.
+
+For ~ansible-playbook~ you can also add ~group_vars/~ and ~host_vars/~
+directories to your playbook directory. Other Ansible commands (for example,
+~ansible~, ~ansible-console~, and so on) will only look for ~group_vars/~ and
+~host_vars/~ in the inventory directory. If you want other commands to load
+group and host variables from a playbook directory, you must provide the
+~--playbook-dir~ option on the command line. If you load inventory files from
+both the playbook directory and the inventory directory, variables in the
+playbook directory will override variables set in the inventory directory.
+
+**** How variables are merged
+
+By default, variables are merged/flattened to the specific host before a play is
+run. This keeps Ansible focused on the Host and Task, so groups do not survive
+outside of inventory and host matching. The order/precedence is (from lowest to
+highest):
+
+- all group (because it is the "parent" of all other groups)
+- parent group
+- child group
+- host
+
+By default, Ansible merges groups at the same parent/child level in ASCII order,
+and variables from the last group loaded overwrite variables from the previous
+groups. For example, an ~a_group~ will be merged with ~b_group~ and ~b_group~
+vars that match will overwrite the ones in ~a_group~.
+
+**** Managing inventory variable load order
+
+When using multiple inventory sources, keep in mind that any variable conflicts
+are resolved according to the merge rules described above and
+[[https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_variables.html#ansible-variable-precedence][Variable precedence: Where should I put a variable?]].
+
+When you pass multiple inventory sources at the command line, Ansible merges
+variables in the order you pass those parameters. If ~[all:vars]~ in staging
+inventory defines ~myvar = 1~ and production inventory defines ~myvar = 2~,
+then:
+
+- Pass ~-i staging -i production~ to run the playbook with ~myvar = 2~
+- Pass ~-i production -i staging~ to run the playbook with ~myvar = 1~
+
+When you put multiple inventory sources in a directory, Ansible merges them in
+ASCII order according to the file names. You can control the load order by
+adding prefixes to the files:
+
+#+BEGIN_SRC
+inventory/
+  01-openstack.yml          # configure inventory plugin to get hosts from Openstack cloud
+  02-dynamic-inventory.py   # add additional hosts with dynamic inventory script
+  03-static-inventory       # add static hosts
+  group_vars/
+    all.yml                 # assign variables to all hosts
+#+END_SRC
+
+If ~01-openstack.yml~ defines ~myvar = 1~ for the group ~all~,
+~02-dynamic-inventory.py~ defines ~myvar = 2~, and ~03-static-inventory~ defines
+~myvar = 3~, the playbook will be run with ~myvar = 3~.
+
+**** Connecting to hosts: behavioral inventory parameters
+
+As mentioned earlier, there are variables that controls how Ansible interacts
+with remote hosts:
+
+For a full list see https://docs.ansible.com/ansible/latest/inventory_guide/intro_inventory.html#connecting-to-hosts-behavioral-inventory-parameters
 
 * Playbooks
 

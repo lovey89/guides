@@ -8,6 +8,9 @@
 - [[#building-an-inventory][Building an inventory]]
   - [[#intro][Intro]]
   - [[#how-to-build-your-inventory][How to build your inventory]]
+  - [[#patterns-targeting-hosts-and-groups][Patterns: targeting hosts and groups]]
+- [[#using-ansible-command-line-tools][Using Ansible command line tools]]
+  - [[#introduction-to-ad-hoc-commands][Introduction to ad hoc commands]]
 - [[#playbooks][Playbooks]]
 - [[#old][Old]]
   - [[#ad-hoc-commands][Ad-hoc commands]]
@@ -118,6 +121,9 @@ running:
 #+BEGIN_SRC bash :noeval
 cd dockerenv
 docker compose up ; docker compose down
+# or
+cd dockerenv
+./startenv.sh
 #+END_SRC
 
 This will run the containers in the foreground and will remove the containers
@@ -421,11 +427,11 @@ usa:
   children:
     southeast: # Group level 1
       children:
-        atlanta: #Group level 2
+        atlanta: # Group level 2
           hosts:
             host1:
             host2:
-        raleigh: #Group level 2
+        raleigh: # Group level 2
           hosts:
             host2:
             host3:
@@ -551,6 +557,184 @@ As mentioned earlier, there are variables that controls how Ansible interacts
 with remote hosts:
 
 For a full list see https://docs.ansible.com/ansible/latest/inventory_guide/intro_inventory.html#connecting-to-hosts-behavioral-inventory-parameters
+
+** Patterns: targeting hosts and groups
+
+TODO
+
+* Using Ansible command line tools
+
+An Ansible ad hoc command uses the ~/usr/bin/ansible~ command-line tool to
+automate a single task on one or more managed nodes. ad hoc commands are quick
+and easy, but they are not reusable.
+
+** Introduction to ad hoc commands
+
+An ad hoc command looks like this:
+
+#+BEGIN_SRC bash :noeval
+ansible [pattern] -m [module] -a "[module options]"
+#+END_SRC
+
+The ~-a~ option accepts options either through the ~key=value~ syntax or a JSON
+string starting with ~{~ and ending with ~}~ for more complex option structure.
+
+*** Use cases for ad hoc tasks
+
+ad hoc tasks can be used to reboot servers, copy files, manage packages and
+users, and much more. You can use any Ansible module in an ad hoc task. ad hoc
+tasks, like playbooks, use a declarative model, calculating and executing the
+actions required to reach a specified final state. They achieve a form of
+idempotence by checking the current state before they begin and doing nothing
+unless the current state is different from the specified final state.
+
+**** Running a command on the servers
+
+The default module for the ~ansible~ command-line utility is the
+[[https://docs.ansible.com/ansible/latest/collections/ansible/builtin/command_module.html#command-module][ansible.builtin.command module]]. The commands below will all be run using the
+prepared [[file:inventory/inventory.yaml][inventory.yaml]] file. We we use the ~all~ group but you can replace it
+with e.g. ~ubuntus~ or ~fedoras~.
+
+To print the user of each target you can run:
+
+#+BEGIN_SRC bash :noeval
+ansible all -a "whoami"
+#+END_SRC
+
+You can also use variables:
+
+#+BEGIN_SRC bash :noeval
+ansible all -a 'echo $PATH' # Notice the quoting to not expand outside ansible
+#+END_SRC
+
+In some cases you may need to escalate your privileges. This can be done with
+the ~--become~ flag:
+
+#+BEGIN_SRC bash :noeval
+ansible all -a "whoami" --become [--ask-become-pass]
+#+END_SRC
+
+If you add ~--ask-become-pass~ or ~-K~, Ansible prompts you for the password to
+use for privilege escalation (e.g. ~sudo~).
+
+By default, Ansible uses only five simultaneous processes. If you have more
+hosts than the value set for the fork count, it can increase the time it takes
+for Ansible to communicate with the hosts. To increase the number of
+simultaneous processes you can use the ~-f~ option. E.g.:
+
+#+BEGIN_SRC bash :noeval
+ansible all -a "whoami" -f 10
+#+END_SRC
+
+To print the content of ~/etc/os-release~ of each target you can run:
+
+#+BEGIN_SRC bash :noeval
+ansible all -a "cat /etc/os-release"
+#+END_SRC
+
+This prints a lot of information the ~command~ module doesn't support extended
+shell syntaxes like piping and redirects (although shell variables will always
+work). If your command requires shell-specific syntax, use the
+~ansible.builtin.shell~ module instead.
+
+#+BEGIN_SRC bash :noeval
+ansible all -m ansible.builtin.shell -a "cat /etc/os-release | grep PRETTY_NAME"
+#+END_SRC
+
+**** Managing files
+
+An ad hoc task can harness the power of Ansible and SCP to transfer many files
+to multiple machines in parallel. To transfer a file directly to all servers:
+
+#+BEGIN_SRC bash :noeval
+ansible all -m ansible.builtin.shell -a "ls -la host_file" # Verify it doesn't exist
+ansible all -m ansible.builtin.copy -a "src=/etc/hosts dest=~/host_file"
+ansible all -m ansible.builtin.shell -a "ls -la host_file" # Verify it exists
+#+END_SRC
+
+Another module that handles files is the [[https://docs.ansible.com/ansible/latest/collections/ansible/builtin/template_module.html#template-module][ansible.builtin.template module]].
+
+The [[https://docs.ansible.com/ansible/latest/collections/ansible/builtin/file_module.html#file-module][ansible.builtin.file module]] allows changing ownership and permissions on
+files. These same options can be passed directly to the ~copy~ module as well:
+
+#+BEGIN_SRC bash :noeval
+ansible all -m ansible.builtin.file -a "dest=/home/ansibleuser/host_file mode=600 owner=root group=root" --become
+ansible all -m ansible.builtin.shell -a "ls -la host_file" # Verify ownership and permission
+#+END_SRC
+
+We can also create directories with the ~file~ module (similar to ~mkdir -p~):
+
+#+BEGIN_SRC bash :noeval
+ansible all -m ansible.builtin.file -a "dest=/home/ansibleuser/dir/subdir mode=755 owner=ansibleuser group=ansibleuser state=directory"
+ansible all -m ansible.builtin.shell -a "ls -lad dir/subdir" # Verify the dir exists
+#+END_SRC
+
+You can also remove directories:
+
+#+BEGIN_SRC bash :noeval
+ansible all -m ansible.builtin.file -a "dest=/home/ansibleuser/dir state=absent"
+ansible all -m ansible.builtin.shell -a "ls -lad dir" # Verify the dir is removed
+#+END_SRC
+
+**** Managing packages
+
+You might also use an ad hoc task to install, update, or remove packages on
+managed nodes using a package management module. Package management modules
+support common functions to install, remove, and generally manage packages. Some
+specific functions for a package manager might not be present in the Ansible
+module since they are not part of general package management.
+
+There is a ~yum~ module that won't work for our ubuntu containers and also an
+~apt~ module that won't work for our fedora containers. But there is a more
+generic ~package~ module we can use:
+
+#+BEGIN_SRC bash :noeval
+ansible all -m ansible.builtin.package -a "name=vim state=present" --become
+#+END_SRC
+
+You can also define a certain version:
+
+#+BEGIN_SRC bash :noeval
+ansible all -m ansible.builtin.package -a "name=vim-2:9.1 state=present" --become
+#+END_SRC
+
+To ensure a package is at the latest version:
+
+#+BEGIN_SRC bash :noeval
+ansible all -m ansible.builtin.package -a "name=vim state=latest" --become
+#+END_SRC
+
+To install or ensure that something is not installed:
+
+#+BEGIN_SRC bash :noeval
+ansible all -m ansible.builtin.package -a "name=vim state=absent" --become
+#+END_SRC
+
+**** Managing users and groups
+
+With the [[https://docs.ansible.com/ansible/latest/collections/ansible/builtin/user_module.html#user-module][ansible.builtin.user module]] you can create, manage, and remove user
+accounts on your managed nodes with ad hoc tasks:
+
+#+BEGIN_SRC bash :noeval
+# Create a user with username 'new_user' and password 'secret'
+ansible all -m ansible.builtin.user -a "name=new_user password=$(echo secret | mkpasswd --method=sha-512 -s)" --become
+# Verify on ubuntu1 that a user is created (username is secret):
+ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i ubuntu/id_rsa -p 1122 new_user@localhost whoami
+# Verify on fedora1 that a user is created (username is secret):
+ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i fedora/id_rsa -p 2122 new_user@localhost whoami
+
+# Remove the user
+ansible all -m ansible.builtin.user -a "name=new_user state=absent" --become
+#+END_SRC
+
+**** Managing services
+
+Ensure (or start) a service is started on all servers:
+
+#+BEGIN_SRC bash :noeval
+ansible fedoras -m ansible.builtin.package -a "name=httpd state=present" --become
+ansible ubuntus -m ansible.builtin.package -a "name=apache2 state=present" --become
+#+END_SRC
 
 * Playbooks
 

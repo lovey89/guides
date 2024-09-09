@@ -63,6 +63,52 @@ the command ~iwconfig~.
 
 * Prepare a file to act as usb storage
 
+I noticed that one device couldn't identify the mass storage and found this
+topic on stackoverflow https://raspberrypi.stackexchange.com/questions/121331/raspberry-pi-zero-g-mass-storage-not-recognized-by-some-systems
+which eventuall led me to https://forum-raspberrypi.de/forum/thread/36132-usb-gadget-mass-storage-emulation/
+(in german).
+
+#+BEGIN_SRC bash :noeval
+sudo dd if=/dev/zero of=/usbdisk.img bs=1M count=2048
+
+(
+echo x # switch to eXpert mode
+echo s # set sectors/track
+echo 8 # g_mass_storage uses a sector size of 512 bytes, so 8 sectors/track will give us 4096 bytes per track
+echo h # set number of heads
+echo 16
+echo c # set number of cylinders
+echo 32768 # 2GB = 2097152 kb / 64 tracks = 32768 cylinders
+echo r # return to normal mode
+echo n # new partition
+echo p # primary
+echo 1
+echo   # accept default
+echo   # accept default
+echo t # new partition is created by default as a Linux partition. Since you want to use the gadget with a Windows host, you should change the partition type to FAT32
+echo b
+echo a # partition should be set as active or USB drive will not be attached to the file-system when plugged in.
+echo p # print new partition table to verify..
+echo w # Write changes
+) | sudo fdisk /usbdisk.img
+
+sudo losetup -o $((2048*512)) /dev/loop0 /usbdisk.img
+sudo mkfs -t vfat -v /dev/loop0 -n usbdisk
+sudo losetup -d /dev/loop0
+
+fdisk -lu /usbdisk.img
+
+sudo mkdir /mnt/usb_share
+sudo mount -o loop,offset=$((2048*512)) -t vfat /usbdisk.img /mnt/usb_share
+echo "Content" | sudo tee /mnt/usb_share/test.txt
+sudo umount /mnt/usb_share
+#+END_SRC
+
+** Old instructions
+
+When the file is created with these instructions it looks like as if it is not
+always identified by all host devices.
+
 #+BEGIN_SRC bash :noeval
 # Create a ~2 GB large file at /piusb.bin
 sudo dd bs=1M if=/dev/zero of=/piusb.bin count=2048

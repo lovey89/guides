@@ -93,10 +93,10 @@ ssh-keygen -b 4096 -t rsa -f ./id_rsa -N ""
 docker build -t ubuntuansibletarget:latest .
 
 # Start env. I use --init because it seems to respect ctrl-c when I want to exit
-docker run --rm -p 1022:22 --init ubuntuansibletarget:latest
+docker run --rm -p 2022:22 --init ubuntuansibletarget:latest
 
 # Test connection
-ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i id_rsa -p 1022 ansibleuser@localhost
+ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i id_rsa -p 2022 ansibleuser@localhost
 #+END_SRC
 
 *** Fedora environment
@@ -107,10 +107,10 @@ ssh-keygen -b 4096 -t rsa -f ./id_rsa -N ""
 docker build -t fedoraansibletarget:latest .
 
 # Start env. I use --init because it seems to respect ctrl-c when I want to exit
-docker run --rm -p 2022:22 --init fedoraansibletarget:latest
+docker run --rm -p 3022:22 --init fedoraansibletarget:latest
 
 # Test connection
-ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i id_rsa -p 2022 ansibleuser@localhost
+ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i id_rsa -p 3022 ansibleuser@localhost
 #+END_SRC
 
 *** Create multiple containers with the ~docker compose~ command
@@ -132,10 +132,10 @@ automatically when stopped.
 Try connecting to each machine:
 
 #+BEGIN_SRC bash :noeval
-ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i ubuntu/id_rsa -p 1022 ansibleuser@localhost whoami
-ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i ubuntu/id_rsa -p 1122 ansibleuser@localhost whoami
-ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i fedora/id_rsa -p 2022 ansibleuser@localhost whoami
-ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i fedora/id_rsa -p 2122 ansibleuser@localhost whoami
+ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i ubuntu/id_rsa -p 2022 ansibleuser@localhost whoami
+ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i ubuntu/id_rsa -p 2122 ansibleuser@localhost whoami
+ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i fedora/id_rsa -p 3022 ansibleuser@localhost whoami
+ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i fedora/id_rsa -p 3122 ansibleuser@localhost whoami
 #+END_SRC
 
 * Building an inventory
@@ -719,9 +719,9 @@ accounts on your managed nodes with ad hoc tasks:
 # Create a user with username 'new_user' and password 'secret'
 ansible all -m ansible.builtin.user -a "name=new_user password=$(echo secret | mkpasswd --method=sha-512 -s)" --become
 # Verify on ubuntu1 that a user is created (username is secret):
-ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i ubuntu/id_rsa -p 1122 new_user@localhost whoami
+ssh -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -p 2122 new_user@localhost whoami
 # Verify on fedora1 that a user is created (username is secret):
-ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i fedora/id_rsa -p 2122 new_user@localhost whoami
+ssh -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -p 3122 new_user@localhost whoami
 
 # Remove the user
 ansible all -m ansible.builtin.user -a "name=new_user state=absent" --become
@@ -733,7 +733,49 @@ Ensure (or start) a service is started on all servers:
 
 #+BEGIN_SRC bash :noeval
 ansible fedoras -m ansible.builtin.package -a "name=httpd state=present" --become
+ansible fedoras -m ansible.builtin.service -a "name=httpd state=started" --become
+
 ansible ubuntus -m ansible.builtin.package -a "name=apache2 state=present" --become
+ansible ubuntus -m ansible.builtin.service -a "name=apache2 state=started" --become
+#+END_SRC
+
+Verify that it's working by visiting:
+
+- http://localhost:2080
+- http://localhost:2180
+- http://localhost:3080
+- http://localhost:3180
+
+You can restart a service:
+
+#+BEGIN_SRC bash :noeval
+ansible fedoras -m ansible.builtin.service -a "name=httpd state=restarted" --become
+#+END_SRC
+
+And ensure that a service is stopped (or stop it):
+
+#+BEGIN_SRC bash :noeval
+ansible fedoras -m ansible.builtin.service -a "name=httpd state=stopped" --become
+#+END_SRC
+
+**** Gathering facts
+
+Facts represent discovered variables about a system. You can use facts to
+implement conditional execution of tasks but also just to get ad hoc information
+about your systems. To see all facts use the [[https://docs.ansible.com/ansible/latest/collections/ansible/builtin/setup_module.html#setup-module][ansible.builtin.setup module]]:
+
+#+BEGIN_SRC bash :noeval
+ansible all -m ansible.builtin.setup
+#+END_SRC
+
+**** Check mode (dry run)
+
+In check mode, Ansible does not make any changes to remote systems. Ansible
+prints the commands only. It does not run the commands. You activate it with the
+~-C~ or ~--check~ option.
+
+#+BEGIN_SRC bash :noeval
+ansible all -m copy -a "content=foo dest=/root/bar.txt" -C
 #+END_SRC
 
 * Playbooks

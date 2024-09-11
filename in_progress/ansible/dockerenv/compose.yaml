@@ -3,20 +3,24 @@ services:
     image: ubuntuansibletarget:latest
     privileged: true
     ports:
-      - "1022:22"
+      - "2022:22"
+      - "2080:80"
   ubuntu1:
     image: ubuntuansibletarget:latest
     privileged: true
     ports:
-      - "1122:22"
+      - "2122:22"
+      - "2180:80"
 
   fedora0:
     image: fedoraansibletarget:latest
     privileged: true
     ports:
-      - "2022:22"
+      - "3022:22"
+      - "3080:80"
   fedora1:
     image: fedoraansibletarget:latest
     privileged: true
     ports:
-      - "2122:22"
+      - "3122:22"
+      - "3180:80"

@@ -12,6 +12,7 @@
 - [[#using-ansible-command-line-tools][Using Ansible command line tools]]
   - [[#introduction-to-ad-hoc-commands][Introduction to ad hoc commands]]
 - [[#playbooks][Playbooks]]
+  - [[#ansible-playbooks][Ansible playbooks]]
 - [[#old][Old]]
   - [[#ad-hoc-commands][Ad-hoc commands]]
   - [[#module-documentation][Module documentation]]
@@ -917,6 +918,74 @@ inventory that it can use in the playbook.
 Th play recap summarizes the results of all tasks in the playbook per host. In
 this example, there are three tasks so ~ok=3~ indicates that each task ran
 successfully.
+
+** Ansible playbooks
+
+Ansible Playbooks offer a repeatable, reusable, simple configuration management
+and multi-machine deployment system, one that is well suited to deploying
+complex applications. If you need to execute a task with Ansible more than once,
+write a playbook and put it under source control. Then you can use the playbook
+to push out new configuration or confirm the configuration of remote systems.
+
+Playbooks can:
+
+- declare configurations
+- orchestrate steps of any manual ordered process, on multiple sets of machines,
+  in a defined order
+- launch tasks synchronously or asynchronously
+
+*** Playbook syntax
+
+A playbook is composed of one or more /plays/ in an ordered list. Each play
+executes part of the overall goal of the playbook, running one or more tasks.
+Each task calls an Ansible module.
+
+*** Playbook execution
+
+A playbook runs in order from top to bottom. Within each play, tasks also run in
+order from top to bottom. Playbooks with multiple plays can orchestrate
+multi-machine deployments, running one play on your webservers, then another
+play on your database servers, then a third play on your network infrastructure,
+and so on. At a minimum, each play defines two things:
+
+- the managed nodes to target, using a pattern
+- at least one task to execute
+
+In this example, the first play targets the web servers; the second play targets
+the database servers.
+
+#+BEGIN_SRC yaml
+---
+- name: Update web servers
+  hosts: webservers
+  remote_user: root
+
+  tasks:
+  - name: Ensure apache is at the latest version
+    ansible.builtin.yum:
+      name: httpd
+      state: latest
+
+  - name: Write the apache config file
+    ansible.builtin.template:
+      src: /srv/httpd.j2
+      dest: /etc/httpd.conf
+
+- name: Update db servers
+  hosts: databases
+  remote_user: root
+
+  tasks:
+  - name: Ensure postgresql is at the latest version
+    ansible.builtin.yum:
+      name: postgresql
+      state: latest
+
+  - name: Ensure that postgresql is started
+    ansible.builtin.service:
+      name: postgresql
+      state: started
+#+END_SRC
 
 * Old
 ** Ad-hoc commands

@@ -23,4 +23,9 @@ RUN ssh-keygen -A
 
 EXPOSE 22
 
-CMD ["/usr/sbin/sshd","-D","-e"]
+# Old solution. With this one systemctl would not work
+#CMD ["/usr/sbin/sshd","-D","-e"]
+
+# New solution with working systemctl. Requires privileged to work
+ENTRYPOINT ["/sbin/init"]
+CMD ["/bin/sleep", "infinity"]

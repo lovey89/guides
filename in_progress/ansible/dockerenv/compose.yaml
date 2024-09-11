@@ -1,22 +1,22 @@
 services:
   ubuntu0:
     image: ubuntuansibletarget:latest
+    privileged: true
     ports:
       - "1022:22"
-    init: true
   ubuntu1:
     image: ubuntuansibletarget:latest
+    privileged: true
     ports:
       - "1122:22"
-    init: true
 
   fedora0:
     image: fedoraansibletarget:latest
+    privileged: true
     ports:
       - "2022:22"
-    init: true
   fedora1:
     image: fedoraansibletarget:latest
+    privileged: true
     ports:
       - "2122:22"
-    init: true

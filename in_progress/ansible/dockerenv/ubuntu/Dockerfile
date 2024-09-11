@@ -10,12 +10,13 @@ RUN apt-get update -y \
   && apt install -y --no-install-recommends \
       openssh-server \
       sudo \
+      systemd-sysv \
       # Actually needed by ansible
       python3
 
 # Setup running user on the container with sudo rights and
 # password-less ssh login
-RUN useradd -m ${USER} && adduser ${USER} sudo && echo "${USER} ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/sudoers
+RUN useradd -m ${USER} --shell /bin/bash && adduser ${USER} sudo && echo "${USER} ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/sudoers
 
 # As the user setup the ssh identity using the key in the tmp folder
 USER "${USER}"
@@ -29,4 +30,9 @@ RUN service ssh start
 
 EXPOSE 22
 
-CMD ["/usr/sbin/sshd", "-D", "-e"]
+# Old solution. With this one systemctl would not work
+#CMD ["/usr/sbin/sshd", "-D", "-e"]
+
+# New solution with working systemctl. Requires privileged to work
+ENTRYPOINT ["/sbin/init"]
+CMD ["/bin/sleep", "infinity"]

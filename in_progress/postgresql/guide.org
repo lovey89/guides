@@ -25,6 +25,7 @@
   - [[#convert-json-to-set-of-records][Convert json to set of records]]
 - [[#query-data][Query data]]
   - [[#ordering][Ordering]]
+- [[#functions-to-investigate][Functions to investigate]]
 #+END_QUOTE
 
 * Create local postgres database container
@@ -355,4 +356,23 @@ ORDER BY
   ELSE id
   END
 DESC
+#+END_SRC
+
+* Functions to investigate
+
+- row_to_json
+- coalesce
+- array_to_string
+- split_part
+- array_agg
+- STRING_AGG
+- SELECT DISTINCT ON
+
+#+BEGIN_SRC sql
+select *
+from json_to_record('{"my_string": "myStringValue", "my_int": 5}') as x(
+  my_string text,
+  my_int int);
+
+select * from json_to_recordset('[{"a":1,"b":"foo"},{"a":"2","c":"bar"}]') as x(a int, b text);
 #+END_SRC

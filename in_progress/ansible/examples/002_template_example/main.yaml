@@ -1,0 +1,16 @@
+---
+- name: Write hostname
+  hosts: all
+  tasks:
+  - name: write hostname using jinja2
+    ansible.builtin.template:
+       src: templates/test.j2
+       dest: /tmp/hostname
+
+  - name: Read file
+    ansible.builtin.command: "cat /tmp/hostname"
+    register: command_output
+
+  - name: Print to console
+    ansible.builtin.debug:
+      msg: "{{command_output.stdout}}"

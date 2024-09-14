@@ -36,11 +36,14 @@
     - [[#desired-state-and-idempotency][Desired state and 'idempotency']]
     - [[#running-playbooks][Running playbooks]]
     - [[#verifying-playbooks][Verifying playbooks]]
+  - [[#working-with-playbooks][Working with playbooks]]
+    - [[#templating-with-jinja2][Templating with Jinja2]]
+    - [[#example-1][Example]]
 - [[#old][Old]]
   - [[#ad-hoc-commands][Ad-hoc commands]]
   - [[#module-documentation][Module documentation]]
   - [[#playbooks-1][Playbooks]]
-    - [[#example-1][Example 1]]
+    - [[#example-1-1][Example 1]]
     - [[#example-2][Example 2]]
     - [[#example-3][Example 3]]
     - [[#example-4][Example 4]]
@@ -1079,6 +1082,38 @@ verification, including ~--check~, ~--diff~, ~--list-hosts~, ~--list-tasks~, and
 
 You can use ~ansible-lint~ for detailed, Ansible-specific feedback on your
 playbooks before you execute them.
+
+** Working with playbooks
+
+If Ansible modules are the tools in your workshop, playbooks are your
+instruction manuals, and your inventory of hosts is your raw material.
+
+*** Templating with Jinja2
+
+Ansible uses Jinja2 templating to enable dynamic expressions and access to
+variables and facts. You can use templating with the [[https://docs.ansible.com/ansible/latest/collections/ansible/builtin/template_module.html#template-module][template module]]. For
+example, you can create a template for a configuration file, then deploy that
+configuration file to multiple environments and supply the correct data (IP
+address, hostname, version) for each environment. You can also use templating
+in playbooks directly, by templating task names and more. You can use all the
+[[https://jinja.palletsprojects.com/en/3.1.x/templates/#builtin-filters][standard filters and tests included in Jinja2]]. Ansible includes additional
+specialized filters for selecting and transforming data, tests for evaluating
+template expressions, and Lookup plugins for retrieving data from external
+sources such as files, APIs, and databases for use in templating.
+
+All templating happens on the Ansible control node before the task is sent and
+executed on the target machine.
+
+*** Example
+
+In [[file:examples/002_template_example][002_template_example]] a small example has been prepared which utilizes the
+~template~ plugin.
+
+Try it out with:
+
+#+BEGIN_SRC bash :noeval
+ansible-playbook examples/002_template_example/main.yaml
+#+END_SRC
 
 * Old
 ** Ad-hoc commands

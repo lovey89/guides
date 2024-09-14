@@ -38,12 +38,12 @@
     - [[#verifying-playbooks][Verifying playbooks]]
   - [[#working-with-playbooks][Working with playbooks]]
     - [[#templating-with-jinja2][Templating with Jinja2]]
-    - [[#example-1][Example]]
+    - [[#using-filters-to-manipulate-data][Using filters to manipulate data]]
 - [[#old][Old]]
   - [[#ad-hoc-commands][Ad-hoc commands]]
   - [[#module-documentation][Module documentation]]
   - [[#playbooks-1][Playbooks]]
-    - [[#example-1-1][Example 1]]
+    - [[#example-1][Example 1]]
     - [[#example-2][Example 2]]
     - [[#example-3][Example 3]]
     - [[#example-4][Example 4]]
@@ -1104,7 +1104,7 @@ sources such as files, APIs, and databases for use in templating.
 All templating happens on the Ansible control node before the task is sent and
 executed on the target machine.
 
-*** Example
+**** Example
 
 In [[file:examples/002_template_example][002_template_example]] a small example has been prepared which utilizes the
 ~template~ plugin.
@@ -1113,6 +1113,161 @@ Try it out with:
 
 #+BEGIN_SRC bash :noeval
 ansible-playbook examples/002_template_example/main.yaml
+#+END_SRC
+
+*** Using filters to manipulate data
+**** Handling undefined variables
+***** Providing default values
+
+#+BEGIN_SRC
+{{ some_variable | default(5) }}
+#+END_SRC
+
+If the variable ~some_variable~ is not defined, Ansible uses the default value
+~5~. Also works for ~{{ foo.bar.baz | default('DEFAULT') }}~ if either ~foo~,
+~foo.bar~ or ~foo.bar.baz~ would be undefined.
+
+If you want to use the default value when variables evaluate to false or an
+empty string you have to set the second parameter to ~true~:
+
+#+BEGIN_SRC
+{{ lookup('env', 'MY_USER') | default('admin', true) }}
+#+END_SRC
+
+***** Making variables optional
+
+By default, Ansible requires values for all variables in a templated expression.
+However, you can make specific module variables optional. For example, you might
+want to use a system default for some items and control the value for others. To
+make a module variable optional, set the default value to the special variable
+~omit~:
+
+#+BEGIN_SRC
+mode: "{{ item.mode | default(omit) }}"
+#+END_SRC
+
+In this example Ansible would not send a value for the ~mode~ field.
+
+***** Defining mandatory values
+
+If you configure Ansible to ignore undefined variables, you may want to define
+some values as mandatory.
+
+#+BEGIN_SRC
+{{ variable | mandatory }}
+#+END_SRC
+
+A convenient way of requiring a variable to be overridden is to give it an
+undefined value using the ~undef()~ function:
+
+#+BEGIN_SRC
+galaxy_url: "https://galaxy.ansible.com"
+galaxy_api_key: "{{ undef(hint='You must specify your Galaxy API key') }}"
+#+END_SRC
+
+**** Ternary operator
+
+You can create a test, then define one value to use when the test returns ~true~
+and another when the test returns ~false~:
+
+#+BEGIN_SRC
+{{ (status == 'needs_restart') | ternary('restart', 'continue') }}
+#+END_SRC
+
+In addition, you can define one value to use on ~true~, one value on ~false~ and
+a third value on ~null~:
+
+#+BEGIN_SRC
+{{ enabled | ternary('no shutdown', 'shutdown', omit) }}
+#+END_SRC
+
+**** Managing data types
+***** Transforming dictionaries into lists
+
+Use the ~ansible.builtin.dict2items~ filter to transform a dictionary into a
+list of items suitable for looping:
+
+#+BEGIN_SRC
+{{ dict | dict2items }}
+#+END_SRC
+
+Dictionary data before:
+
+#+BEGIN_SRC yaml
+tags:
+  Application: payment
+  Environment: dev
+#+END_SRC
+
+List data after:
+
+#+BEGIN_SRC yaml
+- key: Application
+  value: payment
+- key: Environment
+  value: dev
+#+END_SRC
+
+If you want to configure the names of the keys, the ~ansible.builtin.dict2items~
+filter accepts 2 keyword arguments. Pass the ~key_name~ and ~value_name~
+arguments to configure the names of the keys in the list output:
+
+#+BEGIN_SRC
+{{ files | dict2items(key_name='file', value_name='path') }}
+#+END_SRC
+
+***** Transforming lists into dictionaries
+
+Use the ~ansible.builtin.items2dict~ filter to transform a list into a
+dictionary, mapping the content into ~key: value~ pairs:
+
+#+BEGIN_SRC
+{{ tags | items2dict }}
+#+END_SRC
+
+List data before:
+
+#+BEGIN_SRC yaml
+tags:
+  - key: Application
+    value: payment
+  - key: Environment
+    value: dev
+#+END_SRC
+
+Dictionary data after:
+
+#+BEGIN_SRC yaml
+Application: payment
+Environment: dev
+#+END_SRC
+
+If the input list doesn't use the ~key~ and ~value~ fields, you must pass the
+~key_name~ and ~value_name~ arguments to configure the transformation. For
+example:
+
+#+BEGIN_SRC
+{{ fruits | items2dict(key_name='fruit', value_name='color') }}
+#+END_SRC
+
+***** Forcing the data type
+
+You can cast values as certain types. For example, if you expect the input
+~"True"~ from a ~vars_prompt~ and you want Ansible to recognize it as a boolean
+value instead of a string:
+
+#+BEGIN_SRC yaml
+- ansible.builtin.debug:
+     msg: test
+  when: some_string_value | bool
+#+END_SRC
+
+If you want to perform a mathematical comparison on a fact and you want Ansible
+to recognize it as an integer instead of a string:
+
+#+BEGIN_SRC yaml
+- shell: echo "only on Red Hat 6, derivatives, and later"
+  when: ansible_facts['os_family'] == "RedHat" and ansible_facts['lsb']['major_release'] | int >= 6
 #+END_SRC
 
 * Old

@@ -1,32 +1,64 @@
-* Table of Contents :TOC:QUOTE:
+* Table of Contents :TOC_3:QUOTE:
 #+BEGIN_QUOTE
 - [[#links][Links]]
 - [[#getting-started][Getting started]]
   - [[#install][Install]]
+    - [[#install-on-the-managed-node][Install on the managed node]]
   - [[#configure-ansible][Configure ansible]]
+    - [[#a-note-about-comments-in-ansiblecfg][A note about comments in ~ansible.cfg~]]
   - [[#create-docker-target-environment][Create docker target environment]]
+    - [[#ubuntu-environment][Ubuntu environment]]
+    - [[#fedora-environment][Fedora environment]]
+    - [[#create-multiple-containers-with-the-docker-compose-command][Create multiple containers with the ~docker compose~ command]]
 - [[#building-an-inventory][Building an inventory]]
   - [[#intro][Intro]]
+    - [[#variables][Variables]]
+    - [[#metagroups][Metagroups]]
+    - [[#example][Example]]
   - [[#how-to-build-your-inventory][How to build your inventory]]
+    - [[#adding-ranges-of-hosts][Adding ranges of hosts]]
+    - [[#passing-multiple-inventory-sources][Passing multiple inventory sources]]
+    - [[#organizing-inventory-in-a-directory][Organizing inventory in a directory]]
+    - [[#adding-variables-to-inventory][Adding variables to inventory]]
   - [[#patterns-targeting-hosts-and-groups][Patterns: targeting hosts and groups]]
+    - [[#using-patterns][Using patterns]]
+    - [[#common-patterns][Common patterns]]
+    - [[#pattern-processing-order][Pattern processing order]]
+    - [[#limit-a-run-to-a-subset-of-hosts][Limit a run to a subset of hosts]]
 - [[#using-ansible-command-line-tools][Using Ansible command line tools]]
   - [[#introduction-to-ad-hoc-commands][Introduction to ad hoc commands]]
+    - [[#use-cases-for-ad-hoc-tasks][Use cases for ad hoc tasks]]
 - [[#playbooks][Playbooks]]
   - [[#ansible-playbooks][Ansible playbooks]]
+    - [[#playbook-syntax][Playbook syntax]]
+    - [[#playbook-execution][Playbook execution]]
+    - [[#task-execution][Task execution]]
+    - [[#desired-state-and-idempotency][Desired state and 'idempotency']]
+    - [[#running-playbooks][Running playbooks]]
+    - [[#verifying-playbooks][Verifying playbooks]]
 - [[#old][Old]]
   - [[#ad-hoc-commands][Ad-hoc commands]]
   - [[#module-documentation][Module documentation]]
   - [[#playbooks-1][Playbooks]]
+    - [[#example-1][Example 1]]
+    - [[#example-2][Example 2]]
+    - [[#example-3][Example 3]]
+    - [[#example-4][Example 4]]
+    - [[#other-keywords-to-investigate][Other keywords to investigate]]
   - [[#ansible-vault][Ansible vault]]
   - [[#playbook-organization][Playbook organization]]
   - [[#roles][Roles]]
   - [[#config][Config]]
+    - [[#ansiblecfg][~ansible.cfg~]]
+    - [[#inventory-format][Inventory format]]
 #+END_QUOTE
 
 * Links
 
 - https://www.jeffgeerling.com/blog/2020/ansible-101-jeff-geerling-youtube-streaming-series (ansible 2.9)?
 - https://docs.ansible.com/ansible/latest/getting_started/basic_concepts.html (glossary)
+- https://docs.ansible.com/ansible/latest/reference_appendices/playbooks_keywords.html#playbook-keywords
+- https://docs.ansible.com/ansible/latest/reference_appendices/general_precedence.html#general-precedence-rules
 
 * Getting started
 ** Install
@@ -986,6 +1018,67 @@ the database servers.
       name: postgresql
       state: started
 #+END_SRC
+
+Your playbook can include more than just a hosts line and tasks. See more about
+[[https://docs.ansible.com/ansible/latest/reference_appendices/playbooks_keywords.html#playbook-keywords][Playbook Keywords]].
+
+*** Task execution
+
+By default, Ansible executes each task in order, one at a time, against all
+machines matched by the host pattern. Each task executes a module with specific
+arguments. When a task has executed on all target machines, Ansible moves on to
+the next task. If a task fails on a host, Ansible takes that host out of the
+rotation for the rest of the playbook.
+
+*** Desired state and 'idempotency'
+
+Most Ansible modules check whether the desired final state has already been
+achieved, and exit without performing any actions if that state has been
+achieved, so that repeating the task does not change the final state. Modules
+that behave this way are often called ‘idempotent.’ Whether you run a playbook
+once, or multiple times, the outcome should be the same. However, not all
+playbooks and not all modules behave this way. If you are unsure, test your
+playbooks in a sandbox environment before running them multiple times in
+production.
+
+*** Running playbooks
+
+Use the ~ansible-playbook~ command:
+
+#+BEGIN_SRC bash :noeval
+ansible-playbook playbook.yml
+#+END_SRC
+
+Use the ~--verbose~ flag when running your playbook to see detailed output from
+successful modules as well as unsuccessful ones.
+
+**** Running playbooks in check mode
+
+Ansible’s check mode allows you to execute a playbook without applying any
+alterations to your systems. You can use check mode to test playbooks before
+implementing them in a production environment.
+
+To run a playbook in check mode, you can pass the ~-C~ or ~--check~ flag to the
+ansible-playbook command:
+
+#+BEGIN_SRC bash :noeval
+ansible-playbook --check playbook.yaml
+#+END_SRC
+
+Executing this command will run the playbook normally, but instead of
+implementing any modifications, Ansible will simply provide a report on the
+changes it would have made. This report encompasses details such as file
+modifications, command execution, and module calls.
+
+*** Verifying playbooks
+
+You may want to verify your playbooks to catch syntax errors and other problems
+before you run them. The ~ansible-playbook~ command offers several options for
+verification, including ~--check~, ~--diff~, ~--list-hosts~, ~--list-tasks~, and
+~--syntax-check~.
+
+You can use ~ansible-lint~ for detailed, Ansible-specific feedback on your
+playbooks before you execute them.
 
 * Old
 ** Ad-hoc commands

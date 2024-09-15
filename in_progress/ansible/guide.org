@@ -39,6 +39,11 @@
   - [[#working-with-playbooks][Working with playbooks]]
     - [[#templating-with-jinja2][Templating with Jinja2]]
     - [[#using-filters-to-manipulate-data][Using filters to manipulate data]]
+    - [[#tests][Tests]]
+    - [[#lookups][Lookups]]
+    - [[#python3-in-templates][Python3 in templates]]
+    - [[#the-now-function-get-the-current-time][The ~now~ function: get the current time]]
+    - [[#loops][Loops]]
 - [[#old][Old]]
   - [[#ad-hoc-commands][Ad-hoc commands]]
   - [[#module-documentation][Module documentation]]
@@ -128,11 +133,14 @@ cd dockerenv/ubuntu
 ssh-keygen -b 4096 -t rsa -f ./id_rsa -N ""
 docker build -t ubuntuansibletarget:latest .
 
-# Start env. I use --init because it seems to respect ctrl-c when I want to exit
-docker run --rm -p 2022:22 --init ubuntuansibletarget:latest
+# Start env
+docker run --name ubuntutarget --rm -p 2022:22 --privileged ubuntuansibletarget:latest
 
 # Test connection
 ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i id_rsa -p 2022 ansibleuser@localhost
+
+# Stop container. It takes a few seconds to stop the container
+docker stop ubuntutarget
 #+END_SRC
 
 *** Fedora environment
@@ -142,11 +150,14 @@ cd dockerenv/fedora
 ssh-keygen -b 4096 -t rsa -f ./id_rsa -N ""
 docker build -t fedoraansibletarget:latest .
 
-# Start env. I use --init because it seems to respect ctrl-c when I want to exit
-docker run --rm -p 3022:22 --init fedoraansibletarget:latest
+# Start env
+docker run --name fedoratarget --rm -p 3022:22 --privileged fedoraansibletarget:latest
 
 # Test connection
 ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -i id_rsa -p 3022 ansibleuser@localhost
+
+# Stop container. It takes a few seconds to stop the container
+docker stop fedoratarget
 #+END_SRC
 
 *** Create multiple containers with the ~docker compose~ command
@@ -1268,6 +1279,467 @@ to recognize it as an integer instead of a string:
 #+BEGIN_SRC yaml
 - shell: echo "only on Red Hat 6, derivatives, and later"
   when: ansible_facts['os_family'] == "RedHat" and ansible_facts['lsb']['major_release'] | int >= 6
+#+END_SRC
+
+**** Other examples
+
+There are a lot more examples at:
+https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_filters.html
+
+*** Tests
+
+[[https://jinja.palletsprojects.com/en/latest/templates/#tests][Tests]] in Jinja are a way of evaluating template expressions and returning True
+or False. Jinja ships with many of these. See [[https://jinja.palletsprojects.com/en/latest/templates/#builtin-tests][builtin tests]] in the official
+Jinja template documentation.
+
+The main difference between tests and filters are that Jinja tests are used for
+comparisons, whereas filters are used for data manipulation.
+
+**** Test syntax
+
+The syntax for using a jinja test is as follows
+
+#+BEGIN_SRC
+variable is test_name
+#+END_SRC
+
+**** Testing strings
+
+To match strings against a substring or a regular expression, use the ~match~,
+~search~ or ~regex~ tests:
+
+#+BEGIN_SRC yaml
+vars:
+  url: "https://example.com/users/foo/resources/bar"
+
+tasks:
+    - debug:
+        msg: "matched pattern 1"
+      # match succeeds if it finds the pattern at the beginning of the string
+      when: url is match("https://example.com/users/.*/resources")
+
+    - debug:
+        msg: "matched pattern 2"
+      # search succeeds if it finds the pattern anywhere within string
+      when: url is search("users/.*/resources/.*")
+
+    - debug:
+        msg: "matched pattern 3"
+      when: url is search("users")
+
+    - debug:
+        msg: "matched pattern 4"
+      # By default, regex works like search, but regex can be configured to
+      # perform other tests as well, by passing the match_type keyword argument
+      when: url is regex("example\.com/\w+/foo")
+#+END_SRC
+
+More information can be found in the relevant [[https://docs.python.org/3/library/re.html#regular-expression-objects][Python documentation about regex]].
+
+**** Testing truthiness
+
+#+BEGIN_SRC yaml
+- debug:
+    msg: "Truthy"
+  when: value is truthy
+  vars:
+    value: "some string"
+
+- debug:
+    msg: "Falsy"
+  when: value is falsy
+  vars:
+    value: ""
+#+END_SRC
+
+**** Comparing versions
+
+https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_tests.html#comparing-versions
+
+**** Set theory tests
+
+To see if a list includes or is included by another list, you can use ~subset~
+and ~superset~:
+
+#+BEGIN_SRC yaml
+vars:
+    a: [1,2,3,4,5]
+    b: [2,3]
+tasks:
+    - debug:
+        msg: "A includes B"
+      when: a is superset(b)
+
+    - debug:
+        msg: "B is included in A"
+      when: b is subset(a)
+#+END_SRC
+
+**** Testing paths
+
+The following tests can provide information about a path on the control node:
+
+#+BEGIN_SRC yaml
+- debug:
+    msg: "path is a directory"
+  when: mypath is directory
+
+- debug:
+    msg: "path is a file"
+  when: mypath is file
+
+- debug:
+    msg: "path is a symlink"
+  when: mypath is link
+
+- debug:
+    msg: "path already exists"
+  when: mypath is exists
+
+- debug:
+    msg: "path is {{ (mypath is abs)|ternary('absolute','relative')}}"
+
+- debug:
+    msg: "path is the same file as path2"
+  when: mypath is same_file(path2)
+
+- debug:
+    msg: "path is a mount"
+  when: mypath is mount
+
+- debug:
+    msg: "path is a directory"
+  when: mypath is directory
+  vars:
+     mypath: /my/path
+
+- debug:
+    msg: "path is a file"
+  when: "'/my/path' is file"
+#+END_SRC
+
+**** Testing task results
+
+The following tasks are illustrative of the tests meant to check the status of
+tasks:
+
+#+BEGIN_SRC yaml
+tasks:
+  - shell: /usr/bin/foo
+    ignore_errors: True
+    register: result
+
+  - debug:
+      msg: "it failed"
+    when: result is failed
+
+  # in most cases you'll want a handler, but if you want to do something right now, this is nice
+  - debug:
+      msg: "it changed"
+    when: result is changed
+
+  - debug:
+      msg: "it succeeded in Ansible >= 2.1"
+    when: result is succeeded
+
+  - debug:
+      msg: "it succeeded"
+    when: result is success
+
+  - debug:
+      msg: "it was skipped"
+    when: result is skipped
+#+END_SRC
+
+*** Lookups
+
+Lookup plugins retrieve data from outside sources such as files, databases,
+key/value stores, APIs, and other services.
+
+*** Python3 in templates
+
+Ansible uses Jinja2 to take advantage of Python data types and standard
+functions in templates and variables. You can use these data types and standard
+functions to perform a rich set of operations on your data.
+
+**** Dictionary views
+
+#+BEGIN_SRC yaml
+vars:
+  hosts:
+    testhost1: 127.0.0.2
+    testhost2: 127.0.0.3
+tasks:
+  - debug:
+      msg: '{{ item }}'
+    # Works with both Python 2 and Python 3
+    loop: "{{ hosts.keys() | list }}"
+#+END_SRC
+
+**** ~dict.iteritems()~
+
+#+BEGIN_SRC yaml
+vars:
+  hosts:
+    testhost1: 127.0.0.2
+    testhost2: 127.0.0.3
+tasks:
+  - debug:
+      msg: '{{ item }}'
+    # Works with both Python 2 and Python 3
+    loop: "{{ hosts.items() | list }}"
+#+END_SRC
+
+*** The ~now~ function: get the current time
+
+The ~now()~ Jinja2 function retrieves a Python datetime object or a string
+representation for the current time. It supports two arguments:
+
+- ~utc~ :: Specify ~True~ to get the current time in UTC. Defaults to ~False~.
+- ~fmt~ :: Accepts a [[https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior][strftime]] string that returns a formatted date time string.
+
+E.g.
+
+#+BEGIN_SRC
+dtg: "Current time (UTC): {{ now(utc=true,fmt='%Y-%m-%d %H:%M:%S') }}"
+#+END_SRC
+
+*** Loops
+
+Ansible offers the ~loop~, ~with_<lookup>~, and ~until~ keywords to execute a
+task multiple times. Examples of commonly-used loops include changing ownership
+on several files and/or directories with the file module, creating multiple
+users with the user module, and repeating a polling step until a certain result
+is reached.
+
+**** Using loops
+***** Iterating over a simple list
+
+Repeated tasks can be written as standard loops over a simple list of strings.
+You can define the list directly in the task.
+
+#+BEGIN_SRC yaml
+- name: Add several users
+  ansible.builtin.user:
+    name: "{{ item }}"
+    state: present
+    groups: "wheel"
+  loop:
+     - testuser1
+     - testuser2
+#+END_SRC
+
+You can define the list in a variables file, or in the ~vars~ section of your
+play, then refer to the name of the list in the task.
+
+#+BEGIN_SRC
+loop: "{{ somelist }}"
+#+END_SRC
+
+Either of these examples would be the equivalent of:
+
+#+BEGIN_SRC yaml
+- name: Add user testuser1
+  ansible.builtin.user:
+    name: "testuser1"
+    state: present
+    groups: "wheel"
+
+- name: Add user testuser2
+  ansible.builtin.user:
+    name: "testuser2"
+    state: present
+    groups: "wheel"
+#+END_SRC
+
+***** Iterating over a list of hashes
+
+If you have a list of hashes, you can reference subkeys in a loop. For example:
+
+#+BEGIN_SRC yaml
+- name: Add several users
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    state: present
+    groups: "{{ item.groups }}"
+  loop:
+    - { name: 'testuser1', groups: 'wheel' }
+    - { name: 'testuser2', groups: 'root' }
+#+END_SRC
+
+When combining conditionals with a loop, the ~when:~ statement is processed
+separately for each item.
+
+***** Iterating over a dictionary
+
+To loop over a dict, use the ~dict2items~ filter:
+
+#+BEGIN_SRC yaml
+- name: Using dict2items
+  ansible.builtin.debug:
+    msg: "{{ item.key }} - {{ item.value }}"
+  loop: "{{ tag_data | dict2items }}"
+  vars:
+    tag_data:
+      Environment: dev
+      Application: payment
+#+END_SRC
+
+***** Registering variables with a loop
+
+You can register the output of a loop as a variable. For example:
+
+#+BEGIN_SRC yaml
+- name: Register loop output as a variable
+  ansible.builtin.shell: "echo {{ item }}"
+  loop:
+    - "one"
+    - "two"
+  register: echo
+#+END_SRC
+
+When you use ~register~ with a loop, the data structure placed in the variable
+will contain a ~results~ attribute that is a list of all responses from the
+module. This differs from the data structure returned when using ~register~
+without a loop. The ~changed~ / ~failed~ / ~skipped~ attribute that’s beside the
+results will represent the overall state. ~changed~ / ~failed~ will be ~true~ if
+at least one of the iterations triggered a ~change~ / ~failed~, while skipped
+will be ~true~ only if all iterations were skipped.
+
+#+BEGIN_SRC json
+{
+    "changed": true,
+    "msg": "All items completed",
+    "results": [
+        {
+            "changed": true,
+            "cmd": "echo \"one\" ",
+            "delta": "0:00:00.003110",
+            "end": "2013-12-19 12:00:05.187153",
+            "invocation": {
+                "module_args": "echo \"one\"",
+                "module_name": "shell"
+            },
+            "item": "one",
+            "rc": 0,
+            "start": "2013-12-19 12:00:05.184043",
+            "stderr": "",
+            "stdout": "one"
+        },
+        {
+            "changed": true,
+            "cmd": "echo \"two\" ",
+            "delta": "0:00:00.002920",
+            "end": "2013-12-19 12:00:05.245502",
+            "invocation": {
+                "module_args": "echo \"two\"",
+                "module_name": "shell"
+            },
+            "item": "two",
+            "rc": 0,
+            "start": "2013-12-19 12:00:05.242582",
+            "stderr": "",
+            "stdout": "two"
+        }
+    ]
+}
+#+END_SRC
+
+Subsequent loops over the registered variable to inspect the results may look
+like:
+
+#+BEGIN_SRC yaml
+- name: Fail if return code is not 0
+  ansible.builtin.fail:
+    msg: "The command ({{ item.cmd }}) did not have a 0 return code"
+  when: item.rc != 0
+  loop: "{{ echo.results }}"
+#+END_SRC
+
+During iteration, the result of the current item will be placed in the variable.
+
+#+BEGIN_SRC yaml
+- name: Place the result of the current item in the variable
+  ansible.builtin.shell: echo "{{ item }}"
+  loop:
+    - one
+    - two
+  register: echo
+  changed_when: echo.stdout != "one"
+#+END_SRC
+
+***** Retrying a task until a condition is met
+
+You can use the ~until~ keyword to retry a task until a certain condition is
+met:
+
+#+BEGIN_SRC yaml
+- name: Retry a task until a certain condition is met
+  ansible.builtin.shell: /usr/bin/foo
+  register: result
+  until: result.stdout.find("all systems go") != -1
+  retries: 5
+  delay: 10
+#+END_SRC
+
+This task runs up to 5 times with a delay of 10 seconds between each attempt. If
+the result of any attempt has “all systems go” in its stdout, the task succeeds.
+The default value for ~retries~ is 3 and ~delay~ is 5.
+
+To see the results of individual retries, run the play with ~-vv~.
+
+You can combine the ~until~ keyword with ~loop~ or ~with_<lookup>~. The result
+of the task for each element of the loop is registered in the variable and can
+be used in the ~until~ condition:
+
+#+BEGIN_SRC yaml
+- name: Retry combined with a loop
+  uri:
+    url: "https://{{ item }}.ansible.com"
+    method: GET
+  register: uri_output
+  with_items:
+  - "galaxy"
+  - "docs"
+  - "forum"
+  - "www"
+  retries: 2
+  delay: 1
+  until: "uri_output.status == 200"
+#+END_SRC
+
+***** Looping over inventory
+
+Normally the play itself is a loop over your inventory, but sometimes you need a
+task to do the same over a different set of hosts. To loop over your inventory,
+or just a subset of it, you can use a regular ~loop~ with the
+~ansible_play_batch~ or ~groups~ variables.
+
+#+BEGIN_SRC yaml
+- name: Show all the hosts in the inventory
+  ansible.builtin.debug:
+    msg: "{{ item }}"
+  loop: "{{ groups['all'] }}"
+
+- name: Show all the hosts in the current play
+  ansible.builtin.debug:
+    msg: "{{ item }}"
+  loop: "{{ ansible_play_batch }}"
+#+END_SRC
+
+There is also a specific lookup plugin ~inventory_hostnames~ that can be used
+like this:
+
+#+BEGIN_SRC yaml
+- name: Show all the hosts in the inventory
+  ansible.builtin.debug:
+    msg: "{{ item }}"
+  loop: "{{ query('inventory_hostnames', 'all') }}"
+
+- name: Show all the hosts matching the pattern, ie all but the group www
+  ansible.builtin.debug:
+    msg: "{{ item }}"
+  loop: "{{ query('inventory_hostnames', 'all:!www') }}"
 #+END_SRC
 
 * Old

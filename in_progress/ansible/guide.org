@@ -67,6 +67,7 @@
 - https://docs.ansible.com/ansible/latest/getting_started/basic_concepts.html (glossary)
 - https://docs.ansible.com/ansible/latest/reference_appendices/playbooks_keywords.html#playbook-keywords
 - https://docs.ansible.com/ansible/latest/reference_appendices/general_precedence.html#general-precedence-rules
+- https://stackoverflow.com/questions/54572995/how-to-run-a-playbook-task-based-on-os-type-in-ansible
 
 * Getting started
 ** Install

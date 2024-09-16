@@ -44,6 +44,7 @@
     - [[#python3-in-templates][Python3 in templates]]
     - [[#the-now-function-get-the-current-time][The ~now~ function: get the current time]]
     - [[#loops][Loops]]
+    - [[#controlling-where-tasks-run-delegation-and-local-actions][Controlling where tasks run: delegation and local actions]]
 - [[#old][Old]]
   - [[#ad-hoc-commands][Ad-hoc commands]]
   - [[#module-documentation][Module documentation]]
@@ -1455,7 +1456,28 @@ tasks:
 *** Lookups
 
 Lookup plugins retrieve data from outside sources such as files, databases,
-key/value stores, APIs, and other services.
+key/value stores, APIs, and other services. Ansible makes the data returned by a
+lookup plugin available using the standard templating system.
+
+A lookup can be used indirectly in ~with_<lookup>~ constructs for looping. They
+can also be used more explicitly as part of Jinja2 expressions fed into the
+~lookup~ keyword.
+
+**** Using lookups in variables
+
+You can populate variables using lookups. Ansible evaluates the value each time
+it is executed in a task (or template).
+
+#+BEGIN_SRC yaml
+vars:
+  motd_value: "{{ lookup('file', '/etc/motd') }}"
+tasks:
+  - debug:
+      msg: "motd value is {{ motd_value }}"
+#+END_SRC
+
+This uses the [[https://docs.ansible.com/ansible/latest/collections/ansible/builtin/file_lookup.html#ansible-collections-ansible-builtin-file-lookup][file lookup]]. There are more [[https://docs.ansible.com/ansible/latest/collections/ansible/builtin/index.html#lookup-plugins][builtin lookups]]. You can also list all
+installed lookups with ~ansible-doc -l -t lookup~.
 
 *** Python3 in templates
 
@@ -1742,6 +1764,126 @@ like this:
     msg: "{{ item }}"
   loop: "{{ query('inventory_hostnames', 'all:!www') }}"
 #+END_SRC
+
+**** Ensuring list input for ~loop~: using ~query~ rather than ~lookup~
+
+The ~loop~ keyword requires a list as input, but the ~lookup~ keyword returns a
+string of comma-separated values by default. You can also use the ~query~
+function that always returns a list.
+
+You can force ~lookup~ to return a list to ~loop~ by using ~wantlist=True~, or
+you can use query instead.
+
+The following two examples do the same thing.
+
+#+BEGIN_SRC yaml
+loop: "{{ query('inventory_hostnames', 'all') }}"
+
+loop: "{{ lookup('inventory_hostnames', 'all', wantlist=True) }}"
+#+END_SRC
+
+**** Adding controls to loops
+
+The ~loop_control~ keyword lets you manage your loops in useful ways.
+
+***** Limiting loop output with ~label~
+
+When looping over complex data structures, the console output of your task can
+be enormous. To limit the displayed output, use the ~label~ directive with
+~loop_control~.
+
+#+BEGIN_SRC yaml
+- name: Create servers
+  digital_ocean:
+    name: "{{ item.name }}"
+    state: present
+  loop:
+    - name: server1
+      disks: 3gb
+      ram: 15Gb
+      network:
+        nic01: 100Gb
+        nic02: 10Gb
+        ...
+  loop_control:
+    label: "{{ item.name }}"
+#+END_SRC
+
+The output of this task will display just the ~name~ field for each ~item~
+instead of the entire contents of the multi-line ~{{ item }}~ variable.
+
+This is for making console output more readable, not protecting sensitive data.
+If there is sensitive data in ~loop~, set ~no_log: true~ on the task to prevent
+disclosure.
+
+***** Pausing within a loop
+
+To control the time (in seconds) between the execution of each item in a task
+loop, use the ~pause~ directive with ~loop_control~.
+
+***** Extended loop variables
+
+You can get extended loop information using the extended option to loop control.
+
+#+BEGIN_SRC yaml
+loop_control:
+  extended: true
+#+END_SRC
+
+| Variable                 | Description                                                                             |
+|--------------------------+-----------------------------------------------------------------------------------------|
+| ~ansible_loop.allitems~  | The list of all items in the loop                                                       |
+| ~ansible_loop.index0~    | The current iteration of the loop. (0 indexed)                                          |
+| ~ansible_loop.revindex0~ | The number of iterations from the end of the loop (0 indexed)                           |
+| ~ansible_loop.first~     | ~True~ if first iteration                                                               |
+| ~ansible_loop.last~      | ~True~ if last iteration                                                                |
+| ~ansible_loop.length~    | The number of items in the loop                                                         |
+| ~ansible_loop.previtem~  | The item from the previous iteration of the loop. Undefined during the first iteration. |
+| ~ansible_loop.nextitem~  | The item from the following iteration of the loop. Undefined during the last iteration. |
+
+***** Renaming the loop variable
+
+Instead of the default ~{{ item }}~ variable you can provide a custom name with:
+
+#+BEGIN_SRC yaml
+loop_control:
+  loop_var: "file"
+#+END_SRC
+
+Now you will use ~{{ file }}~ instead.
+
+**** Nested Loops
+***** Stacking loops via include_tasks
+
+You can nest two looping tasks using ~include_tasks~. However, by default,
+Ansible sets the loop variable ~item~ for each loop. This means the inner,
+nested loop will overwrite the value of ~item~ from the outer loop. To avoid
+this, you can specify the name of the variable for each loop using ~loop_var~
+with ~loop_control~.
+
+#+BEGIN_SRC yaml
+# main.yml
+- include_tasks: inner.yml
+  loop:
+    - 1
+    - 2
+    - 3
+  loop_control:
+    loop_var: outer_item
+
+# inner.yml
+- name: Print outer and inner items
+  ansible.builtin.debug:
+    msg: "outer item={{ outer_item }} inner item={{ item }}"
+  loop:
+    - a
+    - b
+    - c
+#+END_SRC
+
+*** Controlling where tasks run: delegation and local actions
+
+TODO
 
 * Old
 ** Ad-hoc commands

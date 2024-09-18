@@ -23,6 +23,8 @@
 - [[#comparing-timestamps][Comparing timestamps]]
 - [[#handle-json][Handle JSON]]
   - [[#convert-json-to-set-of-records][Convert json to set of records]]
+- [[#create-tables][Create tables]]
+  - [[#foreign-keys][Foreign keys]]
 - [[#query-data][Query data]]
   - [[#ordering][Ordering]]
 - [[#functions-to-investigate][Functions to investigate]]
@@ -342,6 +344,81 @@ the record with an ~AS~ clause.
 #+BEGIN_SRC sql
 select *
 from json_to_recordset('[{"a":1,"b":"foo"},{"a":"2","c":"bar"}]') as x(a int, b text);
+#+END_SRC
+
+* Create tables
+** Foreign keys
+*** The ~MATCH~ keyword
+
+https://dba.stackexchange.com/a/226598
+
+**** Simple Definitions
+
+- ~MATCH FULL~ everything must fully match, or all columns must be ~NULL~.
+- ~MATCH SIMPLE~ if one thing is ~NULL~ the constraint is simply ignored.
+- ~MATCH PARTIAL~ (not implemented) if one thing is ~NULL~ the fact that not
+  everything is ~NULL~ is /partially/ salvaged by doing something sensible for
+  the purpose of the constraint.
+
+**** SQL Spec Notes
+
+- ~MATCH SIMPLE~: if at least one referencing column is null, then the row of
+  the referencing table passes the constraint check. If all referencing columns
+  are not null, then the row passes the constraint check if and only if there is
+  a row of the referenced table that matches all the referencing columns.
+- ~MATCH PARTIAL~: if all referencing columns are null, then the row of the
+  referencing table passes the constraint check. If at least one referencing
+  columns is not null, then the row passes the constraint check if and only if
+  there is a row of the referenced table that matches all the non-null
+  referencing columns.
+- ~MATCH FULL~: if all referencing columns are null, then the row of the
+  referencing table passes the constraint check. If all referencing columns are
+  not null, then the row passes the constraint check if and only if there is a
+  row of the referenced table that matches all the referencing columns. If some
+  referencing column is null and another referencing column is non-null, then
+  the row of the referencing table violates the constraint check.
+
+**** Example
+
+#+BEGIN_SRC sql
+CREATE TABLE foo (
+  a int,
+  b int,
+  UNIQUE (a, b)
+);
+
+INSERT INTO foo (a, b)
+VALUES (1, 1), (2, NULL);
+
+CREATE TABLE t_full (
+  a int,
+  b int,
+  FOREIGN KEY (a, b) REFERENCES foo (a, b) MATCH FULL
+);
+CREATE TABLE t_simple (
+  a int,
+  b int,
+  FOREIGN KEY (a, b) REFERENCES foo (a, b) MATCH SIMPLE
+);
+
+-- Both allowed
+INSERT INTO t_full (a, b) VALUES (1, 1);
+INSERT INTO t_simple (a, b) VALUES (1, 1);
+
+-- Does not work
+INSERT INTO t_full (a, b) VALUES (42, NULL);
+-- Works since one value is NULL. The fk constraint is simply ignored
+INSERT INTO t_simple (a, b) VALUES (42, NULL);
+
+-- Not allowed either since we can't mix null and nonnull values
+INSERT INTO t_full (a, b) VALUES (2, NULL);
+
+-- Allowed
+INSERT INTO t_full (a, b) VALUES (NULL, NULL);
+
+DROP TABLE t_simple;
+DROP TABLE t_full;
+DROP TABLE foo;
 #+END_SRC
 
 * Query data

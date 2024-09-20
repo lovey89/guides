@@ -26,6 +26,7 @@
 - [[#create-tables][Create tables]]
   - [[#foreign-keys][Foreign keys]]
 - [[#query-data][Query data]]
+  - [[#aggregate-data][Aggregate data]]
   - [[#ordering][Ordering]]
 - [[#functions-to-investigate][Functions to investigate]]
 #+END_QUOTE
@@ -343,6 +344,11 @@ the record with an ~AS~ clause.
 
 #+BEGIN_SRC sql
 select *
+from json_to_record('{"my_string": "myStringValue", "my_int": 5}') as x(
+  my_string text,
+  my_int int);
+
+select *
 from json_to_recordset('[{"a":1,"b":"foo"},{"a":"2","c":"bar"}]') as x(a int, b text);
 #+END_SRC
 
@@ -422,6 +428,42 @@ DROP TABLE foo;
 #+END_SRC
 
 * Query data
+** Aggregate data
+
+https://www.postgresqltutorial.com/postgresql-aggregate-functions/postgresql-string_agg-function/
+
+#+BEGIN_SRC sql
+CREATE TABLE foo (
+	id int4,
+	category TEXT,
+	item TEXT
+);
+
+INSERT INTO foo (id, category, item)
+VALUES
+  (1, 'FOOD', 'FISH'),
+  (1, 'FOOD', 'MEAT'),
+  (1, 'BAR', 'BAZ'),
+  (2, 'HOME', 'SOAP'),
+  (2, 'HOME', 'BED'),
+  (2, 'FOOD', 'MILK');
+
+-- Each column is aggregated separately
+SELECT id, array_agg(category), string_agg(item, ',')
+FROM foo
+GROUP BY id;
+
+SELECT id, array_agg(DISTINCT category), string_agg(DISTINCT item, ',')
+FROM foo
+GROUP BY id;
+
+SELECT id, array_agg(DISTINCT category ORDER BY category desc), string_agg(DISTINCT item, ',' ORDER BY item desc)
+FROM foo
+GROUP BY id;
+
+DROP TABLE foo;
+#+END_SRC
+
 ** Ordering
 *** Custom ordering
 
@@ -441,15 +483,9 @@ DESC
 - coalesce
 - array_to_string
 - split_part
-- array_agg
-- STRING_AGG
 - SELECT DISTINCT ON
 
-#+BEGIN_SRC sql
-select *
-from json_to_record('{"my_string": "myStringValue", "my_int": 5}') as x(
-  my_string text,
-  my_int int);
-
-select * from json_to_recordset('[{"a":1,"b":"foo"},{"a":"2","c":"bar"}]') as x(a int, b text);
-#+END_SRC
+https://stackoverflow.com/questions/49368451/postgres-add-column-with-initially-calculated-values
+https://stackoverflow.com/questions/69725970/add-a-column-with-a-default-value-to-an-existing-table-in-postgresql
+https://stackoverflow.com/questions/3800551/select-first-row-in-each-group-by-group/7630564#7630564
+https://stackoverflow.com/questions/8760419/postgresql-unnest-with-element-number

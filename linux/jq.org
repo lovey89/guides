@@ -28,3 +28,45 @@ jq '.theList | map(select(.id == (2, 4)))' << EOF
 }
 EOF
 #+END_SRC
+
+* Extract value from list
+
+#+BEGIN_SRC bash :results output
+jq '.theList | .[] | .id' << EOF
+{
+  "theList": [
+    {
+      "id": 1,
+      "name": "Horst"
+    },
+    {
+      "id": 2,
+      "name": "Fritz"
+    },
+    {
+      "id": 3,
+      "name": "Walter"
+    }
+  ]
+}
+EOF
+#+END_SRC
+
+#+BEGIN_SRC bash :results output
+jq '.[] | .name' << EOF # Use "jq -r" to get raw output. Then the strings will not be quoted
+[
+  {
+    "id": 1,
+    "name": "Horst"
+  },
+  {
+    "id": 2,
+    "name": "Fritz"
+  },
+  {
+    "id": 3,
+    "name": "Walter"
+  }
+]
+EOF
+#+END_SRC

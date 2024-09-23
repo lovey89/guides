@@ -1,6 +1,7 @@
 * Table of Contents :TOC:QUOTE:
 #+BEGIN_QUOTE
 - [[#print-each-line-with-a-timestamp][Print each line with a timestamp]]
+- [[#print-hex-representation-of-file][Print hex representation of file]]
 - [[#print-results-in-columns][Print results in columns]]
 - [[#generate-passwords-on-command-line][Generate passwords on command line]]
 - [[#desktop-entries-in-fedora][Desktop entries in fedora]]
@@ -62,6 +63,16 @@ Then use the ~ts~ command:
 #+BEGIN_SRC bash :results output
 echo -e "foo\nbar\nbaz" | ts '[%Y-%m-%d %H:%M:%S]'  # Second
 echo -e "foo\nbar\nbaz" | ts '[%Y-%m-%d %H:%M:%.S]' # Seconds and milli seconds
+#+END_SRC
+
+* Print hex representation of file
+
+#+BEGIN_SRC bash :results output
+hexdump -C << EOF
+Test
+on multiple
+rows
+EOF
 #+END_SRC
 
 * Print results in columns

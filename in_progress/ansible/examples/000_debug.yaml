@@ -1,0 +1,24 @@
+# Run with "ansible-playbook example/000_debug.yaml"
+# or "ansible-playbook example/000_debug.yaml -l <hostname>"
+
+# Running the debug module ad-hoc won't gather facts so we
+# must run it in a playbook if we want to print facts
+- name: Print variables
+  hosts: all
+
+  tasks:
+    - name: Print variable
+      ansible.builtin.debug:
+        var: ansible_distribution
+
+    - name: Print message
+      ansible.builtin.debug:
+        msg: "ansible_bios_vendor = {{ ansible_bios_vendor }}"
+
+    - name: Print variable 2
+      ansible.builtin.debug:
+        var: groups['fedoras'] | map('extract', hostvars, 'ansible_hostname') | list
+
+    - name: Print message 2
+      ansible.builtin.debug:
+        msg: "ansible_bios_vendor = {{ groups['fedoras'] | map('extract', hostvars, 'ansible_hostname') | list }}"

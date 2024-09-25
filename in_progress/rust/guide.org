@@ -11039,3 +11039,13 @@ with the ~Copy~ trait?
 
 What is ~pub(crate)~:
 https://doc.rust-lang.org/reference/visibility-and-privacy.html
+
+~pub async fn name~
+~args: &[&dyn ToSql]~
+~TryFrom<Something, Error>~
+~argument: &[Object]~
+
+#+BEGIN_SRC rust :noeval
+let cause = err.unwrap_err();
+warn!(%cause, "failed");
+#+END_SRC

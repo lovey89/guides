@@ -45,6 +45,9 @@
     - [[#the-now-function-get-the-current-time][The ~now~ function: get the current time]]
     - [[#loops][Loops]]
     - [[#controlling-where-tasks-run-delegation-and-local-actions][Controlling where tasks run: delegation and local actions]]
+- [[#snippets][Snippets]]
+  - [[#try-out-variables][Try out variables]]
+  - [[#include--exclude-certain-groups-from-running-a-job][Include / Exclude certain groups from running a job]]
 - [[#old][Old]]
   - [[#ad-hoc-commands][Ad-hoc commands]]
   - [[#module-documentation][Module documentation]]
@@ -1882,8 +1885,99 @@ with ~loop_control~.
 #+END_SRC
 
 *** Controlling where tasks run: delegation and local actions
+**** Delegating tasks
 
-TODO
+If you want to perform a task on one host with the reference to other hosts, use
+the ~delegate_to~ keyword on a task. This is ideal for managing nodes in a
+load-balanced pool or for controlling outage windows.
+
+#+BEGIN_SRC yaml
+---
+- hosts: webservers
+  serial: 5
+
+  tasks:
+    - name: Take out of load balancer pool
+      ansible.builtin.command: /usr/bin/take_out_of_pool {{ inventory_hostname }}
+      delegate_to: 127.0.0.1
+
+    - name: Actual steps would go here
+      ansible.builtin.yum:
+        name: acme-web-stack
+        state: latest
+
+    - name: Add back to load balancer pool
+      ansible.builtin.command: /usr/bin/add_back_to_pool {{ inventory_hostname }}
+      delegate_to: 127.0.0.1
+#+END_SRC
+
+The first and third tasks in this play run on ~127.0.0.1~, which is the machine
+running Ansible.
+
+The ~ansible_host~ variable and other connection variables, if present, reflects
+information about the host a task is delegated to, not the inventory_hostname.
+
+The host to which a task is delegated does not inherit variables from the host
+that is delegating the task.
+
+**** Templating in delegation context
+
+Under delegation, the execution interpreter (normally Python), ~connection~,
+~become~, and ~shell~ plugin options will now be templated using values from the
+delegated to host. All variables except ~inventory_hostname~ will now be
+consumed from this host and not the original task host. If you need variables
+from the original task host for those options, you must use
+~hostvars[inventory_hostname]['varname']~, even ~inventory_hostname_short~
+refers to the delegated host.
+
+* Snippets
+** Try out variables
+
+#+BEGIN_SRC yaml
+---
+- name: Check variables
+  hosts: all
+
+  tasks:
+    - name: Set example values
+      ansible.builtin.set_fact:
+        an_ip_address: "192.168.0.43"
+        a_prefix: 24
+
+    - debug:
+        msg: |
+          Hostname: {{ hostname }}
+          Gateway:  {{ gateway }}
+      vars:
+        hostname: "{{ an_ip_address }}/{{ a_prefix }}"
+        gateway: "{{ hostname | ansible.utils.ipaddr('1') | ansible.utils.ipaddr('address') }}"
+#+END_SRC
+
+Run it with
+
+#+BEGIN_SRC bash :noeval
+ansible-playbook playbook.yaml
+# or
+ansible-playbook playbook.yaml -l host
+#+END_SRC
+
+** Include / Exclude certain groups from running a job
+
+#+BEGIN_SRC yaml
+---
+- name: Hello Fedora
+  hosts: all
+
+  tasks:
+    - debug:
+        msg: "Hello world"
+
+    - debug:
+        msg: "Hello {{ ansible_distribution }}"
+      when: inventory_hostname in groups["fedoras"]
+      # or
+      #when: inventory_hostname not in groups["ubuntus"]
+#+END_SRC
 
 * Old
 ** Ad-hoc commands

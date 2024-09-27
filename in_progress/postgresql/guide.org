@@ -30,6 +30,8 @@
   - [[#aggregate-data][Aggregate data]]
   - [[#ordering][Ordering]]
 - [[#functions-to-investigate][Functions to investigate]]
+- [[#ms-sql][MS SQL]]
+  - [[#list-all-tables-with-column-names][List all tables with column names]]
 #+END_QUOTE
 
 * Create local postgres database container
@@ -519,3 +521,23 @@ https://stackoverflow.com/questions/3800551/select-first-row-in-each-group-by-gr
 https://stackoverflow.com/questions/8760419/postgresql-unnest-with-element-number
 https://www.postgresqltutorial.com/postgresql-tutorial/postgresql-identity-column/
 https://stackoverflow.com/questions/2944499/how-to-add-an-auto-incrementing-primary-key-to-an-existing-table-in-postgresqlx
+
+* MS SQL
+** List all tables with column names
+
+https://stackoverflow.com/a/421229
+
+#+BEGIN_SRC sql
+SELECT TABLE_SCHEMA ,
+       TABLE_NAME ,
+       COLUMN_NAME ,
+       ORDINAL_POSITION ,
+       COLUMN_DEFAULT ,
+       DATA_TYPE ,
+       CHARACTER_MAXIMUM_LENGTH ,
+       NUMERIC_PRECISION ,
+       NUMERIC_PRECISION_RADIX ,
+       NUMERIC_SCALE ,
+       DATETIME_PRECISION
+FROM   INFORMATION_SCHEMA.COLUMNS;
+#+END_SRC

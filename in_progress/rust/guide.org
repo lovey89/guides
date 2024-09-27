@@ -11049,3 +11049,5 @@ https://doc.rust-lang.org/reference/visibility-and-privacy.html
 let cause = err.unwrap_err();
 warn!(%cause, "failed");
 #+END_SRC
+
+~let Ok(asadasd) = Something else {}~

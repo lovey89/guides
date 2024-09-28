@@ -324,6 +324,12 @@ This result will end up in ~target/release~ instead of ~target/debug~ now.
 
 Code and comments for the guessing game is located in [[file:002_guessing_game][002_guessing_game]].
 
+Run with:
+
+#+BEGIN_SRC bash :noeval
+cargo run
+#+END_SRC
+
 * Common Programming Concepts
 ** Variable and Mutability
 
@@ -511,6 +517,26 @@ methods that the standard library provides on primitive numeric types:
 - Return the value and a boolean indicating whether there was overflow with the
   ~overflowing_*~ methods
 - Saturate at the value’s minimum or maximum values with ~saturating_*~ methods
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let mut x: i8 = 127;
+    x = x.wrapping_add(1);
+    println!("x: {}", x);
+
+    x = 127;
+    let checked_x: Option<i8> = x.checked_add(1);
+    println!("checked_x: {:?}", checked_x);
+
+    x = 127;
+    let overflow_x: (i8, bool) = x.overflowing_add(1);
+    println!("overflow_x: {:?}", overflow_x);
+
+    x = 127;
+    x = x.saturating_add(1);
+    println!("x: {}", x);
+}
+#+END_SRC
 
 **** Floating-Point Types
 
@@ -717,7 +743,9 @@ semicolon, and then the length of the array in square brackets, as shown here:
 #+BEGIN_SRC rust :results output
 fn main() {
     let a = [3; 5];
+    println!("{a:?}");
     let b = [3i64; 5]; // To define the type of the elements (in this case i64)
+    println!("{b:?}");
 }
 #+END_SRC
 
@@ -1615,7 +1643,7 @@ fn first_word(s: &String) -> &str {
 }
 #+END_SRC
 
-This example includes an iteration which there will be more about later (TODO).
+This example includes an iteration which there will be more about later.
 
 What if we try to modify the ~String~ which the slice is referencing?
 
@@ -1659,6 +1687,25 @@ immutable reference.
 
 *** String slices as parameters
 
+So a reference to a ~&str~ and a ~String~ are both ~&str~:
+
+#+BEGIN_SRC rust :results output
+fn print_type_of<T>(_: &T) {
+    println!("{}", std::any::type_name::<T>())
+}
+
+fn main() {
+    let s_slice = "slice";
+    let s_string = String::from("string");
+    print_type_of(&s_slice);
+    print_type_of(&s_string);
+    let slice_ref = &s_slice[..];
+    let string_ref = &s_string[..];
+    print_type_of(&slice_ref);
+    print_type_of(&string_ref);
+}
+#+END_SRC
+
 Knowing that you can take slices of literals and ~String~ values leads us to one
 more improvement on ~first_word~, and that’s its signature:
 
@@ -1692,6 +1739,7 @@ fn main() {
     // Because string literals *are* string slices already,
     // this works too, without the slice syntax!
     let word = first_word(my_string_literal);
+    println!("{word}")
 }
 
 fn first_word(s: &str) -> &str {
@@ -2010,7 +2058,7 @@ this struct to own all of its data and for that data to be valid for as long as
 the entire struct is valid.
 
 It’s also possible for structs to store references to data owned by something
-else, but to do so requires the use of lifetimes (TODO).
+else, but to do so requires the use of lifetimes.
 
 ** An example with structs
 
@@ -2067,7 +2115,7 @@ move the field values, which is why you often see borrows of structs.
 
 ** Adding Useful Functionality with Derived Traits
 
-We can't create a ~Rectangle~ directly:
+We can't print a ~Rectangle~ directly:
 
 #+BEGIN_SRC rust :results output
 struct Rectangle {
@@ -11033,7 +11081,12 @@ with the ~Copy~ trait?
 - What is the static lifetime?
 - Global variables?
 - Casting
+  - ~as~ https://dev.to/iamdipankarpaul/understanding-type-casting-in-rust-34il https://www.programiz.com/rust/type-casting
+  - ~into~ and ~tryInto~
 - ~Refcell<Rc<_>>~ vs ~Rc<Refcell<_>>~
+- Variables on global scope
+- arrays slices to funcs
+- automatic referencing when calling a function? is that possible?
 
 * Things to investigate
 
@@ -11051,3 +11104,5 @@ warn!(%cause, "failed");
 #+END_SRC
 
 ~let Ok(asadasd) = Something else {}~
+
+~rustfm~

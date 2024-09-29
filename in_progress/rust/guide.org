@@ -5004,7 +5004,7 @@ Lifetimes are another kind of generic that we’ve already been using. Rather th
 ensuring that a type has the behavior we want, lifetimes ensure that references
 are valid as long as we need them to be.
 
-every reference in Rust has a lifetime, which is the scope for which that
+Every reference in Rust has a lifetime, which is the scope for which that
 reference is valid. Most of the time, lifetimes are implicit and inferred. But
 sometimes we must annotate lifetimes when the lifetimes of references could be
 related in a few different ways.
@@ -5315,7 +5315,7 @@ the lifetimes in this function signature.
 Another example:
 
 #+BEGIN_SRC rust :noeval
-fn first_word(s: &str) -> &str {
+fn longest(x: &str, y: &str) -> &str {
 #+END_SRC
 
 We can apply rule 1 but rule 2 and 3 can't be applied so it becomes:

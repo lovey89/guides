@@ -2906,8 +2906,8 @@ in the ~src/bin~ directory: each file will be a separate binary crate.
 ** Defining modules to control scope and privacy
 *** Modules cheat sheet
 
-Here we provide a quick reference on how modules, paths, the use keyword, and
-the pub keyword work in the compiler, and how most developers organize their
+Here we provide a quick reference on how modules, paths, the ~use~ keyword, and
+the ~pub~ keyword work in the compiler, and how most developers organize their
 code.
 
 **** Start from the crate root
@@ -2942,8 +2942,8 @@ these places:
 
 Once a module is part of your crate, you can refer to code in that module from
 anywhere else in that same crate, as long as the privacy rules allow, using the
-path to the code. For example, an ~Asparagus~ type in the garden vegetables
-module would be found at ~crate::garden::vegetables::Asparagus~.
+path to the code. For example, an ~Asparagus~ type in the ~garden~ ->
+~vegetables~ module would be found at ~crate::garden::vegetables::Asparagus~.
 
 **** Private vs public
 
@@ -2951,7 +2951,7 @@ Code within a module is private from its parent modules by default. To make a
 module public, declare it with ~pub mod~ instead of ~mod~. To make items within
 a public module public as well, use ~pub~ before their declarations.
 
-**** The use keyword
+**** The ~use~ keyword
 
 Within a scope, the ~use~ keyword creates shortcuts to items to reduce
 repetition of long paths. In any scope that can refer to
@@ -3016,7 +3016,7 @@ module is private by default. We can choose to make modules and the items within
 them public, which exposes them to allow external code to use and depend on
 them.
 
-we can organize its functions into nested modules. Create a new library named
+We can organize its functions into nested modules. Create a new library named
 ~restaurant~ by running ~cargo new restaurant --lib~; then enter the code in
 into ~src/lib.rs~ to define some modules and function signatures. Here’s the
 front of house section:
@@ -3117,7 +3117,7 @@ modules, and constants) are private to parent modules by default. To make them
 available for the parent module, you add the ~pub~ keyword.
 
 When defining a module private (e.g. with ~mod hosting;~) the public items in
-than module will be available to this module, but no parent modules. If you
+that module will be available to this module, but no parent modules. If you
 define it with the ~pub~ keyword (~pub mod hosting;~) the public items in that
 module will be available to this module and it's parent module (and that modules
 parent if this module was declared public).
@@ -3453,7 +3453,7 @@ Note that you only need to load a file using a ~mod~ declaration /once/ in your
 module tree. Once the compiler knows the file is part of the project (and knows
 where in the module tree the code resides because of where you’ve put the ~mod~
 statement), other files in your project should refer to the loaded file’s code
-using a path to where it was declared. In other words, ~mod~ is not an “include”
+using a path to where it was declared. In other words, ~mod~ is not an "include"
 operation.
 
 #+BEGIN_SRC rust :noeval
@@ -3711,7 +3711,7 @@ vector itself is valid.
 
 Strings in Rust are more complicated than other languages for three reasons:
 
-- Rust’s propensity for exposing possible errors
+- Rust's propensity for exposing possible errors
 - Strings being a more complicated data structure than many programmers give
   them credit for, and
 - UTF-8
@@ -3724,7 +3724,7 @@ Rust has only one string type in the core language, which is the string slice
 ~str~ that is usually seen in its borrowed form ~&str~. String literals, for
 example, are stored in the program’s binary and are therefore string slices.
 
-The ~String~ type, which is provided by Rust’s standard library rather than
+The ~String~ type, which is provided by Rust's standard library rather than
 coded into the core language, is a growable, mutable, owned, UTF-8 encoded
 string type. Both ~String~ and string slices are used heavily in Rust’s standard
 library, and are both UTF-8 encoded.
@@ -3913,7 +3913,7 @@ crash your program.
 
 The best way to operate on pieces of strings is to be explicit about whether you
 want characters or bytes. For individual Unicode scalar values, use the ~chars~
-method. Calling ~chars~ on “Здр” separates out and returns three values of type
+method. Calling ~chars~ on "Здр" separates out and returns three values of type
 ~char~, and you can iterate over the result to access each element:
 
 #+BEGIN_SRC rust :results output
@@ -3951,7 +3951,7 @@ scores.insert(String::from("Yellow"), 50);
 #+END_SRC
 
 Note that we need to first ~use~ the ~HashMap~ from the collections portion of
-the standard library. It’s not included in the features brought into scope
+the standard library. It's not included in the features brought into scope
 automatically in the prelude.
 
 Like vectors, hash maps are homogeneous: all of the keys must have the same type
@@ -3971,6 +3971,8 @@ scores.insert(String::from("Yellow"), 50);
 
 let team_name = String::from("Blue");
 let score = scores.get(&team_name).copied().unwrap_or(0);
+// This seems to work as well
+//let score = scores.get(&team_name).unwrap_or(&0);
 
 println!("{score}")
 #+END_SRC
@@ -4102,7 +4104,6 @@ Rust groups errors into two major categories: /recoverable/ and /unrecoverable/
 errors.
 
 ** Unrecoverable Errors with ~panic!~
-
 
 When a program panics it will print a failure message, unwind, clean up the
 stack, and quit. Via an environment variable, you can also have Rust display the
@@ -10302,6 +10303,31 @@ fn main() {
 The downside of using ~if let~ expressions is that the compiler doesn’t check
 for exhaustiveness.
 
+*** The ~let else~ expression
+
+With ~let~-~else~, a refutable pattern can match and bind variables in the
+surrounding scope like a normal ~let~, or else diverge (e.g. ~break~, ~return~,
+~panic!~) when the pattern doesn't match.
+
+#+BEGIN_SRC rust :results output
+use std::str::FromStr;
+
+fn get_count_item(s: &str) -> (u64, &str) {
+    let mut it = s.split(' ');
+    let (Some(count_str), Some(item)) = (it.next(), it.next()) else {
+        panic!("Can't segment count item pair: '{s}'");
+    };
+    let Ok(count) = u64::from_str(count_str) else {
+        panic!("Can't parse integer: '{count_str}'");
+    };
+    (count, item)
+}
+
+fn main() {
+    assert_eq!(get_count_item("3 chairs"), (3, "chairs"));
+}
+#+END_SRC
+
 *** ~while let~ Conditional Loops
 
 The ~while let~ conditional loop allows a while loop to run for as long as a
@@ -11104,5 +11130,9 @@ warn!(%cause, "failed");
 #+END_SRC
 
 ~let Ok(asadasd) = Something else {}~
+chain ~pub~ modules. What if one in the middle is removed
 
 ~rustfm~
+~From~ trait
+Use ~?~ to convert error to option?
+Return error codes

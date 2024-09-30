@@ -6690,61 +6690,6 @@ immutable reference to the ~self~ ~Inventory~ instance and passes it with the
 code we specify to the ~unwrap_or_else~ method. Functions, on the other hand,
 are not able to capture their environment in this way.
 
-#+BEGIN_SRC rust :results output
-#[derive(Debug, PartialEq, Copy, Clone)]
-enum ShirtColor {
-    Red,
-    Blue,
-}
-
-struct Inventory {
-    shirts: Vec<ShirtColor>,
-}
-
-impl Inventory {
-    fn giveaway(&self, user_preference: Option<ShirtColor>) -> ShirtColor {
-        user_preference.unwrap_or_else(|| self.most_stocked()) // <--- Closure here
-    }
-
-    fn most_stocked(&self) -> ShirtColor {
-        let mut num_red = 0;
-        let mut num_blue = 0;
-
-        for color in &self.shirts {
-            match color {
-                ShirtColor::Red => num_red += 1,
-                ShirtColor::Blue => num_blue += 1,
-            }
-        }
-        if num_red > num_blue {
-            ShirtColor::Red
-        } else {
-            ShirtColor::Blue
-        }
-    }
-}
-
-fn main() {
-    let store = Inventory {
-        shirts: vec![ShirtColor::Blue, ShirtColor::Red, ShirtColor::Blue],
-    };
-
-    let user_pref1 = Some(ShirtColor::Red);
-    let giveaway1 = store.giveaway(user_pref1);
-    println!(
-        "The user with preference {:?} gets {:?}",
-        user_pref1, giveaway1
-    );
-
-    let user_pref2 = None;
-    let giveaway2 = store.giveaway(user_pref2);
-    println!(
-        "The user with preference {:?} gets {:?}",
-        user_pref2, giveaway2
-    );
-}
-#+END_SRC
-
 *** Closure Type Inference and Annotation
 
 Closures don’t usually require you to annotate the types of the parameters or
@@ -7111,7 +7056,16 @@ iterator changes internal state that the iterator uses to keep track of where it
 is in the sequence. In other words, this code /consumes/, or uses up, the
 iterator. We didn’t need to make ~v1_iter~ mutable when we used a ~for~ loop
 because the loop took ownership of ~v1_iter~ and made it mutable behind the
-scenes.
+scenes. It works because the new owner of a value can change mutability:
+
+#+BEGIN_SRC rust :results output
+let x = "hello".to_string();
+// Won't work as x is not mutable
+//x.push_str(" world");
+let mut y = x; // When moving a value the new owner can do what they want
+y.push_str(" world");
+println!("{}", y)
+#+END_SRC
 
 Also note that the values we get from the calls to ~next~ are immutable
 references to the values in the vector. The ~iter~ method produces an iterator
@@ -7171,9 +7125,14 @@ which consumes the iterator and collects the resulting values into a collection
 data type.
 
 #+BEGIN_SRC rust :results output
+fn print_type_of<T>(_: &T) {
+    println!("{}", std::any::type_name::<T>())
+}
+
 fn main() {
     let v1: Vec<i32> = vec![1, 2, 3];
     let v2: Vec<_> = v1.iter().map(|x| x + 1).collect();
+    print_type_of(&v2); // v2 is also of type Vec<i32>
     println!("{:?}", v2)
 }
 #+END_SRC
@@ -7184,7 +7143,7 @@ consuming adaptor methods to get results from calls to iterator adaptors.
 
 *** Using Closures that Capture Their Environment
 
-The ~filter~ method that takes a closurethat gets an item from the iterator and
+The ~filter~ method takes a closure that gets an item from the iterator and
 returns a ~bool~. If the closure returns ~true~, the value will be included in
 the iteration produced by ~filter~. If the closure returns ~false~, the value
 won’t be included.

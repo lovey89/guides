@@ -5865,7 +5865,7 @@ Notice that the ~std::env::args~ function is nested in two levels of modules. In
 cases where the desired function is nested in more than one module, we’ve chosen
 to bring the parent module into scope rather than the function. By doing so, we
 can easily use other functions from ~std::env~. It’s also less ambiguous than
-adding ~~use std::env::args~ and then calling the function with just ~args~,
+adding ~use std::env::args~ and then calling the function with just ~args~,
 because ~args~ might easily be mistaken for a function that’s defined in the
 current module.
 
@@ -10972,6 +10972,10 @@ https://doc.rust-lang.org/1.0.0/style/style/naming/README.html
 
 https://doc.rust-lang.org/clippy/
 
+#+BEGIN_SRC bash :noeval
+cargo clippy -- -D warnings -W clippy::all -W clippy::correctness -W clippy::complexity -W clippy::style -W clippy::suspicious -W clippy::perf -W clippy::pedantic
+#+END_SRC
+
 * Misc
 
 Can a immutable var become mutable? Write an example where a function returns
@@ -11095,3 +11099,5 @@ chain ~pub~ modules. What if one in the middle is removed
 ~From~ trait
 Use ~?~ to convert error to option?
 Return error codes
+~function::<Type>(args)~ syntax
+- const generics

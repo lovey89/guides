@@ -41,6 +41,7 @@
 
 * Temp
 
+https://unix.stackexchange.com/questions/594841/how-do-i-assign-a-value-to-a-bash-variable-if-that-variable-is-null-unassigned-f
 https://vaneyckt.io/posts/safer_bash_scripts_with_set_euxo_pipefail/
 
 #+BEGIN_SRC bash :results output :shebang "#!/bin/bash\nset bon jour"

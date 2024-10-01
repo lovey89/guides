@@ -7691,7 +7691,7 @@ the ~add~ directory. If we only had created ~Cargo.toml~ with the content:
 #+END_SRC
 
 The ~adder~ member would have been added automatically to the ~members~ list
-when it was created (discover by myself).
+when it was created (discovered it by myself).
 
 At this point, we can build the workspace by running ~cargo build~. The
 workspace has one target directory at the top level that the compiled artifacts
@@ -8050,7 +8050,7 @@ impl<T> MyBox<T> {
 Note that ~Box<T>~ stores data on the heap while ~MyBox<T>~ does not.
 
 This current version of ~MyBox<T>~ can't be dereferenced using the ~*~ operator
-because it's not a referencs.
+because it's not a reference.
 
 *** Treating a Type Like a Reference by Implementing the ~Deref~ Trait
 
@@ -8099,7 +8099,7 @@ Without the ~Deref~ trait, the compiler can only dereference ~&~ references. The
 implements ~Deref~ and call the ~deref~ method to get a ~&~ reference that it
 knows how to dereference.
 
-When we entere ~*y~ , behind the scenes Rust actually runs ~*(y.deref())~. The
+When we enter ~*y~, behind the scenes Rust actually runs ~*(y.deref())~. The
 reason the ~deref~ method returns a reference to a value, and that the plain
 dereference outside the parentheses in ~*(y.deref())~ is still necessary, is to
 do with the ownership system. If the ~deref~ method returned the value directly

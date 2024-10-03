@@ -9949,7 +9949,7 @@ The ~request_review~ method on ~Draft~ returns a new, boxed instance of a new
 review. The ~PendingReview~ struct also implements the ~request_review~ method
 but doesn’t do any transformations. Rather, it returns itself, because when we
 request a review on a post already in the ~PendingReview~ state, it should stay
-in the PendingReview state.
+in the ~PendingReview~ state.
 
 *** Ensuring the Content of a Draft Post Is Empty
 
@@ -10223,7 +10223,7 @@ println!("{:?}", o)
 #+END_SRC
 
 One requirement for ~match~ expressions is that they need to be /exhaustive/ in
-the sense that all possibilities for the value in the match expression must be
+the sense that all possibilities for the value in the ~match~ expression must be
 accounted for. One way to ensure you’ve covered every possibility is to have a
 catchall pattern for the last arm: for example, a variable name matching any
 value can never fail and thus covers every remaining case.
@@ -10909,7 +10909,7 @@ is interpreted like
 
 The at operator ~@~ lets us create a variable that holds a value at the same
 time as we’re testing that value for a pattern match. We want to test that a
-~Message::Hello~ ~id~ field is within the range ~3..=7~. We also want to bind
+~Message::Hello~'s ~id~ field is within the range ~3..=7~. We also want to bind
 the value to the variable ~id_variable~ so we can use it in the code associated
 with the arm. We could name this variable ~id~, the same as the field, but for
 this example we’ll use a different name.
@@ -10934,7 +10934,7 @@ fn main() {
 }
 #+END_SRC
 
-By specifying ~id_variable @~ before the range ~3..=7~, we’re capturing whatever
+By specifying ~id_variable @~ before the range ~3..=7~, we're capturing whatever
 value matched the range while also testing that the value matched the range
 pattern.
 

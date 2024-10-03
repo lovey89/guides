@@ -88,7 +88,7 @@
   - [[#using-threads-to-run-code-simultaneously][Using Threads to Run Code Simultaneously]]
   - [[#using-message-passing-to-transfer-data-between-threads][Using Message Passing to Transfer Data Between Threads]]
   - [[#shared-state-concurrency][Shared-State Concurrency]]
-  - [[#extensible-concurrency-with-the-sync-and-send-traits][Extensible Concurrency with the Sync and Send Traits]]
+  - [[#extensible-concurrency-with-the-sync-and-send-traits][Extensible Concurrency with the ~Sync~ and ~Send~ Traits]]
   - [[#ending-notes][Ending notes]]
 - [[#object-oriented-programming-features-of-rust][Object-Oriented Programming Features of Rust]]
   - [[#characteristics-of-object-oriented-languages][Characteristics of Object-Oriented Languages]]
@@ -9380,6 +9380,8 @@ Let’s start by using a mutex in a single-threaded context.
 use std::sync::Mutex;
 
 fn main() {
+    // Observation: The mutex is not mutable but can still be updated
+    // interior mutability
     let m = Mutex::new(5);
 
     {
@@ -9455,7 +9457,7 @@ value with ~Rc::new(Mutex::new(0))~ won't help as ~Rc<T>~ is only for single
 threaded uses. The code will not compile.
 
 The compile will complain with ~`Rc<Mutex<i32>>` cannot be sent between threads
-safely~ and inform is that ~the trait `Send` is not implemented for
+safely~ and inform us that ~the trait `Send` is not implemented for
 `Rc<Mutex<i32>>`~.
 
 When ~Rc<T>~ manages the reference count, it adds to the count for each call to
@@ -9512,7 +9514,7 @@ mutability, as the ~Cell~ family does. In the same way we used ~RefCell<T>~
 earlier to allow us to mutate contents inside an ~Rc<T>~, we use ~Mutex<T>~ to
 mutate contents inside an ~Arc<T>~.
 
-** Extensible Concurrency with the Sync and Send Traits
+** Extensible Concurrency with the ~Sync~ and ~Send~ Traits
 
 Interestingly, the Rust language has very few concurrency features. Almost every
 concurrency feature discussed so far has been part of the standard library, not
@@ -11101,3 +11103,17 @@ Use ~?~ to convert error to option?
 Return error codes
 ~function::<Type>(args)~ syntax
 - const generics
+
+- Attributes
+  - ~#[non_exhaustive]~
+  - ~#[must_use]~
+  - ~#[allow(dead_code)]~
+
+#+BEGIN_SRC rust :results output
+fn main() {
+    let x: usize = 240;
+    println!("{}", x as f64);
+    let y: u8 = x.try_into().unwrap_or_default();
+    println!("{}", y);
+}
+#+END_SRC

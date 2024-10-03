@@ -1,0 +1,242 @@
+* Table of Contents :TOC:QUOTE:
+#+BEGIN_QUOTE
+- [[#links][Links]]
+- [[#getting-started][Getting Started]]
+  - [[#why-async][Why async]]
+  - [[#the-state-of-asynchronous-rust][The State of Asynchronous Rust]]
+  - [[#asyncawait-primer][~async/.await~ Primer]]
+#+END_QUOTE
+
+* Links
+
+- https://rust-lang.github.io/async-book/
+
+* Getting Started
+** Why async
+*** Async in Rust vs other languages
+
+Although asynchronous programming is supported in many languages, some details
+vary across implementations. Rust's implementation of async differs from most
+languages in a few ways:
+
+- *Futures are inert* in Rust and make progress only when polled. Dropping a
+  future stops it from making further progress.
+- *Async is zero-cost* in Rust, which means that you only pay for what you use.
+  Specifically, you can use async without heap allocations and dynamic dispatch,
+  which is great for performance! This also lets you use async in constrained
+  environments, such as embedded systems.
+- *No built-in runtime* is provided by Rust. Instead, runtimes are provided by
+  community maintained crates.
+- *Both single- and multithreaded* runtimes are available in Rust, which have
+  different strengths and weaknesses.
+
+*** Async vs threads in Rust
+
+OS threads are suitable for a small number of tasks, since threads come with CPU
+and memory overhead. Spawning and switching between threads is quite expensive
+as even idle threads consume system resources. A thread pool library can help
+mitigate some of these costs, but not all. However, threads let you reuse
+existing synchronous code without significant code changes—no particular
+programming model is required. In some operating systems, you can also change
+the priority of a thread, which is useful for drivers and other latency
+sensitive applications.
+
+Async provides significantly reduced CPU and memory overhead, especially for
+workloads with a large amount of IO-bound tasks, such as servers and databases.
+All else equal, you can have orders of magnitude more tasks than OS threads,
+because an async runtime uses a small amount of (expensive) threads to handle a
+large amount of (cheap) tasks. However, async Rust results in larger binary
+blobs due to the state machines generated from async functions and since each
+executable bundles an async runtime.
+
+On a last note, asynchronous programming is not /better/ than threads, but
+different. If you don't need async for performance reasons, threads can often be
+the simpler alternative.
+
+*** Example: Concurrent downloading
+
+In this example our goal is to download two web pages concurrently. In a typical
+threaded application we need to spawn threads to achieve concurrency:
+
+#+BEGIN_SRC rust :noeval
+fn get_two_sites() {
+    // Spawn two threads to do work.
+    let thread_one = thread::spawn(|| download("https://www.foo.com"));
+    let thread_two = thread::spawn(|| download("https://www.bar.com"));
+
+    // Wait for both threads to complete.
+    thread_one.join().expect("thread one panicked");
+    thread_two.join().expect("thread two panicked");
+}
+#+END_SRC
+
+However, downloading a web page is a small task; creating a thread for such a
+small amount of work is quite wasteful. For a larger application, it can easily
+become a bottleneck. In async Rust, we can run these tasks concurrently without
+extra threads:
+
+#+BEGIN_SRC rust :noeval
+async fn get_two_sites_async() {
+    // Create two different "futures" which, when run to completion,
+    // will asynchronously download the webpages.
+    let future_one = download_async("https://www.foo.com");
+    let future_two = download_async("https://www.bar.com");
+
+    // Run both futures to completion at the same time.
+    join!(future_one, future_two);
+}
+#+END_SRC
+
+Here, no extra threads are created. Additionally, all function calls are
+statically dispatched, and there are no heap allocations! However, we need to
+write the code to be asynchronous in the first place.
+
+Rust doesn't force you to choose between threads and async. You can use both
+models within the same application, which can be useful when you have mixed
+threaded and async dependencies. In fact, you can even use a different
+concurrency model altogether, such as event-driven programming, as long as you
+find a library that implements it.
+
+** The State of Asynchronous Rust
+
+In short, async Rust is more difficult to use and can result in a higher
+maintenance burden than synchronous Rust, but gives you best-in-class
+performance in return. All areas of async Rust are constantly improving, so the
+impact of these issues will wear off over time.
+
+*** Language and library support
+
+While asynchronous programming is supported by Rust itself, most async
+applications depend on functionality provided by community crates. As such, you
+need to rely on a mixture of language features and library support:
+
+- The most fundamental traits, types and functions, such as the [[https://doc.rust-lang.org/std/future/trait.Future.html][Future]] trait are
+  provided by the standard library.
+- The ~async/await~ syntax is supported directly by the Rust compiler.
+- Many utility types, macros and functions are provided by the [[https://docs.rs/futures/][futures]] crate.
+  They can be used in any async Rust application.
+- Execution of async code, IO and task spawning are provided by "async
+  runtimes", such as Tokio and async-std. Most async applications, and some
+  async crates, depend on a specific runtime.
+
+*** Compatibility considerations
+
+Asynchronous and synchronous code cannot always be combined freely. For
+instance, you can't directly call an async function from a sync function. Sync
+and async code also tend to promote different design patterns, which can make it
+difficult to compose code intended for the different environments.
+
+Even async code cannot always be combined freely. Some crates depend on a
+specific async runtime to function. If so, it is usually specified in the
+crate's dependency list.
+
+These compatibility issues can limit your options, so make sure to research
+which async runtime and what crates you may need early. Once you have settled in
+with a runtime, you won't have to worry much about compatibility.
+
+** ~async/.await~ Primer
+
+~async~ / ~.await~ is Rust's built-in tool for writing asynchronous functions
+that look like synchronous code. ~async~ transforms a block of code into a state
+machine that implements a trait called ~Future~. Whereas calling a blocking
+function in a synchronous method would block the whole thread, blocked ~Future~s
+will yield control of the thread, allowing other ~Future~s to run.
+
+Let's add some dependencies to the ~Cargo.toml~ file:
+
+#+BEGIN_SRC toml
+[dependencies]
+futures = "0.3"
+#+END_SRC
+
+To create an asynchronous function, you can use the async fn syntax:
+
+#+BEGIN_SRC rust :noeval
+async fn do_something() { /* ... */ }
+#+END_SRC
+
+The value returned by ~async fn~ is a ~Future~. For anything to happen, the
+~Future~ needs to be run on an executor.
+
+#+BEGIN_SRC rust :results output
+// `block_on` blocks the current thread until the provided future has run to
+// completion. Other executors provide more complex behavior, like scheduling
+// multiple futures onto the same thread.
+use futures::executor::block_on;
+
+async fn hello_world() {
+    println!("hello, world!");
+}
+
+fn main() {
+    let future = hello_world(); // Nothing is printed
+    block_on(future); // `future` is run and "hello, world!" is printed
+}
+#+END_SRC
+
+Inside an ~async fn~, you can use ~.await~ to wait for the completion of another
+type that implements the ~Future~ trait, such as the output of another
+~async fn~. Unlike ~block_on~, ~.await~ doesn't block the current thread, but
+instead asynchronously waits for the future to complete, allowing other tasks to
+run if the future is currently unable to make progress.
+
+For example, imagine that we have three ~async fn~: ~learn_song~, ~sing_song~,
+and ~dance~:
+
+#+BEGIN_SRC rust :noeval
+async fn learn_song() -> Song { /* ... */ }
+async fn sing_song(song: Song) { /* ... */ }
+async fn dance() { /* ... */ }
+#+END_SRC
+
+One way to do learn, sing, and dance would be to block on each of these
+individually:
+
+#+BEGIN_SRC rust :noeval
+fn main() {
+    let song = block_on(learn_song());
+    block_on(sing_song(song));
+    block_on(dance());
+}
+#+END_SRC
+
+However, we're not giving the best performance possible this way—we're only ever
+doing one thing at once! Clearly we have to learn the song before we can sing
+it, but it's possible to dance at the same time as learning and singing the
+song. To do this, we can create two separate async fn which can be run
+concurrently:
+
+#+BEGIN_SRC rust :noeval
+async fn learn_and_sing() {
+    // Wait until the song has been learned before singing it.
+    // We use `.await` here rather than `block_on` to prevent blocking the
+    // thread, which makes it possible to `dance` at the same time.
+    let song = learn_song().await;
+    sing_song(song).await;
+}
+
+async fn async_main() {
+    let f1 = learn_and_sing();
+    let f2 = dance();
+
+    // `join!` is like `.await` but can wait for multiple futures concurrently.
+    // If we're temporarily blocked in the `learn_and_sing` future, the `dance`
+    // future will take over the current thread. If `dance` becomes blocked,
+    // `learn_and_sing` can take back over. If both futures are blocked, then
+    // `async_main` is blocked and will yield to the executor.
+    futures::join!(f1, f2);
+}
+
+fn main() {
+    block_on(async_main());
+}
+#+END_SRC
+
+In this example, learning the song must happen before singing the song, but both
+learning and singing can happen at the same time as dancing. If we used
+~block_on(learn_song())~ rather than ~learn_song().await~ in ~learn_and_sing~,
+the thread wouldn't be able to do anything else while ~learn_song~ was running.
+This would make it impossible to ~dance~ at the same time. By ~.await~-ing the
+~learn_song~ future, we allow other tasks to take over the current thread if
+~learn_song~ is blocked. This makes it possible to run multiple futures to
+completion concurrently on the same thread.

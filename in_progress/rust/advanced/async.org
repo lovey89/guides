@@ -9,6 +9,9 @@
   - [[#async-lifetimes][~async~ Lifetimes]]
   - [[#async-move][~async move~]]
   - [[#awaiting-on-a-multithreaded-executor][~.await~ing on a Multithreaded Executor]]
+- [[#the-stream-trait][The ~Stream~ Trait]]
+  - [[#iteration-and-concurrency][Iteration and Concurrency]]
+- [[#executing-multiple-futures-at-a-time][Executing Multiple Futures at a Time]]
 #+END_QUOTE
 
 * Links
@@ -382,3 +385,112 @@ across an ~.await~, as it can cause the threadpool to lock up: one task could
 take out a lock, ~.await~ and yield to the executor, allowing another task to
 attempt to take the lock and cause a deadlock. To avoid this, use the ~Mutex~
 in ~futures::lock~ rather than the one from ~std::sync~.
+
+* The ~Stream~ Trait
+
+The ~Stream~ trait is similar to ~Future~ but can yield multiple values before
+completing, similar to the ~Iterator~ trait from the standard library:
+
+#+BEGIN_SRC rust :noeval
+trait Stream {
+    /// The type of the value yielded by the stream.
+    type Item;
+
+    /// Attempt to resolve the next item in the stream.
+    /// Returns `Poll::Pending` if not ready, `Poll::Ready(Some(x))` if a value
+    /// is ready, and `Poll::Ready(None)` if the stream has completed.
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
+        -> Poll<Option<Self::Item>>;
+}
+#+END_SRC
+
+One common example of a ~Stream~ is the ~Receiver~ for the channel type from the
+~futures~ crate. It will yield ~Some(val)~ every time a value is sent from the
+~Sender~ end, and will yield ~None~ once the ~Sender~ has been dropped and all
+pending messages have been received:
+
+#+BEGIN_SRC rust :noeval
+async fn send_recv() {
+    const BUFFER_SIZE: usize = 10;
+    let (mut tx, mut rx) = mpsc::channel::<i32>(BUFFER_SIZE);
+
+    tx.send(1).await.unwrap();
+    tx.send(2).await.unwrap();
+    drop(tx);
+
+    // `StreamExt::next` is similar to `Iterator::next`, but returns a
+    // type that implements `Future<Output = Option<T>>`.
+    assert_eq!(Some(1), rx.next().await);
+    assert_eq!(Some(2), rx.next().await);
+    assert_eq!(None, rx.next().await);
+}
+#+END_SRC
+
+** Iteration and Concurrency
+
+Similar to synchronous ~Iterator~s, there are many different ways to iterate
+over and process the values in a ~Stream~. There are combinator-style methods
+such as ~map~, ~filter~, and ~fold~, and their early-exit-on-error cousins
+~try_map~, ~try_filter~, and ~try_fold~.
+
+Unfortunately, ~for~ loops are not usable with ~Stream~s, but for
+imperative-style code, ~while let~ and the ~next~ / ~try_next~ functions can be
+used:
+
+#+BEGIN_SRC rust :noeval
+async fn sum_with_next(mut stream: Pin<&mut dyn Stream<Item = i32>>) -> i32 {
+    use futures::stream::StreamExt; // for `next`
+    let mut sum = 0;
+    while let Some(item) = stream.next().await {
+        sum += item;
+    }
+    sum
+}
+
+async fn sum_with_try_next(
+    mut stream: Pin<&mut dyn Stream<Item = Result<i32, io::Error>>>,
+) -> Result<i32, io::Error> {
+    use futures::stream::TryStreamExt; // for `try_next`
+    let mut sum = 0;
+    while let Some(item) = stream.try_next().await? {
+        sum += item;
+    }
+    Ok(sum)
+}
+#+END_SRC
+
+However, if we're just processing one element at a time, we're potentially
+leaving behind opportunity for concurrency, which is, after all, why we're
+writing async code in the first place. To process multiple items from a stream
+concurrently, use the ~for_each_concurrent~ and ~try_for_each_concurrent~
+methods:
+
+#+BEGIN_SRC rust
+async fn jump_around(
+    mut stream: Pin<&mut dyn Stream<Item = Result<u8, io::Error>>>,
+) -> Result<(), io::Error> {
+    use futures::stream::TryStreamExt; // for `try_for_each_concurrent`
+    const MAX_CONCURRENT_JUMPERS: usize = 100;
+
+    stream.try_for_each_concurrent(MAX_CONCURRENT_JUMPERS, |num| async move {
+        jump_n_times(num).await?;
+        report_n_jumps(num).await?;
+        Ok(())
+    }).await?;
+
+    Ok(())
+}
+#+END_SRC
+
+* Executing Multiple Futures at a Time
+
+Up until now, we've mostly executed futures by using ~.await~, which blocks the
+current task until a particular ~Future~ completes. However, real asynchronous
+applications often need to execute several different operations concurrently.
+
+
+- ~join!~: waits for futures to all complete
+- ~select!~: waits for one of several futures to complete
+- Spawning: creates a top-level task which ambiently runs a future to completion
+- ~FuturesUnordered~: a group of futures which yields the result of each
+  subfuture (not described yet)

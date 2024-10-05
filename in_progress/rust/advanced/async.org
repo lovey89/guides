@@ -12,6 +12,8 @@
 - [[#the-stream-trait][The ~Stream~ Trait]]
   - [[#iteration-and-concurrency][Iteration and Concurrency]]
 - [[#executing-multiple-futures-at-a-time][Executing Multiple Futures at a Time]]
+  - [[#join][~join~]]
+  - [[#select][~select!~]]
 #+END_QUOTE
 
 * Links
@@ -488,9 +490,151 @@ Up until now, we've mostly executed futures by using ~.await~, which blocks the
 current task until a particular ~Future~ completes. However, real asynchronous
 applications often need to execute several different operations concurrently.
 
-
 - ~join!~: waits for futures to all complete
 - ~select!~: waits for one of several futures to complete
 - Spawning: creates a top-level task which ambiently runs a future to completion
 - ~FuturesUnordered~: a group of futures which yields the result of each
   subfuture (not described yet)
+
+** ~join~
+
+The ~futures::join~ macro makes it possible to wait for multiple different
+futures to complete while executing them all concurrently.
+
+When performing multiple asynchronous operations, it's tempting to simply
+~.await~ them in a series:
+
+#+BEGIN_SRC rust :noeval
+async fn get_book_and_music() -> (Book, Music) {
+    let book = get_book().await;
+    let music = get_music().await;
+    (book, music)
+}
+#+END_SRC
+
+However, this will be slower than necessary, since it won't start trying to
+~get_music~ until after ~get_book~ has completed. Rust futures won't do any work
+until they're actively ~.await~ed. This means that it doesn't matter if we
+create both ~Future~s first and then ~.await~ them. To correctly run the two
+futures concurrently, use ~futures::join!~:
+
+#+BEGIN_SRC rust :noeval
+use futures::join;
+
+async fn get_book_and_music() -> (Book, Music) {
+    let book_fut = get_book();
+    let music_fut = get_music();
+    join!(book_fut, music_fut)
+}
+#+END_SRC
+
+The value returned by ~join!~ is a tuple containing the output of each ~Future~
+passed in.
+
+For futures which return ~Result~, consider using ~try_join!~ rather than
+~join!~. Since ~join!~ only completes once all subfutures have completed, it'll
+continue processing other futures even after one of its subfutures has returned
+an ~Err~.
+
+Unlike ~join!~, ~try_join!~ will complete immediately if one of the subfutures
+returns an error.
+
+#+BEGIN_SRC rust :noeval
+use futures::try_join;
+
+async fn get_book() -> Result<Book, String> { /* ... */ Ok(Book) }
+async fn get_music() -> Result<Music, String> { /* ... */ Ok(Music) }
+
+async fn get_book_and_music() -> Result<(Book, Music), String> {
+    let book_fut = get_book();
+    let music_fut = get_music();
+    try_join!(book_fut, music_fut)
+}
+#+END_SRC
+
+Note that the futures passed to ~try_join!~ must all have the same error type.
+Consider using the ~.map_err(|e| ...)~ and ~.err_into()~ functions from
+~futures::future::TryFutureExt~ to consolidate the error types:
+
+#+BEGIN_SRC rust :noeval
+use futures::{
+    future::TryFutureExt,
+    try_join,
+};
+
+async fn get_book() -> Result<Book, ()> { /* ... */ Ok(Book) }
+async fn get_music() -> Result<Music, String> { /* ... */ Ok(Music) }
+
+async fn get_book_and_music() -> Result<(Book, Music), String> {
+    let book_fut = get_book().map_err(|()| "Unable to get book".to_string());
+    let music_fut = get_music();
+    try_join!(book_fut, music_fut)
+}
+#+END_SRC
+
+** ~select!~
+
+The ~futures::select~ macro runs multiple futures simultaneously, allowing the
+user to respond as soon as any future completes.
+
+#+BEGIN_SRC rust :noeval
+use futures::{
+    future::FutureExt, // for `.fuse()`
+    pin_mut,
+    select,
+};
+
+async fn task_one() { /* ... */ }
+async fn task_two() { /* ... */ }
+
+async fn race_tasks() {
+    let t1 = task_one().fuse();
+    let t2 = task_two().fuse();
+
+    pin_mut!(t1, t2);
+
+    select! {
+        () = t1 => println!("task one completed first"),
+        () = t2 => println!("task two completed first"),
+    }
+}
+#+END_SRC
+
+The function above will run both ~t1~ and ~t2~ concurrently. When either ~t1~ or
+~t2~ finishes, the corresponding handler will call ~println!~, and the function
+will end without completing the remaining task.
+
+The basic syntax for ~select~ is ~<pattern> = <expression> => <code>,~, repeated
+for as many futures as you would like to ~select~ over.
+
+*** ~default~ and ~complete~
+
+~select~ also supports ~default~ and ~complete~ branches.
+
+A ~default~ branch will run if none of the futures being ~select~ed over are yet
+complete. A ~select~ with a ~default~ branch will therefore always return
+immediately, since ~default~ will be run if none of the other futures are ready.
+
+~complete~ branches can be used to handle the case where all futures being
+~select~ed over have completed and will no longer make progress. This is often
+handy when looping over a ~select!~.
+
+#+BEGIN_SRC rust :noeval
+use futures::{future, select};
+
+async fn count() {
+    let mut a_fut = future::ready(4);
+    let mut b_fut = future::ready(6);
+    let mut total = 0;
+
+    loop {
+        select! {
+            a = a_fut => total += a,
+            b = b_fut => total += b,
+            complete => break,
+            default => unreachable!(), // never runs (futures are ready, then complete)
+        };
+    }
+    assert_eq!(total, 10);
+}
+#+END_SRC

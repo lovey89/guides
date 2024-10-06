@@ -14,6 +14,13 @@
 - [[#executing-multiple-futures-at-a-time][Executing Multiple Futures at a Time]]
   - [[#join][~join~]]
   - [[#select][~select!~]]
+  - [[#spawning][Spawning]]
+- [[#workarounds-to-know][Workarounds to know]]
+  - [[#-in-async-blocks][~?~ in ~async~ Blocks]]
+  - [[#send-approximation][Send Approximation]]
+  - [[#async-in-traits][~async~ in Traits]]
+- [[#the-async-ecosysten][The Async Ecosysten]]
+  - [[#the-futures-crate][The Futures Crate]]
 #+END_QUOTE
 
 * Links
@@ -638,3 +645,229 @@ async fn count() {
     assert_eq!(total, 10);
 }
 #+END_SRC
+
+*** Interaction with ~Unpin~ and ~FusedFuture~
+
+One thing you may have noticed in the first example above is that we had to call
+~.fuse()~ on the futures returned by the two ~async fn~, as well as [[https://rust-lang.github.io/async-book/04_pinning/01_chapter.html][pinning]]
+them with ~pin_mut~. Both of these calls are necessary because the futures used
+in ~select~ must implement both the ~Unpin~ trait and the ~FusedFuture~ trait.
+
+~Unpin~ is necessary because the futures used by ~select~ are not taken by
+value, but by mutable reference. By not taking ownership of the future,
+uncompleted futures can be used again after the call to ~select~.
+
+Similarly, the ~FusedFuture~ trait is required because ~select~ must not poll a
+future after it has completed. ~FusedFuture~ is implemented by futures which
+track whether or not they have completed. This makes it possible to use ~select~
+in a loop, only polling the futures which still have yet to complete.
+
+Note that streams have a corresponding ~FusedStream~ trait. Streams which
+implement this trait or have been wrapped using ~.fuse()~ will yield
+~FusedFuture~ futures from their ~.next()~ / ~.try_next()~ combinators.
+
+#+BEGIN_SRC rust :noeval
+use futures::{
+    stream::{Stream, StreamExt, FusedStream},
+    select,
+};
+
+async fn add_two_streams(
+    mut s1: impl Stream<Item = u8> + FusedStream + Unpin,
+    mut s2: impl Stream<Item = u8> + FusedStream + Unpin,
+) -> u8 {
+    let mut total = 0;
+
+    loop {
+        let item = select! {
+            x = s1.next() => x,
+            x = s2.next() => x,
+            complete => break,
+        };
+        if let Some(next_num) = item {
+            total += next_num;
+        }
+    }
+
+    total
+}
+#+END_SRC
+
+** Spawning
+
+Spawning allows you to run a new asynchronous task in the background. This
+allows us to continue executing other code while it runs.
+
+Say we have a web server that wants to accept connections without blocking the
+main thread. To achieve this, we can use the ~async_std::task::spawn~ function
+to create and run a new task that handles the connections. This function takes a
+future and returns a ~JoinHandle~, which can be used to wait for the result of
+the task once it's completed.
+
+#+BEGIN_SRC rust :noeval
+use async_std::{task, net::TcpListener, net::TcpStream};
+use futures::AsyncWriteExt;
+
+async fn process_request(stream: &mut TcpStream) -> Result<(), std::io::Error>{
+    stream.write_all(b"HTTP/1.1 200 OK\r\n\r\n").await?;
+    stream.write_all(b"Hello World").await?;
+    Ok(())
+}
+
+async fn main() {
+    let listener = TcpListener::bind("127.0.0.1:8080").await.unwrap();
+    loop {
+        // Accept a new connection
+        let (mut stream, _) = listener.accept().await.unwrap();
+        // Now process this request without blocking the main loop
+        task::spawn(async move {process_request(&mut stream).await});
+    }
+}
+#+END_SRC
+
+The ~JoinHandle~ returned by ~spawn~ implements the ~Future~ trait, so we can
+~.await~ it to get the result of the task. This will block the current task
+until the spawned task completes. If the task is not awaited, your program will
+continue executing without waiting for the task, cancelling it if the function
+is completed before the task is finished.
+
+#+BEGIN_SRC rust :noeval
+use futures::future::join_all;
+async fn task_spawner(){
+    let tasks = vec![
+        task::spawn(my_task(Duration::from_secs(1))),
+        task::spawn(my_task(Duration::from_secs(2))),
+        task::spawn(my_task(Duration::from_secs(3))),
+    ];
+    // If we do not await these tasks and the function finishes, they will be dropped
+    join_all(tasks).await;
+}
+#+END_SRC
+
+To communicate between the main task and the spawned task, we can use channels
+provided by the async runtime used.
+
+* Workarounds to know
+** ~?~ in ~async~ Blocks
+
+Just as in ~async fn~, it's common to use ~?~ inside ~async~ blocks. However,
+the return type of ~async~ blocks isn't explicitly stated. This can cause the
+compiler to fail to infer the error type of the ~async~ block.
+
+For example, this code:
+
+#+BEGIN_SRC rust :noeval
+let fut = async {
+    foo().await?;
+    bar().await?;
+    Ok(())
+};
+#+END_SRC
+
+will trigger this error:
+
+#+BEGIN_SRC
+error[E0282]: type annotations needed
+ --> src/main.rs:5:9
+  |
+4 |     let fut = async {
+  |         --- consider giving `fut` a type
+5 |         foo().await?;
+  |         ^^^^^^^^^^^^ cannot infer type
+#+END_SRC
+
+Unfortunately, there's currently no way to "give ~fut~ a type", nor a way to
+explicitly specify the return type of an ~async~ block. To work around this, use
+the "turbofish" operator to supply the success and error types for the ~async~
+block:
+
+#+BEGIN_SRC rust :noeval
+let fut = async {
+    foo().await?;
+    bar().await?;
+    Ok::<(), MyError>(()) // <- note the explicit type annotation here
+};
+#+END_SRC
+
+** Send Approximation
+
+Some ~async fn~ state machines are safe to be sent across threads, while others
+are not. Whether or not an ~async fn~ ~Future~ is ~Send~ is determined by
+whether a non-~Send~ type is held across an ~.await~ point. The compiler does
+its best to approximate when values may be held across an ~.await~ point, but
+this analysis is too conservative in a number of places today.
+
+For example, consider a simple non-~Send~ type, perhaps a type which contains
+an ~Rc~:
+
+#+BEGIN_SRC rust :noeval
+use std::rc::Rc;
+
+#[derive(Default)]
+struct NotSend(Rc<()>);
+#+END_SRC
+
+Variables of type ~NotSend~ can briefly appear as temporaries in ~async fn~ even
+when the resulting ~Future~ type returned by the ~async fn~ must be ~Send~:
+
+#+BEGIN_SRC rust :results output
+async fn bar() {}
+async fn foo() {
+    NotSend::default();
+    bar().await;
+}
+
+fn require_send(_: impl Send) {}
+
+fn main() {
+    require_send(foo());
+}
+#+END_SRC
+
+However, if we change ~foo~ to store ~NotSend~ in a variable, this example no
+longer compiles:
+
+#+BEGIN_SRC rust :noeval
+async fn foo() {
+    let x = NotSend::default();
+    bar().await;
+}
+#+END_SRC
+
+If we store ~x~ into a variable, it won't be dropped until after the ~.await~,
+at which point the ~async fn~ may be running on a different thread. Since ~Rc~
+is not ~Send~, allowing it to travel across threads would be unsound. One simple
+solution to this would be to ~drop~ the ~Rc~ before the ~.await~, but
+unfortunately that does not work today.
+
+In order to successfully work around this issue, you may have to introduce a
+block scope encapsulating any non-~Send~ variables. This makes it easier for the
+compiler to tell that these variables do not live across an ~.await~ point.
+
+#+BEGIN_SRC rust :noeval
+async fn foo() {
+    {
+        let x = NotSend::default();
+    }
+    bar().await;
+}
+#+END_SRC
+
+** ~async~ in Traits
+
+Currently, ~async fn~ cannot be used in traits on the stable release of Rust. In
+the meantime, there is a work around for the stable tool chain using the
+[[https://github.com/dtolnay/async-trait][async-trait crate from crates.io]].
+
+* The Async Ecosysten
+** The Futures Crate
+
+The [[https://docs.rs/futures/][~futures~ crate]] contains traits and functions useful for writing async code.
+This includes the ~Stream~, ~Sink~, ~AsyncRead~, and ~AsyncWrite~ traits, and
+utilities such as combinators. These utilities and traits may eventually become
+part of the standard library.
+
+~futures~ has its own executor, but not its own reactor, so it does not support
+execution of async I/O or timer futures. For this reason, it's not considered a
+full runtime. A common choice is to use utilities from futures with an executor
+from another crate.

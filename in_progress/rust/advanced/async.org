@@ -21,6 +21,8 @@
   - [[#async-in-traits][~async~ in Traits]]
 - [[#the-async-ecosysten][The Async Ecosysten]]
   - [[#the-futures-crate][The Futures Crate]]
+- [[#tokio][Tokio]]
+  - [[#tasks][Tasks]]
 #+END_QUOTE
 
 * Links
@@ -871,3 +873,130 @@ part of the standard library.
 execution of async I/O or timer futures. For this reason, it's not considered a
 full runtime. A common choice is to use utilities from futures with an executor
 from another crate.
+
+* Tokio
+
+Examples to play around with:
+
+** Tasks
+
+A Tokio task is an asynchronous green thread. They are created by passing an
+~async~ block to ~tokio::spawn~. The ~tokio::spawn~ function returns a
+~JoinHandle~, which the caller may use to interact with the spawned task. The
+~async~ block may have a return value. The caller may obtain the return value
+using ~.await~ on the ~JoinHandle~.
+
+#+BEGIN_SRC rust :noeval
+#[tokio::main]
+async fn main() {
+    let handle = tokio::spawn(async {
+        // Do some async work
+        "return value"
+    });
+
+    // Do some other work
+
+    let out = handle.await.unwrap();
+    println!("GOT {}", out);
+}
+#+END_SRC
+
+Awaiting on ~JoinHandle~ returns a ~Result~. When a task encounters an error
+during execution, the ~JoinHandle~ will return an ~Err~. This happens when the
+task either panics, or if the task is forcefully cancelled by the runtime
+shutting down.
+
+Tasks are the unit of execution managed by the scheduler. Spawning the task
+submits it to the Tokio scheduler, which then ensures that the task executes
+when it has work to do. The spawned task may be executed on the same thread as
+where it was spawned, or it may execute on a different runtime thread. The task
+can also be moved between threads after being spawned.
+
+Tasks in Tokio are very lightweight.
+
+*** ~'static~ bound
+
+When you spawn a task on the Tokio runtime, its type's lifetime must be
+~'static~. This means that the spawned task must not contain any references to
+data owned outside the task.
+
+It is a common misconception that ~'static~ always means "lives forever", but
+this is not the case. Just because a value is ~'static~ does not mean that you
+have a memory leak. You can read more in [[https://github.com/pretzelhammer/rust-blog/blob/master/posts/common-rust-lifetime-misconceptions.md#2-if-t-static-then-t-must-be-valid-for-the-entire-program][Common Rust Lifetime Misconceptions]].
+
+When we say that a value is ~'static~, all that means is that it would not be
+incorrect to keep that value around forever. This is important because the
+compiler is unable to reason about how long a newly spawned task stays around.
+We have to make sure that the task is allowed to live forever, so that Tokio can
+make the task run as long as it needs to.
+
+*** Example to test
+
+#+BEGIN_SRC rust :noeval
+use tokio::task;
+
+#[tokio::main]
+async fn main() {
+    let v = vec![1, 2, 3];
+
+    task::spawn(async move {
+        println!("Here's a vec: {:?}", v);
+    });
+}
+#+END_SRC
+
+*** ~Send~ bound
+
+Tasks spawned by ~tokio::spawn~ must implement ~Send~. This allows the Tokio
+runtime to move the tasks between threads while they are suspended at an
+~.await~.
+
+Tasks are ~Send~ when all data that is held across ~.await~ calls is ~Send~.
+This is a bit subtle. When ~.await~ is called, the task yields back to the
+scheduler. The next time the task is executed, it resumes from the point it last
+yielded. To make this work, all state that is used after ~.await~ must be saved
+by the task. If this state is ~Send~, i.e. can be moved across threads, then the
+task itself can be moved across threads. Conversely, if the state is not ~Send~,
+then neither is the task.
+
+For example, this works:
+
+#+BEGIN_SRC rust :noeval
+use tokio::task::yield_now;
+use std::rc::Rc;
+
+#[tokio::main]
+async fn main() {
+    tokio::spawn(async {
+        // The scope forces `rc` to drop before `.await`.
+        {
+            let rc = Rc::new("hello");
+            println!("{}", rc);
+        }
+
+        // `rc` is no longer used. It is **not** persisted when
+        // the task yields to the scheduler
+        yield_now().await;
+    });
+}
+#+END_SRC
+
+This does not:
+
+#+BEGIN_SRC rust :noeval
+use tokio::task::yield_now;
+use std::rc::Rc;
+
+#[tokio::main]
+async fn main() {
+    tokio::spawn(async {
+        let rc = Rc::new("hello");
+
+        // `rc` is used after `.await`. It must be persisted to
+        // the task's state.
+        yield_now().await;
+
+        println!("{}", rc);
+    });
+}
+#+END_SRC

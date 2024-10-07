@@ -23,6 +23,7 @@
   - [[#the-futures-crate][The Futures Crate]]
 - [[#tokio][Tokio]]
   - [[#tasks][Tasks]]
+  - [[#backpressure-and-bounded-channels][Backpressure and bounded channels]]
 #+END_QUOTE
 
 * Links
@@ -1000,3 +1001,51 @@ async fn main() {
     });
 }
 #+END_SRC
+
+** Backpressure and bounded channels
+
+Whenever concurrency or queuing is introduced, it is important to ensure that
+the queing is bounded and the system will gracefully handle the load. Unbounded
+queues will eventually fill up all available memory and cause the system to fail
+in unpredictable ways.
+
+Tokio takes care to avoid implicit queuing. A big part of this is the fact that
+async operations are lazy. Consider the following:
+
+#+BEGIN_SRC rust :noeval
+loop {
+    async_op();
+}
+#+END_SRC
+
+If the asynchronous operation runs eagerly, the loop will repeatedly queue a new
+~async_op~ to run without ensuring the previous operation completed. This
+results in implicit unbounded queuing. Callback based systems and *eager* future
+based systems are particularly susceptible to this.
+
+However, with Tokio and asynchronous Rust, the above snippet will *not* result
+in ~async_op~ running at all. This is because ~.await~ is never called. If the
+snippet is updated to use ~.await~, then the loop waits for the operation to
+complete before starting over.
+
+#+BEGIN_SRC rust :noeval
+loop {
+    // Will not repeat until `async_op` completes
+    async_op().await;
+}
+#+END_SRC
+
+Concurrency and queuing must be explicitly introduced. Ways to do this include:
+
+- ~tokio::spawn~
+- ~select!~
+- ~join!~
+- ~mpsc::channel~ (how?)
+
+When doing so, take care to ensure the total amount of concurrency is bounded.
+For example, when writing a TCP accept loop, ensure that the total number of
+open sockets is bounded. When using ~mpsc::channel~, pick a manageable channel
+capacity. Specific bound values will be application specific.
+
+Taking care and picking good bounds is a big part of writing reliable Tokio
+applications.

@@ -29,6 +29,7 @@
 - [[#query-data][Query data]]
   - [[#aggregate-data][Aggregate data]]
   - [[#ordering][Ordering]]
+- [[#arrays][Arrays]]
 - [[#functions-to-investigate][Functions to investigate]]
 - [[#ms-sql][MS SQL]]
   - [[#list-all-tables-with-column-names][List all tables with column names]]
@@ -498,12 +499,79 @@ DROP TABLE foo;
 
 #+BEGIN_SRC sql
 ORDER BY
-  CASE WHEN(
-    id = 8
-  THEN 1000000
-  ELSE id
+  CASE
+    WHEN id = 8 THEN 1000000
+    ELSE id
   END
 DESC
+#+END_SRC
+
+* Arrays
+
+https://www.postgresqltutorial.com/postgresql-tutorial/postgresql-array/
+
+#+BEGIN_SRC sql
+CREATE TABLE contacts (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR (100),
+  phones TEXT [] -- Array of text created here
+);
+
+-- You can use the ARRAY constructor to create an array
+INSERT INTO contacts (name, phones)
+VALUES('John Doe',ARRAY [ '(408)-589-5846','(408)-589-5555' ]);
+-- Or use curly braces. Notice that when using curly braces, you use single
+-- quotes ' to wrap the array and double-quotes " to wrap text array items.
+INSERT INTO contacts (name, phones)
+VALUES('Lily Bush','{"(408)-589-5841"}'),
+      ('William Gate','{"(408)-589-5842","(408)-589-58423"}');
+
+-- By default, PostgreSQL uses one-based numbering for array elements. It means
+-- the first array element starts with the number 1.
+SELECT
+  name,
+  phones [ 1 ]
+FROM
+  contacts;
+
+-- Or query for a phone number based on index
+SELECT
+  name
+FROM
+  contacts
+WHERE
+  phones [ 2 ] = '(408)-589-58423';
+
+-- Or look for the number at any position
+SELECT
+  name,
+  phones
+FROM
+  contacts
+WHERE
+  '(408)-589-5555' = ANY (phones);
+
+-- Update a phone number
+UPDATE contacts
+SET phones [2] = '(408)-589-5843'
+WHERE ID = 3
+RETURNING *;
+
+-- Or replace the whole array
+UPDATE
+  contacts
+SET
+  phones = '{"(408)-589-5843"}'
+WHERE
+  id = 3
+RETURNING *;
+
+-- If you want to unnest the array so they end up each on different rows
+SELECT
+  name,
+  unnest(phones)
+FROM
+  contacts;
 #+END_SRC
 
 * Functions to investigate

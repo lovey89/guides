@@ -134,6 +134,7 @@
 - [[#cheat-sheet][Cheat sheet]]
 - [[#code-to-inspect][Code to inspect]]
 - [[#links-to-read][Links to read]]
+- [[#to-investigate][To investigate]]
 #+END_QUOTE
 
 * Test code to check python versions
@@ -5325,3 +5326,7 @@ https://docs.python.org/3/
 https://docs.python.org/3/library/index.html
 https://docs.python.org/3/reference/index.html#reference-index
 https://docs.python.org/3/library/functions.html#sorted
+
+* To investigate
+
+- ~NamedTuple~

@@ -56,6 +56,7 @@ https://niallburkley.com/blog/index-columns-for-like-in-postgres/
 http://www.sql-join.com/sql-join-types/
 https://www.sitepoint.com/simply-sql-the-from-clause/
 https://stackoverflow.com/questions/64016778/better-to-use-serial-primary-key-or-generated-always-as-identity-for-primary-key
+https://wiki.postgresql.org/wiki/Don%27t_Do_This#Don.27t_use_serial
 
 * Joins
 
@@ -512,7 +513,7 @@ https://www.postgresqltutorial.com/postgresql-tutorial/postgresql-array/
 
 #+BEGIN_SRC sql
 CREATE TABLE contacts (
-  id SERIAL PRIMARY KEY,
+  id int4 PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   name VARCHAR (100),
   phones TEXT [] -- Array of text created here
 );

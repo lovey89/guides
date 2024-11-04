@@ -11104,6 +11104,8 @@ Return error codes
 ~function::<Type>(args)~ syntax
 - const generics
 
+https://docs.rs/thiserror/latest/thiserror/index.html
+
 - Attributes
   - ~#[non_exhaustive]~
   - ~#[must_use]~

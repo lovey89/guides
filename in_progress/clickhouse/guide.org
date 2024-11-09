@@ -1,7 +1,9 @@
 * Table of Contents :TOC:QUOTE:
 #+BEGIN_QUOTE
 - [[#create-local-clickhouse-database-container][Create local clickhouse database container]]
-- [[#show-how-table-was-created][Show how table was created]]
+- [[#database-management][Database management]]
+  - [[#show-how-table-was-created][Show how table was created]]
+  - [[#get-disk-size-requirement-per-table][Get disk size requirement per table]]
 #+END_QUOTE
 
 * Create local clickhouse database container
@@ -20,8 +22,33 @@ docker run --rm -p 8123:8123 --ulimit nofile=262144:262144 clickhouse/clickhouse
 
 Or navigate to http://localhost:8123/play
 
-* Show how table was created
+* Database management
+
+** Show how table was created
 
 #+BEGIN_SRC sql
 show create table <table_name> ;
+#+END_SRC
+
+** Get disk size requirement per table
+
+https://kb.altinity.com/altinity-kb-useful-queries/altinity-kb-database-size-table-column-size/
+
+#+BEGIN_SRC sql
+SELECT
+    disk_name,
+    database,
+    table,
+    formatReadableSize(sum(data_compressed_bytes) AS size) AS compressed,
+    formatReadableSize(sum(data_uncompressed_bytes) AS usize) AS uncompressed,
+    round(usize / size, 2) AS compr_rate,
+    sum(rows) AS rows,
+    count() AS part_count
+FROM system.parts
+WHERE (active = 1) AND (database LIKE '%') AND (table LIKE '%')
+GROUP BY
+    disk_name,
+    database,
+    table
+ORDER BY size DESC;
 #+END_SRC

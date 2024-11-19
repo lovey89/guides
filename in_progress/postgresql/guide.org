@@ -28,6 +28,7 @@
   - [[#foreign-keys][Foreign keys]]
 - [[#query-data][Query data]]
   - [[#aggregate-data][Aggregate data]]
+  - [[#perform-a-join-and-aggregate-right-side-as-array-of-json-objects][Perform a join and aggregate right side as array of json objects]]
   - [[#ordering][Ordering]]
 - [[#arrays][Arrays]]
 - [[#functions-to-investigate][Functions to investigate]]
@@ -493,6 +494,16 @@ FROM foo
 GROUP BY id;
 
 DROP TABLE foo;
+#+END_SRC
+
+** Perform a join and aggregate right side as array of json objects
+
+#+BEGIN_SRC sql
+SELECT p.*, COALESCE(NULLIF(array_agg(to_jsonb(c) ORDER BY age), '{NULL}'), '{}') AS children
+FROM parents p
+  LEFT JOIN children c ON p.id = c.parent_id
+GROUP BY
+  p.id;
 #+END_SRC
 
 ** Ordering

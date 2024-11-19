@@ -1,0 +1,48 @@
+* Table of Contents :TOC:QUOTE:
+#+BEGIN_QUOTE
+- [[#setting-up-new-debian-machine-without-gui-and-standard-system-utilities][Setting up new debian machine without GUI and standard system utilities]]
+  - [[#setup-apt-sources][Setup apt sources]]
+#+END_QUOTE
+
+* Setting up new debian machine without GUI and standard system utilities
+
+** Setup apt sources
+
+Replace the content of ~/etc/apy/sources.list~ with:
+
+#+BEGIN_SRC
+deb http://deb.debian.org/debian bookworm main non-free-firmware
+deb-src http://deb.debian.org/debian bookworm main non-free-firmware
+
+deb http://security.debian.org/debian-security bookworm-security main non-free-firmware
+deb-src http://security.debian.org/debian-security bookworm-security main non-free-firmware
+
+deb http://deb.debian.org/debian bookworm-updates main non-free-firmware
+deb-src http://deb.debian.org/debian bookworm-updates main non-free-firmware
+#+END_SRC
+
+Update apt repositories:
+
+#+BEGIN_SRC bash :noeval
+apt-get update
+#+END_SRC
+
+Install some missing core tools:
+
+#+BEGIN_SRC bash :noeval
+apt-get install --no-install-recommends sudo python3 man netplan.io
+#+END_SRC
+
+Add your user to the ~sudo~ group:
+
+#+BEGIN_SRC bash :noeval
+adduser <user> sudo
+#+END_SRC
+
+If the user already has an active session run the ~newgrp~ command to update the
+assigned groups:
+
+#+BEGIN_SRC bash :noeval
+newgrp sudo
+groups
+#+END_SRC

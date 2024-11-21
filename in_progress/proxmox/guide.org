@@ -8,7 +8,7 @@
 
 ** Setup apt sources
 
-Replace the content of ~/etc/apy/sources.list~ with:
+Replace the content of ~/etc/apt/sources.list~ with:
 
 #+BEGIN_SRC
 deb http://deb.debian.org/debian bookworm main non-free-firmware
@@ -30,7 +30,7 @@ apt-get update
 Install some missing core tools:
 
 #+BEGIN_SRC bash :noeval
-apt-get install --no-install-recommends sudo python3 man netplan.io
+apt-get install --no-install-recommends sudo python3 man netplan.io vim systemd-resolved
 #+END_SRC
 
 Add your user to the ~sudo~ group:
@@ -46,3 +46,62 @@ assigned groups:
 newgrp sudo
 groups
 #+END_SRC
+
+~/etc/netplan/network.yaml~:
+
+#+BEGIN_SRC yaml
+network:
+  version: 2
+  ethernets:
+    ens18:
+      # Set to 'no' when configuring a new VM
+      dhcp4: yes
+      dhcp6: no
+      # Set real IP address when configuring a new VM
+      #addresses:
+      #- 192.168.1.XXX/24
+      routes:
+        - to: default
+          via: 192.168.1.1
+      nameservers:
+        addresses:
+          - 1.1.1.1
+          - 8.8.8.8
+        search: []
+#+END_SRC
+
+#+BEGIN_SRC bash :noeval
+chmod 600 /etc/netplan/network.yaml
+netplan generate
+netplan apply # Will output and error about networkd first time which goes away after a reboot
+              # Errors about ovsdb-server.service not running can be ignored
+#+END_SRC
+
+Comment out the information about ~ens18~ in ~/etc/network/interfaces~:
+
+#+BEGIN_SRC
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+source /etc/network/interfaces.d/*
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+# The primary network interface
+#allow-hotplug ens18
+#iface ens18 inet dhcp
+#+END_SRC
+
+Reboot. Check networking statuses
+
+#+BEGIN_SRC bash :noeval
+ip addr
+netplan status
+resolvectl status
+#+END_SRC
+
+Create a template.
+
+When cloning the template update the ~netplan~ settings and update ~/etc/hostname~. Then reboot

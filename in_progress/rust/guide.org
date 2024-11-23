@@ -11105,6 +11105,8 @@ Return error codes
 - const generics
 
 https://docs.rs/thiserror/latest/thiserror/index.html
+https://docs.rs/anyhow/latest/anyhow/
+https://crates.io/crates/secrecy
 
 - Attributes
   - ~#[non_exhaustive]~

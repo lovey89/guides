@@ -1,8 +1,32 @@
 * Table of Contents :TOC:QUOTE:
 #+BEGIN_QUOTE
+- [[#reduce-ssh-wear][Reduce ssh wear]]
 - [[#setting-up-new-debian-machine-without-gui-and-standard-system-utilities][Setting up new debian machine without GUI and standard system utilities]]
   - [[#setup-apt-sources][Setup apt sources]]
 #+END_QUOTE
+
+* Reduce ssh wear
+
+- https://www.reddit.com/r/Proxmox/comments/12gftf7/reduce_wear_on_ssds/
+- https://forum.proxmox.com/threads/ssd-wear.139958/
+- https://pve.proxmox.com/wiki/Service_daemons#pve-cluster
+- https://forum.proxmox.com/threads/is-it-possible-to-disable-all-logs-local-completly.52067/
+
+#+BEGIN_SRC bash :noeval
+systemctl stop pve-ha-lrm
+systemctl disable pve-ha-lrm
+
+systemctl stop pve-ha-crm
+systemctl disable pve-ha-crm
+
+#systemctl stop corosync.service
+#systemctl disable corosync.service
+
+#systemctl stop pvesr.timer
+#systemctl disable pvesr.timer
+
+# Disable rsyslog and journald
+#+END_SRC
 
 * Setting up new debian machine without GUI and standard system utilities
 
@@ -30,7 +54,7 @@ apt-get update
 Install some missing core tools:
 
 #+BEGIN_SRC bash :noeval
-apt-get install --no-install-recommends sudo python3 man netplan.io vim systemd-resolved
+apt-get install --no-install-recommends sudo python3 man netplan.io vim systemd-resolved qemu-guest-agent
 #+END_SRC
 
 Add your user to the ~sudo~ group:
@@ -105,3 +129,103 @@ resolvectl status
 Create a template.
 
 When cloning the template update the ~netplan~ settings and update ~/etc/hostname~. Then reboot
+
+Create a file ~/root/vm_first_boot~ with the following content:
+
+#+BEGIN_SRC bash :noeval
+#!/bin/bash
+
+SCRIPT_NAME=$(realpath "$0")
+
+echo "$SCRIPT_NAME"
+
+while :; do
+    read -ep "Enter a unique server number (0-39) or 'n' to continue without configuring the vm for now: " number
+    if [ "$number" == 'n' ]; then
+        echo "No configuration will be done"
+        exit
+    fi
+    if [[ ! $number =~ ^[[:digit:]]+$ ]]; then
+        echo "The provided value was not a positive integer"
+        continue
+    fi
+    if (( number > 39 )); then
+        echo "Number was greater than 39"
+        continue
+    fi
+    break
+done
+echo "VM number is:              ${number}"
+while :; do
+    read -p 'Generate new ssh host keys (y/n): ' gen_ssh_key
+    if [[ "$gen_ssh_key" =~ ^y|n$ ]]; then
+        break
+    fi
+done
+
+echo
+new_hostname=$(printf "debian-%02d" $number)
+echo "Hostname will be set to:   $new_hostname"
+new_ip="192.168.1.$(( 200 + number ))"
+echo "IP address will be set to: $new_ip"
+if [ "$gen_ssh_key" == 'y' ]; then
+    echo "New ssh host keys will be generated"
+else
+    echo "New ssh host keys will NOT be generated"
+fi
+
+read -s -p "Press enter to confirm the new settings or Ctrl-C to exit"
+
+if [ $? -ne 0 ]; then
+    echo
+    echo "Exited.."
+    exit
+fi
+
+if [ "$gen_ssh_key" == 'y' ]; then
+    rm /etc/ssh/ssh_host_*
+    ssh-keygen -A
+fi
+
+echo "$new_hostname" > /etc/hostname
+
+cat << END_OF_NETPLAN_CONFIG > /etc/netplan/network.yaml
+network:
+  version: 2
+  ethernets:
+    ens18:
+      dhcp4: no
+      dhcp6: no
+      addresses:
+      - ${new_ip}/24
+      routes:
+        - to: default
+          via: 192.168.1.1
+      nameservers:
+        addresses:
+          - 1.1.1.1
+          - 8.8.8.8
+        search: []
+END_OF_NETPLAN_CONFIG
+
+netplan generate
+rm "$SCRIPT_NAME"
+reboot
+#+END_SRC
+
+Make it executable:
+
+#+BEGIN_SRC bash :noeval
+chmod a+x /root/vm_first_boot
+#+END_SRC
+
+Run it if it exists from ~.bashrc~:
+
+#+BEGIN_SRC bash :noeval
+# ...
+VM_FIRST_BOOT_FILE="${HOME}/vm_first_boot"
+if [ -x "$VM_FIRST_BOOT_FILE" ]; then
+    "${VM_FIRST_BOOT_FILE}"
+fi
+# ...
+#+END_SRC

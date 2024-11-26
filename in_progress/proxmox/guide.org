@@ -137,8 +137,6 @@ Create a file ~/root/vm_first_boot~ with the following content:
 
 SCRIPT_NAME=$(realpath "$0")
 
-echo "$SCRIPT_NAME"
-
 while :; do
     read -ep "Enter a unique server number (0-39) or 'n' to continue without configuring the vm for now: " number
     if [ "$number" == 'n' ]; then
@@ -158,7 +156,7 @@ done
 echo "VM number is:              ${number}"
 while :; do
     read -p 'Generate new ssh host keys (y/n): ' gen_ssh_key
-    if [[ "$gen_ssh_key" =~ ^y|n$ ]]; then
+    if [[ "$gen_ssh_key" =~ ^(y|n)$ ]]; then
         break
     fi
 done

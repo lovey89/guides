@@ -4691,6 +4691,56 @@ Because Rust compiles generic code into code that specifies the type in each
 instance, we pay no runtime cost for using generics. When the code runs, it
 performs just as it would if we had duplicated each definition by hand.
 
+*** Const generics
+
+https://practice.course.rs/generics-traits/const-generics.html
+
+Const generics are generic arguments that range over constant values, rather
+than types or lifetimes. This allows, for instance, types to be parameterized by
+integers. In fact, there has been one example of const generic types since early
+on in Rust's development: the array types [T; N], for some type T and N: usize.
+However, there has previously been no way to abstract over arrays of an arbitrary
+size: if you wanted to implement a trait for arrays of any size, you would have
+to do so manually for each possible value.
+
+Currently, const parameters may only be instantiated by const arguments of the
+following forms:
+
+- A standalone const parameter
+- A literal (i.e. an integer, bool, or character)
+- A concrete constant expression (enclosed by {}), involving no generic
+  parameters
+
+#+BEGIN_SRC rust :results output
+fn foo<const N: usize>() {}
+
+fn bar<T, const M: usize>() {
+    foo::<M>(); // Okay: `M` is a const parameter
+    foo::<2021>(); // Okay: `2021` is a literal
+    foo::<{20 * 100 + 20 * 10 + 1}>(); // Okay: const expression contains no generic parameters
+
+    foo::<{ M + 1 }>(); // Error: const expression contains the generic parameter `M`
+    foo::<{ std::mem::size_of::<T>() }>(); // Error: const expression contains the generic parameter `T`
+
+    let _: [u8; M]; // Okay: `M` is a const parameter
+    let _: [u8; std::mem::size_of::<T>()]; // Error: const expression contains the generic parameter `T`
+}
+#+END_SRC
+
+According to https://nindalf.com/posts/optimising-rust/#4-use-const-generics
+const generics can also let us avoid some runtime checks.
+
+#+BEGIN_SRC rust :results output
+fn foo<const N: usize>() {
+    println!("{N}")
+}
+
+fn main() {
+    foo::<5>();
+    foo::<7>();
+}
+#+END_SRC
+
 ** Traits: defining shared behavior
 
 Traits are similar to a feature often called /interfaces/ in other languages,
@@ -11121,3 +11171,7 @@ fn main() {
     println!("{}", y);
 }
 #+END_SRC
+
+- ~scan_fmt!()~
+- Benchmark with ~criterion~ or ~hyperfine~
+- Parallelize with Rayon

@@ -1,0 +1,13 @@
+k3s_vms:
+  hosts:
+    debian_0:
+      ansible_host: replace_with_ip
+    debian_1:
+      ansible_host: replace_with_ip
+    debian_2:
+      ansible_host: replace_with_ip
+
+  vars:
+    ansible_port: 22
+    ansible_user: replace_with_username
+    ansible_ssh_pass: replace_with_password

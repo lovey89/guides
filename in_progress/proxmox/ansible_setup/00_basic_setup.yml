@@ -1,0 +1,19 @@
+---
+- name: Configure shell for all hosts
+  hosts: k3s_vms
+
+  tasks:
+    - name: Install needed packages for k3s ansible
+      become: true
+      ansible.builtin.package:
+        name:
+          - python3-apt
+          - wget
+        state: present
+
+    - name: Create ansible tmp dir
+      become: true
+      ansible.builtin.file:
+        path: /root/.ansible/tmp
+        state: directory
+        mode: '0755'

@@ -11,6 +11,22 @@
           - wget
         state: present
 
+    - name: Install needed packages for longhorn
+      #https://longhorn.io/docs/1.7.2/deploy/install/
+      become: true
+      ansible.builtin.package:
+        name:
+          - open-iscsi
+          #- bash
+          - curl
+          #- findmnt
+          #- grep
+          #- awk
+          # To install 'blkid'
+          - util-linux
+          #- lsblk
+        state: present
+
     - name: Create ansible tmp dir
       become: true
       ansible.builtin.file:

@@ -104,6 +104,7 @@
 - [[#style-guide][Style guide]]
 - [[#clippy][Clippy]]
 - [[#misc][Misc]]
+  - [[#the-unimplemented-and-todo-macros][The ~unimplemented!()~ and ~todo!()~ macros]]
   - [[#test-is-an-array-slice-and-a-vector-slice-the-same][Test: Is an array slice and a vector slice the same?]]
   - [[#test-iterating-over-arrays-and-vectors][Test: Iterating over arrays and vectors]]
 - [[#questions][Questions]]
@@ -11030,8 +11031,14 @@ cargo clippy -- -D warnings -W clippy::all -W clippy::correctness -W clippy::com
 
 * Misc
 
-Can a immutable var become mutable? Write an example where a function returns
+Can an immutable var become mutable? Write an example where a function returns
 a ~String~ and assign it to both mutable and immutable variables.
+
+** The ~unimplemented!()~ and ~todo!()~ macros
+
+Both ~unimplemented!()~ and ~todo!()~ are shorthands for ~panic!()~ and can be
+used for e.g. unreachable code to keep the type checker happy, or when you will
+implement something later but just want the code to compile for now.
 
 ** Test: Is an array slice and a vector slice the same?
 
@@ -11131,7 +11138,7 @@ with the ~Copy~ trait?
 
 * Things to investigate
 
-What is ~pub(crate)~:
+What is ~pub(crate)~ / ~pub(super)~:
 https://doc.rust-lang.org/reference/visibility-and-privacy.html
 
 ~pub async fn name~

@@ -1,0 +1,23 @@
+* Table of Contents :TOC:QUOTE:
+#+BEGIN_QUOTE
+- [[#links][Links]]
+- [[#create-project][Create project]]
+#+END_QUOTE
+
+* Links
+
+https://vuejs.org/guide/quick-start.html
+
+* Create project
+
+#+BEGIN_SRC bash :noeval
+npm create vue@latest
+#+END_SRC
+
+Then to install, format and run:
+
+#+BEGIN_SRC bash :noeval
+npm install
+npm run format
+npm run dev
+#+END_SRC

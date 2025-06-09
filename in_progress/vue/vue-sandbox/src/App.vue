@@ -1,14 +1,18 @@
 <script setup>
-import TemplateSyntax from './components/01_TemplateSyntax.vue'
-import ReactivityFundamentals from './components/02_ReactivityFundamentals.vue'
-import ComputedProperties from './components/03_ComputedProperties.vue'
-import ClassAndStyleBindings from './components/04_ClassAndStyleBindings.vue'
-import ConditionalRendering from './components/05_ConditionalRendering.vue'
-import ListRendering from './components/06_ListRendering.vue'
-import EventHandling from './components/07_EventHandling.vue'
-import FormInputBindings from './components/08_FormInputBindings.vue'
-import Watchers from './components/09_Watchers.vue'
-import TemplateRefs from './components/10_TemplateRefs.vue'
+import TemplateSyntax from './components/01_essentials/01_TemplateSyntax.vue'
+import ReactivityFundamentals from './components/01_essentials/02_ReactivityFundamentals.vue'
+import ComputedProperties from './components/01_essentials/03_ComputedProperties.vue'
+import ClassAndStyleBindings from './components/01_essentials/04_ClassAndStyleBindings.vue'
+import ConditionalRendering from './components/01_essentials/05_ConditionalRendering.vue'
+import ListRendering from './components/01_essentials/06_ListRendering.vue'
+import EventHandling from './components/01_essentials/07_EventHandling.vue'
+import FormInputBindings from './components/01_essentials/08_FormInputBindings.vue'
+import Watchers from './components/01_essentials/09_Watchers.vue'
+import TemplateRefs from './components/01_essentials/10_TemplateRefs.vue'
+import ComponentBasics from './components/01_essentials/11_ComponentBasics/ComponentBasics.vue'
+import LifecycleHooks from './components/01_essentials/12_LifecycleHooks.vue'
+import Registration from './components/02_component_in_depth/01_registration.vue'
+import Props from './components/02_component_in_depth/02_props.vue'
 </script>
 
 <template>
@@ -20,7 +24,11 @@ import TemplateRefs from './components/10_TemplateRefs.vue'
   <!-- <EventHandling /> -->
   <!-- <FormInputBindings /> -->
   <!-- <Watchers /> -->
-  <TemplateRefs />
+  <!-- <TemplateRefs /> -->
+  <!-- <ComponentBasics /> -->
+  <!-- <LifecycleHooks /> -->
+  <!-- <Registration /> -->
+  <Props />
 </template>
 
 <!--

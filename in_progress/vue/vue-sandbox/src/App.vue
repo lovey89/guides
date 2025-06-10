@@ -17,6 +17,9 @@ import Events from './components/02_component_in_depth/03_Events/03_Events.vue'
 import ComponentVModel from './components/02_component_in_depth/04_ComponentVModel/ComponentVModel.vue'
 import FallthroughAttributes from './components/02_component_in_depth/05_FallthroughAttributes/FallthroughAttributes.vue'
 import Slots from './components/02_component_in_depth/06_Slots/Slots.vue'
+import ProvideInject from './components/02_component_in_depth/07_ProvideInject.vue'
+import AsyncComponents from './components/02_component_in_depth/08_AsyncComponents.vue'
+import Composables from './components/03_reusability/01_Composables/Composables.vue'
 </script>
 
 <template>
@@ -36,7 +39,10 @@ import Slots from './components/02_component_in_depth/06_Slots/Slots.vue'
   <!-- <Events /> -->
   <!-- <ComponentVModel /> -->
   <!-- <FallthroughAttributes /> -->
-  <Slots />
+  <!-- <Slots /> -->
+  <!-- <ProvideInject /> -->
+  <!-- <AsyncComponents /> -->
+  <Composables />
 </template>
 
 <!--

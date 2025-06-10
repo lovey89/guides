@@ -16,6 +16,7 @@ import Props from './components/02_component_in_depth/02_Props.vue'
 import Events from './components/02_component_in_depth/03_Events/03_Events.vue'
 import ComponentVModel from './components/02_component_in_depth/04_ComponentVModel/ComponentVModel.vue'
 import FallthroughAttributes from './components/02_component_in_depth/05_FallthroughAttributes/FallthroughAttributes.vue'
+import Slots from './components/02_component_in_depth/06_Slots/Slots.vue'
 </script>
 
 <template>
@@ -34,7 +35,8 @@ import FallthroughAttributes from './components/02_component_in_depth/05_Fallthr
   <!-- <Props /> -->
   <!-- <Events /> -->
   <!-- <ComponentVModel /> -->
-  <FallthroughAttributes />
+  <!-- <FallthroughAttributes /> -->
+  <Slots />
 </template>
 
 <!--

@@ -11,8 +11,11 @@ import Watchers from './components/01_essentials/09_Watchers.vue'
 import TemplateRefs from './components/01_essentials/10_TemplateRefs.vue'
 import ComponentBasics from './components/01_essentials/11_ComponentBasics/ComponentBasics.vue'
 import LifecycleHooks from './components/01_essentials/12_LifecycleHooks.vue'
-import Registration from './components/02_component_in_depth/01_registration.vue'
-import Props from './components/02_component_in_depth/02_props.vue'
+import Registration from './components/02_component_in_depth/01_Registration.vue'
+import Props from './components/02_component_in_depth/02_Props.vue'
+import Events from './components/02_component_in_depth/03_Events/03_Events.vue'
+import ComponentVModel from './components/02_component_in_depth/04_ComponentVModel/ComponentVModel.vue'
+import FallthroughAttributes from './components/02_component_in_depth/05_FallthroughAttributes/FallthroughAttributes.vue'
 </script>
 
 <template>
@@ -28,7 +31,10 @@ import Props from './components/02_component_in_depth/02_props.vue'
   <!-- <ComponentBasics /> -->
   <!-- <LifecycleHooks /> -->
   <!-- <Registration /> -->
-  <Props />
+  <!-- <Props /> -->
+  <!-- <Events /> -->
+  <!-- <ComponentVModel /> -->
+  <FallthroughAttributes />
 </template>
 
 <!--

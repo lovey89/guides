@@ -20,6 +20,12 @@ import Slots from './components/02_component_in_depth/06_Slots/Slots.vue'
 import ProvideInject from './components/02_component_in_depth/07_ProvideInject.vue'
 import AsyncComponents from './components/02_component_in_depth/08_AsyncComponents.vue'
 import Composables from './components/03_reusability/01_Composables/Composables.vue'
+import CustomDirectives from './components/03_reusability/02_CustomDirectives/CustomDirectives.vue'
+import Plugins from './components/03_reusability/03_Plugins.vue'
+import TransitionBuiltIn from './components/04_built_in_components/01_Transition/Transition.vue'
+import TransitionGroupBuiltIn from './components/04_built_in_components/02_TransitionGroup/TransitionGroup.vue'
+import KeepAliveBuiltIn from './components/04_built_in_components/03_KeepAlive/KeepAlive.vue'
+import TeleportBuiltIn from './components/04_built_in_components/04_Teleport/Teleport.vue'
 </script>
 
 <template>
@@ -42,7 +48,13 @@ import Composables from './components/03_reusability/01_Composables/Composables.
   <!-- <Slots /> -->
   <!-- <ProvideInject /> -->
   <!-- <AsyncComponents /> -->
-  <Composables />
+  <!-- <Composables /> -->
+  <!-- <CustomDirectives /> -->
+  <!-- <Plugins /> -->
+  <!-- <TransitionBuiltIn /> -->
+  <!-- <TransitionGroupBuiltIn /> -->
+  <!-- <KeepAliveBuiltIn /> -->
+  <TeleportBuiltIn />
 </template>
 
 <!--

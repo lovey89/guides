@@ -39,3 +39,13 @@ pre,
 code {
   background-color: lightblue;
 }
+
+nav, main {
+  border: 2px solid #000;
+  margin-bottom: 10px;
+  padding: 10px;
+}
+
+nav > a + a {
+  margin-left: 10px;
+}

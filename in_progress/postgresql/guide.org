@@ -31,6 +31,8 @@
   - [[#perform-a-join-and-aggregate-right-side-as-array-of-json-objects][Perform a join and aggregate right side as array of json objects]]
   - [[#ordering][Ordering]]
 - [[#arrays][Arrays]]
+- [[#ownerships][Ownerships]]
+  - [[#get-owner-of-tables][Get owner of tables]]
 - [[#functions-to-investigate][Functions to investigate]]
 - [[#ms-sql][MS SQL]]
   - [[#list-all-tables-with-column-names][List all tables with column names]]
@@ -584,6 +586,15 @@ SELECT
   unnest(phones)
 FROM
   contacts;
+#+END_SRC
+
+* Ownerships
+** Get owner of tables
+
+#+BEGIN_SRC sql
+select *
+from pg_catalog.pg_tables p
+order by p.schemaname, p.tablename;
 #+END_SRC
 
 * Functions to investigate

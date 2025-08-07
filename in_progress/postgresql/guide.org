@@ -33,6 +33,8 @@
 - [[#arrays][Arrays]]
 - [[#ownerships][Ownerships]]
   - [[#get-owner-of-tables][Get owner of tables]]
+  - [[#get-owner-of-sequences][Get owner of sequences]]
+  - [[#get-owner-of-databases][Get owner of databases]]
 - [[#functions-to-investigate][Functions to investigate]]
 - [[#ms-sql][MS SQL]]
   - [[#list-all-tables-with-column-names][List all tables with column names]]
@@ -595,6 +597,22 @@ FROM
 select *
 from pg_catalog.pg_tables p
 order by p.schemaname, p.tablename;
+#+END_SRC
+
+** Get owner of sequences
+
+#+BEGIN_SRC sql
+select *
+from pg_catalog.pg_sequences ps
+order by ps.schemaname, ps.sequencename;
+#+END_SRC
+
+** Get owner of databases
+
+#+BEGIN_SRC sql
+SELECT d.datname as "Name",
+pg_catalog.pg_get_userbyid(d.datdba) as "Owner"
+FROM pg_catalog.pg_database d;
 #+END_SRC
 
 * Functions to investigate

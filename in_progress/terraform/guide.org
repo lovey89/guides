@@ -147,8 +147,7 @@ the image source for your ~docker_container~ resource.
 *** Initialize the directory
 
 When you create a new configuration — or check out an existing configuration
-from version control — you need to initialize the directory with ~terraform
-init~.
+from version control — you need to initialize the directory with ~terraform init~.
 
 Initializing a configuration directory downloads and installs the providers
 defined in the configuration, which in this case is the ~docker~ provider.
@@ -171,8 +170,8 @@ modified, if any.
 You can also make sure your configuration is syntactically valid and internally
 consistent by using the ~terraform validate~ command.
 
-No extra arguments needs to be added to either ~terraform fmt~ or ~terraform
-validate~.
+No extra arguments needs to be added to either ~terraform fmt~ or
+~terraform validate~.
 
 *** Create infrastructure
 
@@ -336,9 +335,9 @@ your Terraform configuration:
 
 - *Initialize* prepares your workspace so Terraform can apply your
   configuration.
-- Plan allows you to preview the changes Terraform will make before you apply
+- *Plan* allows you to preview the changes Terraform will make before you apply
   them.
-- Apply makes the changes defined by your plan to create, update, or destroy
+- *Apply* makes the changes defined by your plan to create, update, or destroy
   resources.
 
 When you initialize a Terraform workspace, Terraform configures the backend,

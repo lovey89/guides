@@ -11185,3 +11185,4 @@ fn main() {
 - ~scan_fmt!()~
 - Benchmark with ~criterion~ or ~hyperfine~
 - Parallelize with Rayon
+- https://nnethercote.github.io/perf-book/title-page.html

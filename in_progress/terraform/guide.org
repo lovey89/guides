@@ -31,6 +31,7 @@
   - [[#perform-dynamic-operations-with-functions][Perform dynamic operations with functions]]
   - [[#create-dynamic-expressions][Create dynamic expressions]]
   - [[#use-checks-to-validate-infrastructure][Use checks to validate infrastructure]]
+  - [[#lifecycles][Lifecycles]]
 - [[#reuse-configuration-with-modules][Reuse Configuration with Modules]]
   - [[#modules-overview][Modules overview]]
   - [[#use-registry-modules-in-configuration][Use registry modules in configuration]]
@@ -39,6 +40,10 @@
   - [[#handle-multiple-environments][Handle multiple environments]]
   - [[#use-configuration-to-move-resources][Use configuration to move resources]]
   - [[#validate-modules-with-custom-conditions][Validate modules with custom conditions]]
+- [[#other][Other]]
+  - [[#terraform-console][Terraform console]]
+  - [[#best-practices][Best practices]]
+  - [[#to-check][To check]]
 #+END_QUOTE
 
 * Links
@@ -2191,6 +2196,98 @@ Apply your change. Open your ~terraform.tfstate~ file and find the
 ]
 #+END_SRC
 
+** Lifecycles
+*** Prevent resource deletion
+
+To prevent Terraform from destroying specific resources, you can add the
+~prevent_destroy~ argument to your resource definition. Use this argument to
+preserve critical resources that Terraform might accidentally destroy as it
+processes the configuration. Enabling prevent_destroy, however, does not prevent
+Terraform from destroying the resource if you comment out or remove the
+configuration.
+
+#+BEGIN_SRC tf
+resource "aws_instance" "example" {
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.sg_web.id]
+  user_data              = <<-EOF
+              #!/bin/bash
+              apt-get update
+              apt-get install -y apache2
+              sed -i -e 's/80/8080/' /etc/apache2/ports.conf
+              echo "Hello World" > /var/www/html/index.html
+              systemctl restart apache2
+              EOF
+  tags = {
+    Name          = "terraform-learn-state-ec2"
+    drift_example = "v1"
+  }
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+#+END_SRC
+
+When running ~terraform destroy~ it will tell us that we can't remove the
+resource. The ~prevent_destroy~ attribute is useful in situations where a change
+to an attribute would force a replacement and create downtime.
+
+*** Create resources before they are destroyed
+
+For changes that may cause downtime but must happen, use the
+~create_before_destroy~ attribute to create your new resource before destroying
+the old resource. E.g.
+
+#+BEGIN_SRC tf
+resource "aws_instance" "example" {
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.sg_web.id]
+  user_data              = <<-EOF
+              #!/bin/bash
+              apt-get update
+              apt-get install -y apache2
+
+              echo "Hello World" > /var/www/html/index.html
+              systemctl restart apache2
+              EOF
+  tags = {
+    Name          = "terraform-learn-state-ec2"
+    Drift_example = "v1"
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+#+END_SRC
+
+Without the ~create_before_destroy~ tag, Terraform would destroy the instance
+before recreating it, which may lead to downtime.
+
+*** Ignore changes
+
+For changes outside the Terraform workflow that should not impact Terraform
+operations, use the ~ignore_changes~ argument. E.g. to ignore changes to the
+~tags~ attribute, use:
+
+#+BEGIN_SRC tf
+resource "aws_instance" "example" {
+##...
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes        = [tags]
+  }
+}
+
+#+END_SRC
+
+After running ~terraform apply~, Terraform will refresh your state file with
+information about new tags (if any) instead of overwriting them with what is in
+your configuration.
+
 * Reuse Configuration with Modules
 ** Modules overview
 
@@ -3085,3 +3182,35 @@ infrastructure. When you run ~terraform apply~, Terraform will start applying
 the configuration, and will create the VPC before it reads its attributes from
 the data source. After it does so, it will evaluate the postcondition and report
 an error if it fails.
+
+* Other
+** Terraform console
+
+The Terraform console is an interpreter that you can use to evaluate Terraform
+expressions and explore your Terraform project's state. The console helps you
+develop and debug your configuration, especially when working with complex state
+data and Terraform expressions.
+
+The Terraform console command does not modify your state, configuration files,
+or resources. It provides a safe way to interactively inspect your existing
+project's state and evaluate Terraform expressions before incorporating them
+into your configuration.
+
+You launch the console with the command ~terraform console~. To get the state of
+e.g. the ~aws_s3_bucket.data~ resource, paste its resource ID into the console
+prompt (~aws_s3_bucket.data~).
+
+You can also pipe commands to the ~terraform console~ command. E.g.
+
+#+BEGIN_SRC bash :noeval
+echo 'jsondecode(file("bucket_policy.json"))' | terraform console
+#+END_SRC
+
+** Best practices
+
+- https://developer.hashicorp.com/terraform/tutorials/modules/pattern-module-creation
+
+** To check
+
+- ~default tags~ in ~provider~ block
+- Different remote backends

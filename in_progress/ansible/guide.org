@@ -299,7 +299,7 @@ ansible-inventory -i inventory/inventory.yaml --list
 ansible-inventory --list
 #+END_SRC
 
-In our inventory I ahve defined some variables for each host as we don't want to
+In our inventory I have defined some variables for each host as we don't want to
 use the defaults.
 
 Try pinging each of them:
@@ -316,7 +316,7 @@ will only use ~.yaml~ in my examples.
 
 ** How to build your inventory
 
-Ansible automates tasks on managed nodes or “hosts” in your infrastructure,
+Ansible automates tasks on managed nodes or "hosts" in your infrastructure,
 using a list or group of lists known as inventory. You can pass host names at
 the command line, but most Ansible users create inventory files. Your inventory
 defines the managed nodes you automate, with groups so you can run automation

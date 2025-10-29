@@ -36,6 +36,7 @@
   - [[#display-disk-information][Display disk information]]
   - [[#see-if-a-file-system-exists-on-a-disk-before-mounting][See if a file system exists on a disk before mounting]]
   - [[#mount-a-file-system][Mount a file system]]
+  - [[#check-file-sizes-in-a-directory][Check file sizes in a directory]]
 - [[#rmlint][rmlint]]
   - [[#tagged-directories][Tagged directories]]
   - [[#finding-and-deleting-empty-directories][Finding and deleting empty directories]]
@@ -440,6 +441,8 @@ rpm -e <result_from_command_above>
 
 #+BEGIN_SRC bash
 df -Th
+# For a certain dir. It will automatically find what is mounted given any path
+df -hTP /var
 # or
 lsblk -f
 #+END_SRC
@@ -472,6 +475,18 @@ sudo mount /dev/sda1 /mountpoint
 
 To mount it automatically you need to add it to ~fstab~ (does this apply to
 fedora?)
+
+** Check file sizes in a directory
+
+#+BEGIN_SRC bash :noeval
+# Get the sizes of all files and directories in the current
+# directory sorted by size
+du -hcs * | sort -hr
+
+# Find all files in /var that ends with ".db", get the size of each
+# file and then sort the result by size
+find /var -type f -iname '*.db' -exec du -hcs {} + | sort -hr
+#+END_SRC
 
 * rmlint
 

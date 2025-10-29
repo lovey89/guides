@@ -1725,7 +1725,7 @@ module "elb_http" {
 ##...
 #+END_SRC
 
-he name of resources or modules provisioned with ~count~ refers to the entire
+The name of resources or modules provisioned with ~count~ refers to the entire
 collection. In this example, ~aws_instance.app~ now refers to all of the EC2
 instances. You can reference individual items in collections with the same
 notation as list indexing. For example, ~aws_instance.app[0]~ refers to the

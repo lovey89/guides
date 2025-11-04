@@ -706,6 +706,8 @@ If [[https://docs.ansible.com/ansible/latest/reference_appendices/config.html#re
 the ~ansible-playbook~ run containing a list of failed hosts from all plays.
 This file is overwritten each time ~ansible-playbook~ finishes running.
 
+Then you can retry a playbook for only the failing hosts:
+
 #+BEGIN_SRC bash :noeval
 ansible-playbook site.yml --limit @site.retry
 #+END_SRC
@@ -852,7 +854,7 @@ To ensure a package is at the latest version:
 ansible all -m ansible.builtin.package -a "name=vim state=latest" --become
 #+END_SRC
 
-To install or ensure that something is not installed:
+To uninstall or ensure that something is not installed:
 
 #+BEGIN_SRC bash :noeval
 ansible all -m ansible.builtin.package -a "name=vim state=absent" --become
@@ -966,7 +968,7 @@ In the output you will see your tasks being run as well as an ~Gathering Facts~
 task that is run implicitly. By default, Ansible gathers information about your
 inventory that it can use in the playbook.
 
-Th play recap summarizes the results of all tasks in the playbook per host. In
+The play recap summarizes the results of all tasks in the playbook per host. In
 this example, there are three tasks so ~ok=3~ indicates that each task ran
 successfully.
 
@@ -1114,7 +1116,7 @@ address, hostname, version) for each environment. You can also use templating
 in playbooks directly, by templating task names and more. You can use all the
 [[https://jinja.palletsprojects.com/en/3.1.x/templates/#builtin-filters][standard filters and tests included in Jinja2]]. Ansible includes additional
 specialized filters for selecting and transforming data, tests for evaluating
-template expressions, and Lookup plugins for retrieving data from external
+template expressions, and [[*Lookups][Lookup plugins]] for retrieving data from external
 sources such as files, APIs, and databases for use in templating.
 
 All templating happens on the Ansible control node before the task is sent and
@@ -1166,8 +1168,9 @@ In this example Ansible would not send a value for the ~mode~ field.
 
 ***** Defining mandatory values
 
-If you configure Ansible to ignore undefined variables, you may want to define
-some values as mandatory.
+If you configure Ansible to ignore undefined variables (e.g. by setting the
+environment variable ~DEFAULT_UNDEFINED_VAR_BEHAVIOR~ to ~true~), you may want
+to define some values as mandatory.
 
 #+BEGIN_SRC
 {{ variable | mandatory }}

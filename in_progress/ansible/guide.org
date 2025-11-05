@@ -48,6 +48,7 @@
 - [[#snippets][Snippets]]
   - [[#try-out-variables][Try out variables]]
   - [[#include--exclude-certain-groups-from-running-a-job][Include / Exclude certain groups from running a job]]
+- [[#useful-scripts][Useful scripts]]
 - [[#old][Old]]
   - [[#ad-hoc-commands][Ad-hoc commands]]
   - [[#module-documentation][Module documentation]]
@@ -1980,6 +1981,17 @@ ansible-playbook playbook.yaml -l host
       when: inventory_hostname in groups["fedoras"]
       # or
       #when: inventory_hostname not in groups["ubuntus"]
+#+END_SRC
+
+* Useful scripts
+
+Gather and present facts from a machine (the trailing comma after the ip is
+intentional). The command below will gather facts from a machine with ip address
+~aaa.bbb.ccc.ddd~ and will authenticate with username and password where the
+username is ~username~ and password will be provided interactively.
+
+#+BEGIN_SRC bash :noeval
+ansible all -i aaa.bbb.ccc.ddd, -m setup --extra-vars "ansible_user=username" --ask-pass
 #+END_SRC
 
 * Old

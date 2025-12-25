@@ -45,6 +45,9 @@
     - [[#the-now-function-get-the-current-time][The ~now~ function: get the current time]]
     - [[#loops][Loops]]
     - [[#controlling-where-tasks-run-delegation-and-local-actions][Controlling where tasks run: delegation and local actions]]
+    - [[#conditionals][Conditionals]]
+    - [[#blocks][Blocks]]
+    - [[#handlers-running-operations-on-change][Handlers: running operations on change]]
 - [[#snippets][Snippets]]
   - [[#try-out-variables][Try out variables]]
   - [[#include--exclude-certain-groups-from-running-a-job][Include / Exclude certain groups from running a job]]
@@ -1933,6 +1936,537 @@ consumed from this host and not the original task host. If you need variables
 from the original task host for those options, you must use
 ~hostvars[inventory_hostname]['varname']~, even ~inventory_hostname_short~
 refers to the delegated host.
+
+**** Delegation and parallel execution
+
+By default, Ansible tasks are executed in parallel. Delegating a task does not
+change this and does not handle concurrency issues (multiple forks writing to
+the same file). They will still operate in parallel forks (default 5) and
+overwrite each other.
+
+This can be handled by using an intermediate play with ~serial: 1~ or using
+~throttle: 1~ at the task level.
+
+**** Delegating facts
+
+Any facts gathered by a delegated task are assigned by default to the
+~inventory_hostname~ (the current host), not to the host that produced the facts
+(the delegated to host). To assign gathered facts to the delegated host instead
+of the current host, set ~delegate_facts~ to ~true~:
+
+#+BEGIN_SRC yaml
+---
+- hosts: app_servers
+
+  tasks:
+    - name: Gather facts from db servers
+      ansible.builtin.setup:
+      delegate_to: "{{ item }}"
+      delegate_facts: true
+      loop: "{{ groups['dbservers'] }}"
+#+END_SRC
+
+This task gathers facts for the machines in the ~dbservers~ group and assigns
+the facts to those machines, even though the play targets the ~app_servers~
+group. This way you can lookup ~hostvars['dbhost1']['ansible_default_ipv4']['address']~
+even though ~dbservers~ were not part of the play, or left out by using
+~--limit~.
+
+*** Conditionals
+**** Basic conditionals with ~when~
+
+Create the task, then add a ~when~ statement that applies a test. The ~when~
+clause is a raw Jinja2 expression without double curly braces. When you run the
+task or playbook, Ansible evaluates the test for all hosts.
+
+#+BEGIN_SRC yaml
+---
+tasks:
+  - name: Configure SELinux to start mysql on any port
+    ansible.posix.seboolean:
+      name: mysql_connect_any
+      state: true
+      persistent: true
+    when: ansible_selinux.status == "enabled"
+    # all variables can be used directly in conditionals without double curly braces
+#+END_SRC
+
+**** Conditionals based on ~ansible_facts~
+
+Often you want to execute or skip a task based on facts. Not all facts exist for
+all hosts. For example, the ~lsb_major_release~ fact used in the example below
+only exists when the ~lsb_release~ package is installed on the target host. To
+see whate facts are available on your systems, add a debug task to your playbook:
+
+#+BEGIN_SRC yaml
+---
+- name: Show facts available on the system
+  ansible.builtin.debug:
+    var: ansible_facts
+#+END_SRC
+
+Here is a sample conditional based on a fact:
+
+#+BEGIN_SRC yaml
+---
+tasks:
+  - name: Shut down Debian flavored systems
+    ansible.builtin.command: /sbin/shutdown -t now
+    when: ansible_facts['os_family'] == "Debian"
+#+END_SRC
+
+If you have multiple conditions, you can group them with parentheses:
+
+#+BEGIN_SRC yaml
+---
+tasks:
+  - name: Shut down CentOS 6 and Debian 7 systems
+    ansible.builtin.command: /sbin/shutdown -t now
+    when: (ansible_facts['distribution'] == "CentOS" and ansible_facts['distribution_major_version'] == "6") or
+          (ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_major_version'] == "7")
+#+END_SRC
+
+When you have multiple conditions that all need to be true (that is, a logical
+~and~), you can specify them as a list:
+
+#+BEGIN_SRC yaml
+---
+tasks:
+  - name: Shut down CentOS 6 systems
+    ansible.builtin.command: /sbin/shutdown -t now
+    when:
+      - ansible_facts['distribution'] == "CentOS"
+      - ansible_facts['distribution_major_version'] == "6"
+#+END_SRC
+
+If a fact or variable is a string, and you need to run a mathematical comparison
+on it, use a filter to ensure that Ansible reads the value as an integer:
+
+#+BEGIN_SRC yaml
+---
+tasks:
+  - ansible.builtin.shell: echo "only on Red Hat 6, derivatives, and later"
+    when: ansible_facts['os_family'] == "RedHat" and ansible_facts['lsb']['major_release'] | int >= 6
+#+END_SRC
+
+You can store Ansible facts as variables to use for conditional logic, as in the
+following example:
+
+#+BEGIN_SRC yaml
+---
+tasks:
+    - name: Get the CPU temperature
+      set_fact:
+        temperature: "{{ ansible_facts['cpu_temperature'] }}"
+
+    - name: Restart the system if the temperature is too high
+      when: temperature | float > 90
+      shell: "reboot"
+#+END_SRC
+
+**** Conditions based on registered variables
+
+To create a conditional based on a registered variable:
+
+1. Register the outcome of the earlier task as a variable.
+2. Create a conditional test based on the registered variable.
+
+You create the name of the registered variable using the ~register~ keyword. A
+registered variable always contains the status of the task that created it as
+well as any output that the task generated. You can use registered variables in
+templates and action lines as well as in conditional ~when~ statements. You can
+access the string contents of the registered variable using ~variable.stdout~.
+For example:
+
+#+BEGIN_SRC yaml
+---
+- name: Test play
+  hosts: all
+
+  tasks:
+
+      - name: Register a variable
+        ansible.builtin.shell: cat /etc/motd
+        register: motd_contents
+
+      - name: Use the variable in conditional statement
+        ansible.builtin.shell: echo "motd contains the word hi"
+        when: motd_contents.stdout.find('hi') != -1
+#+END_SRC
+
+You can use registered results in the loop of a task if the variable is a list.
+If the variable is not a list, you can convert it into a list, with either
+~stdout_lines~ or with ~variable.stdout.split()~.
+
+#+BEGIN_SRC yaml
+---
+- name: Registered variable usage as a loop list
+  hosts: all
+  tasks:
+
+    - name: Retrieve the list of home directories
+      ansible.builtin.command: ls /home
+      register: home_dirs
+
+    - name: Add home dirs to the backup spooler
+      ansible.builtin.file:
+        path: /mnt/bkspool/{{ item }}
+        src: /home/{{ item }}
+        state: link
+      loop: "{{ home_dirs.stdout_lines }}"
+      # same as loop: "{{ home_dirs.stdout.split() }}"
+#+END_SRC
+
+Ansible always registers something in a registered variable for every host, even
+on hosts where a task fails or Ansible skips a task because a condition is not
+met. To run a follow-up task on these hosts, query the registered variable for
+~is skipped~.
+
+#+BEGIN_SRC yaml
+---
+tasks:
+  - name: Register a variable, ignore errors and continue
+    ansible.builtin.command: /bin/false
+    register: result
+    # You want Ansible to continue executing on a host when a failure occurs
+    ignore_errors: true
+
+  - name: Run only if the task that registered the "result" variable fails
+    ansible.builtin.command: /bin/something
+    when: result is failed
+
+  - name: Run only if the task that registered the "result" variable succeeds
+    ansible.builtin.command: /bin/something_else
+    when: result is succeeded
+
+  - name: Run only if the task that registered the "result" variable is skipped
+    ansible.builtin.command: /bin/still/something_else
+    when: result is skipped
+
+  - name: Run only if the task that registered the "result" variable changed something.
+    ansible.builtin.command: /bin/still/something_else
+    when: result is changed
+#+END_SRC
+
+**** Conditionals based on variables
+
+You can also create conditionals based on variables defined in the playbooks or
+inventory. Because conditionals require boolean input (a test must evaluate as
+~True~ to trigger the condition), you must apply the ~| bool~ filter to
+non-boolean variables, such as string variables with content like "yes", "on",
+"1", or "true". E.g.
+
+#+BEGIN_SRC yaml
+---
+vars:
+  epic: true
+  monumental: "yes"
+
+tasks:
+    - name: Run the command if "epic" or "monumental" is true
+      ansible.builtin.shell: echo "This certainly is epic!"
+      when: epic or monumental | bool
+
+    - name: Run the command if "epic" is false
+      ansible.builtin.shell: echo "This certainly isn't epic!"
+      when: not epic
+
+    - name: Run the command if "foo" is defined
+      ansible.builtin.shell: echo "I've got '{{ foo }}' and am not afraid to use it!"
+      when: foo is defined
+
+    - name: Fail if "bar" is undefined
+      ansible.builtin.fail: msg="Bailing out. This play requires 'bar'"
+      when: bar is undefined
+#+END_SRC
+
+**** Using conditionals in loops
+
+If you combine a ~when~ statement with a loop, Ansible processes the condition
+separately for each item.
+
+#+BEGIN_SRC yaml
+---
+tasks:
+    - name: Run with items greater than 5
+      ansible.builtin.command: echo {{ item }}
+      loop: [ 0, 2, 4, 6, 8, 10 ]
+      when: item > 5
+
+    - name: Skip the whole task when a loop variable is undefined
+      ansible.builtin.command: echo {{ item }}
+      # Default list to [] if mylist is not set
+      loop: "{{ mylist|default([]) }}"
+      when: item > 5
+#+END_SRC
+
+**** Conditionals with ~imports~
+
+When you add a conditional to an import statement, Ansible applies the condition
+to all tasks within the imported file. For example, if you want to define and
+then display a variable that was not previously defined, you might have a
+playbook called ~main.yml~ and a tasks file called ~other_tasks.yml~:
+
+#+BEGIN_SRC yaml
+---
+# all tasks within an imported file inherit the condition from the import statement
+# main.yml
+- hosts: all
+  tasks:
+  - import_tasks: other_tasks.yml # note "import"
+    when: x is not defined
+
+# other_tasks.yml
+- name: Set a variable
+  ansible.builtin.set_fact:
+    x: foo
+
+- name: Print a variable
+  ansible.builtin.debug:
+    var: x
+#+END_SRC
+
+Ansible expands this at execution time to the equivalent of:
+
+#+BEGIN_SRC yaml
+---
+- name: Set a variable if not defined
+  ansible.builtin.set_fact:
+    x: foo
+  when: x is not defined
+  # this task sets a value for x
+
+- name: Do the task if "x" is not defined
+  ansible.builtin.debug:
+    var: x
+  when: x is not defined
+  # Ansible skips this task, because x is now defined
+#+END_SRC
+
+If ~x~ is initially defined, both tasks are skipped as intended. But if ~x~ is
+initially undefined, the debug task will be skipped since the conditional is
+evaluated for every imported task.
+
+If this is not the behavior you want, use an ~include_*~ statement to apply a
+condition only to that statement itself.
+
+**** Conditionals with ~includes~
+
+When you use a conditional on an ~include_*~ statement, the condition is applied
+only to the include task itself and not to any other tasks within the included
+file(s).
+
+By using ~include_tasks~ instead of ~import_tasks~, both tasks from
+~other_tasks.yml~ will be executed as expected.
+
+**** Conditionals with roles
+
+There are three ways to apply conditions to roles:
+
+- Add the same condition or conditions to all tasks in the role by placing your
+  ~when~ statement under the ~roles~ keyword.
+- Add the same condition or conditions to all tasks in the role by placing your
+  ~when~ statement on a static ~import_role~ in your playbook.
+- Add a condition or conditions to individual tasks or blocks within the role
+  itself. This is the only approach that allows you to select or skip some tasks
+  within the role based on your when statement. To select or skip tasks within
+  the role, you must have conditions set on individual tasks or blocks, use the
+  dynamic ~include_role~ in your playbook, and add the condition or conditions
+  to the include.
+
+**** Selecting variables, files, or templates based on facts
+
+You can create a playbook that works on multiple platforms and OS versions with
+a minimum of syntax by placing your variable values in vars files and
+conditionally importing them. If you want to install Apache on some CentOS and
+some Debian servers, create variables files with YAML keys and values. For
+example:
+
+#+BEGIN_SRC yaml
+---
+# for vars/RedHat.yml
+apache: httpd
+somethingelse: 42
+---
+- hosts: webservers
+  remote_user: root
+  vars_files:
+    - "vars/common.yml"
+    - [ "vars/{{ ansible_facts['os_family'] }}.yml", "vars/os_defaults.yml" ]
+  tasks:
+  - name: Make sure apache is started
+    ansible.builtin.service:
+      name: '{{ apache }}'
+      state: started
+#+END_SRC
+
+**** Debugging conditionals
+
+If your conditional ~when~ statement is not behaving as you intended, you can
+add a ~debug~ statement to determine if the condition evaluates to ~true~ or
+~false~. A common cause of unexpected behavior in conditionals is testing an
+integer as a string or a string as an integer. To debug a conditional statement,
+add the entire statement as the ~var:~ value in a ~debug~ task. Ansible then
+shows the test and how the statement evaluates. For example, here is a set of
+tasks and sample output:
+
+#+BEGIN_SRC yaml
+---
+- name: check value of return code
+  ansible.builtin.debug:
+    var: bar_status.rc
+
+- name: check test for rc value as string
+  ansible.builtin.debug:
+    var: bar_status.rc == "127"
+
+- name: check test for rc value as integer
+  ansible.builtin.debug:
+    var: bar_status.rc == 127
+#+END_SRC
+
+*** Blocks
+
+Blocks create logical groups of tasks. Blocks also offer ways to handle task
+errors, similar to exception handling in many programming languages.
+
+**** Grouping tasks with blocks
+
+All tasks in a block inherit directives applied at the block level. Most of what
+you can apply to a single task (with the exception of loops) can be applied at
+the block level, so blocks make it much easier to set data or directives common
+to the tasks.
+
+#+BEGIN_SRC yaml
+---
+tasks:
+  - name: Install, configure, and start Apache
+    when: ansible_facts['distribution'] == 'CentOS'
+    block:
+      - name: Install httpd and memcached
+        ansible.builtin.yum:
+          name:
+          - httpd
+          - memcached
+          state: present
+
+      - name: Apply the foo config template
+        ansible.builtin.template:
+          src: templates/src.j2
+          dest: /etc/foo.conf
+
+      - name: Start service bar and enable it
+        ansible.builtin.service:
+          name: bar
+          state: started
+          enabled: True
+    become: true
+    become_user: root
+    ignore_errors: true
+#+END_SRC
+
+**** Handling errors with blocks
+
+You can control how Ansible responds to task errors using blocks with ~rescue~
+and ~always~ sections.
+
+Rescue blocks specify tasks to run when an earlier task in a block fails. This
+approach is similar to exception handling in many programming languages. Ansible
+only runs rescue blocks after a task returns a "failed" state.
+
+#+BEGIN_SRC yaml
+---
+tasks:
+  - name: Handle the error
+    block:
+      - name: Print a message
+        ansible.builtin.debug:
+          msg: 'I execute normally'
+
+      - name: Force a failure
+        ansible.builtin.command: /bin/false
+
+      - name: Never print this
+        ansible.builtin.debug:
+          msg: 'I never execute, due to the above task failing, :-('
+    rescue:
+      - name: Print when errors
+        ansible.builtin.debug:
+          msg: 'I caught an error, can do stuff here to fix it, :-)'
+#+END_SRC
+
+If an error occurs in the block and the rescue task succeeds, Ansible reverts
+the failed status of the original task for the run and continues to run the play
+as if the original task had succeeded. The rescued task is considered successful
+and does not trigger ~max_fail_percentage~ or ~any_errors_fatal~ configurations.
+However, Ansible still reports a failure in the playbook statistics.
+
+You can also add an ~always~ section to a block. Tasks in the ~always~ section
+run no matter what the task status of the previous block is.
+
+#+BEGIN_SRC yaml
+---
+tasks:
+  - name: Always do X
+    block:
+      - name: Print a message
+        ansible.builtin.debug:
+          msg: 'I execute normally'
+
+      - name: Force a failure
+        ansible.builtin.command: /bin/false
+
+      - name: Never print this
+        ansible.builtin.debug:
+          msg: 'I never execute :-('
+    always:
+      - name: Always do this
+        ansible.builtin.debug:
+          msg: "This always executes, :-)"
+#+END_SRC
+
+**** Find out which task that failed
+
+Ansible provides a couple of variables for tasks in the ~rescue~ portion of a
+block:
+
+- ~ansible_failed_task~: The task that returned "failed" and triggered
+  the rescue. For example, to get the name use ~ansible_failed_task.name~.
+- ~ansible_failed_result~: The captured return result of the failed task that
+  triggered the rescue. This would equate to having used this var in the
+  ~register~ keyword.
+
+These can be inspected in the rescue section:
+
+#+BEGIN_SRC yaml
+---
+tasks:
+  - name: Attempt and graceful roll back demo
+    block:
+      - name: Do Something
+        ansible.builtin.shell: grep $(whoami) /etc/hosts
+
+      - name: Force a failure, if previous one succeeds
+        ansible.builtin.command: /bin/false
+    rescue:
+      - name: All is good if the first task failed
+        when: ansible_failed_task.name == 'Do Something'
+        ansible.builtin.debug:
+          msg: All is good, ignore error as grep could not find 'me' in hosts
+
+      - name: All is good if the second task failed
+        when: "'/bin/false' in ansible_failed_result.cmd | d([])"
+        ansible.builtin.fail:
+          msg: It is still false!!!
+#+END_SRC
+
+*** Handlers: running operations on change
+
+Sometimes you want a task to run only when a change is made on a machine. For
+example, you may want to restart a service if a task updates the configuration
+of that service. Handlers are tasks that only run when notified.
+
+
 
 * Snippets
 ** Try out variables

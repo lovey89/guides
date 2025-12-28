@@ -48,6 +48,14 @@
     - [[#conditionals][Conditionals]]
     - [[#blocks][Blocks]]
     - [[#handlers-running-operations-on-change][Handlers: running operations on change]]
+    - [[#error-handling-in-playbooks][Error handling in playbooks]]
+    - [[#setting-the-remote-environment][Setting the remote environment]]
+    - [[#roles][Roles]]
+    - [[#module-defaults][Module defaults]]
+    - [[#using-variables][Using variables]]
+    - [[#discovering-variables-facts-and-magic-variables][Discovering variables: facts and magic variables]]
+  - [[#using-ansible-collections][Using Ansible collections]]
+    - [[#installing-collections-with-ansible-galaxy][Installing collections with ~ansible-galaxy~]]
 - [[#snippets][Snippets]]
   - [[#try-out-variables][Try out variables]]
   - [[#include--exclude-certain-groups-from-running-a-job][Include / Exclude certain groups from running a job]]
@@ -63,7 +71,7 @@
     - [[#other-keywords-to-investigate][Other keywords to investigate]]
   - [[#ansible-vault][Ansible vault]]
   - [[#playbook-organization][Playbook organization]]
-  - [[#roles][Roles]]
+  - [[#roles-1][Roles]]
   - [[#config][Config]]
     - [[#ansiblecfg][~ansible.cfg~]]
     - [[#inventory-format][Inventory format]]
@@ -2466,7 +2474,736 @@ Sometimes you want a task to run only when a change is made on a machine. For
 example, you may want to restart a service if a task updates the configuration
 of that service. Handlers are tasks that only run when notified.
 
+**** Notifying handlers
 
+Tasks can instruct one or more handlers to execute using the ~notify~ keyword.
+The ~notify~ keyword can be applied to a task and accepts a list of handler
+names that are notified on a task change. Alternatively, a string containing a
+single handler name can be supplied as well.
+
+#+BEGIN_SRC yaml
+---
+tasks:
+- name: Template configuration file
+  ansible.builtin.template:
+    src: template.j2
+    dest: /etc/foo.conf
+  notify:
+    - Restart apache
+    - Restart memcached
+
+handlers:
+  - name: Restart memcached
+    ansible.builtin.service:
+      name: memcached
+      state: restarted
+
+  - name: Restart apache
+    ansible.builtin.service:
+      name: apache
+      state: restarted
+#+END_SRC
+
+In the above example, the handlers are executed on task change in the following
+order: ~Restart memcached~, ~Restart apache~. Handlers are executed in the order
+they are defined in the ~handlers~ section, not in the order listed in the
+~notify~ statement. Notifying the same handler multiple times will result in
+executing the handler only once regardless of how many tasks notify it.
+
+**** Notifying and loops
+
+Tasks can use loops to notify handlers. This is particularly useful when
+combined with variables to trigger multiple dynamic notifications.
+
+Note that the handlers are triggered if the task as a whole is changed. When a
+loop is used the changed state is set if any of the loop items are changed. That
+is, any change triggers all of the handlers.
+
+#+BEGIN_SRC yaml
+---
+tasks:
+- name: Template services
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: /etc/systemd/system/{{ item }}.service
+  # Note: if *any* loop iteration triggers a change, *all* handlers are run
+  notify: Restart {{ item }}
+  loop:
+    - memcached
+    - apache
+#+END_SRC
+
+**** Naming handlers
+
+Handlers must be named in order for tasks to be able to ~notify~ them using the
+notify keyword.
+
+Alternatively, handlers can utilize the ~listen~ keyword. Using this handler
+keyword, handlers can listen on topics that can group multiple handlers:
+
+#+BEGIN_SRC yaml
+---
+tasks:
+  - name: Restart everything
+    command: echo "this task will restart the web services"
+    notify: "restart web services"
+
+handlers:
+  - name: Restart memcached
+    service:
+      name: memcached
+      state: restarted
+    listen: "restart web services"
+
+  - name: Restart apache
+    service:
+      name: apache
+      state: restarted
+    listen: "restart web services"
+#+END_SRC
+
+Each handler should have a globally unique name. If multiple handlers are
+defined with the same name, only the last one loaded into the play can be
+notified and executed, effectively shadowing all of the previous handlers with
+the same name.
+
+**** Handler insertion order into the play
+
+There is only one global, play-level scope for handlers regardless of where the
+handlers are defined, either in the ~handlers:~ section or in roles. In case
+handlers having the same name the last one loaded into the play, as per the
+above order, can be notified and executed.
+
+**** Controlling when handlers run
+
+By default, handlers run after all the tasks in a particular play have been
+completed. Notified handlers are executed automatically after each of the
+following sections, in the following order: ~pre_tasks~, ~roles~ / ~tasks~ and
+~post_tasks~.
+
+If you need handlers to run before the end of the play, add a task to flush them
+using the ~meta~ module, which executes Ansible actions:
+
+#+BEGIN_SRC yaml
+---
+tasks:
+  - name: Some tasks go here
+    ansible.builtin.shell: ...
+
+  - name: Flush handlers
+    meta: flush_handlers
+
+  - name: Some other tasks
+    ansible.builtin.shell: ...
+#+END_SRC
+
+The ~meta: flush_handlers~ task triggers any handlers that have been notified at
+that point in the play.
+
+Once handlers are executed, either automatically after each mentioned section or
+manually by the ~flush_handlers~ meta task, they can be notified and run again
+in later sections of the play.
+
+**** Defining when tasks change
+
+You can control when handlers are notified about task changes using the
+~changed_when~ keyword.
+
+#+BEGIN_SRC yaml
+---
+tasks:
+  - name: Copy httpd configuration
+    ansible.builtin.copy:
+      src: ./new_httpd.conf
+      dest: /etc/httpd/conf/httpd.conf
+    # The task is always reported as changed
+    changed_when: True
+    notify: Restart apache
+#+END_SRC
+
+**** Handlers in roles
+
+Handlers from roles are not just contained in their roles but rather inserted
+into the global scope with all other handlers from a play. As such they can be
+used outside of the role they are defined in. It also means that their name can
+conflict with handlers from outside the role. To ensure that a handler from a
+role is notified as opposed to one from outside the role with the same name,
+notify the handler by using its name in the following form:
+~role_name : handler_name~.
+
+Handlers notified within the ~roles~ section are automatically flushed at the
+end of the ~tasks~ section.
+
+*** Error handling in playbooks
+
+When Ansible receives a non-zero return code from a command or a failure from a
+module, by default it stops executing on that host and continues on other hosts.
+However, in some circumstances, you may want different behavior.
+
+**** Ignoring failed commands
+
+You can use ~ignore_errors~ to continue despite of the failure.
+
+#+BEGIN_SRC yaml
+---
+- name: Do not count this as a failure
+  ansible.builtin.command: /bin/false
+  ignore_errors: true
+#+END_SRC
+
+The ~ignore_errors~ directive only works when the task can run and returns a
+value of "failed". It does not make Ansible ignore undefined variable errors,
+connection failures, execution issues (for example, missing packages), or syntax
+errors.
+
+**** Ignoring unreachable host errors
+
+You can ignore a task failure due to the host instance being "UNREACHABLE" with
+the ~ignore_unreachable~ keyword. Ansible ignores the task errors but continues
+to execute future tasks against the unreachable host.
+
+#+BEGIN_SRC yaml
+---
+- name: This executes, fails, and the failure is ignored
+  ansible.builtin.command: /bin/true
+  ignore_unreachable: true
+
+- name: This executes, fails, and ends the play for this host
+  ansible.builtin.command: /bin/true
+#+END_SRC
+
+**** Handlers and failure
+
+Ansible runs handlers at the end of each play. If a task notifies a handler but
+another task fails later in the play, by default the handler does not run on
+that host, which may leave the host in an unexpected state. For example, a task
+could update a configuration file and notify a handler to restart some service.
+If a task later in the same play fails, the configuration file might be changed
+but the service will not be restarted.
+
+You can change this behavior with the ~--force-handlers~ command-line option, by
+including ~force_handlers: True~ in a play, or by adding ~force_handlers = True~
+to ~ansible.cfg~. When handlers are forced, Ansible will run all notified
+handlers on all hosts, even hosts with failed tasks. (Note that certain errors
+could still prevent the handler from running, such as a host becoming
+unreachable.)
+
+**** Defining failure
+
+Ansible lets you define what "failure" means in each task using the
+~failed_when~ conditional. As with all conditionals in Ansible, lists of
+multiple ~failed_when~ conditions are joined with an implicit ~and~, meaning the
+task only fails when all conditions are met. If you want to trigger a failure
+when any of the conditions is met, you must define the conditions in a single
+string with an explicit ~or~ operator.
+
+#+BEGIN_SRC yaml
+---
+- name: Fail task when either condition is met
+  ansible.builtin.command: /usr/bin/example-command
+  register: command_result
+  failed_when: command_result.rc != 0 or 'ERROR' in command_result.stdout
+#+END_SRC
+
+**** Defining changed
+
+Ansible lets you define when a particular task has "changed" a remote node using
+the ~changed_when~ conditional. This lets you determine, based on return codes
+or output, whether a change should be reported in Ansible statistics and whether
+a handler should be triggered or not. As with all conditionals in Ansible, lists
+of multiple ~changed_when~ conditions are joined with an implicit ~and~, meaning
+the task only reports a change when all conditions are met. If you want to
+report a change when any of the conditions is met, you must define the
+conditions in a string with an explicit ~or~ operator.
+
+#+BEGIN_SRC yaml
+---
+tasks:
+  - name: Report 'changed' when the return code is not equal to 2
+    ansible.builtin.shell: /usr/bin/billybass --mode="take me to the river"
+    register: bass_result
+    changed_when: "bass_result.rc != 2"
+
+  - name: This will never report 'changed' status
+    ansible.builtin.shell: wall 'beep'
+    changed_when: False
+
+  - name: This task will always report 'changed' status
+    ansible.builtin.command: /path/to/command
+    changed_when: True
+#+END_SRC
+
+**** Aborting a play on all hosts
+
+Sometimes you want a failure on a single host, or failures on a certain
+percentage of hosts, to abort the entire play on all hosts. You can stop play
+execution after the first failure happens with ~any_errors_fatal~. For
+finer-grained control, you can use ~max_fail_percentage~ to abort the run after
+a given percentage of hosts has failed.
+
+*** Setting the remote environment
+
+You can use the ~environment~ keyword at the play, block, or task level to set
+an environment variable for an action on a remote host. With this keyword, you
+can enable using a proxy for a task that does http requests, set the required
+environment variables for language-specific version managers, and more.
+
+Variables set with ~environment:~ do not automatically become Ansible facts,
+even when you set them at the play level. You must include an explicit
+~gather_facts~ task in your playbook and set the ~environment~ keyword on that
+task to turn these values into Ansible facts.
+
+When you set a value with ~environment:~ at the play or block level, it is
+available only to tasks within the play or block that are executed by the same
+user. If you change remote_user/become_user the values in ~ansible_env~ may not
+be the ones you expect.
+
+**** Setting the remote environment in a task
+
+You can set the environment directly at the task level.
+
+#+BEGIN_SRC yaml
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+    - name: Install cobbler
+      ansible.builtin.package:
+        name: cobbler
+        state: present
+      environment:
+        http_proxy: http://proxy.example.com:8080
+#+END_SRC
+
+You can reuse environment settings by defining them as variables in your play
+and accessing them in a task as you would access any stored Ansible variable.
+
+#+BEGIN_SRC yaml
+---
+- hosts: all
+  remote_user: root
+
+  # create a variable named "proxy_env" that is a dictionary
+  vars:
+    proxy_env:
+      http_proxy: http://proxy.example.com:8080
+
+  tasks:
+    - name: Install cobbler
+      ansible.builtin.package:
+        name: cobbler
+        state: present
+      environment: "{{ proxy_env }}"
+#+END_SRC
+
+Or at a play level:
+
+#+BEGIN_SRC yaml
+---
+- hosts: testing
+
+  environment:
+    http_proxy: http://proxy.example.com:8080
+#+END_SRC
+
+*** Roles
+
+Roles let you automatically load related vars, files, tasks, handlers, and other
+Ansible artifacts based on a known file structure. After you group your content
+into roles, you can easily reuse them and share them with other users.
+
+**** Directory structure
+
+An Ansible role has a defined directory structure with seven main standard
+directories. You must include at least one of these directories in each role.
+
+#+BEGIN_SRC
+roles/
+    common/               # this hierarchy represents a "role"
+        tasks/            #
+            main.yml      #  <-- tasks file can include smaller files if warranted
+        handlers/         #
+            main.yml      #  <-- handlers file
+        templates/        #  <-- files for use with the template resource
+            ntp.conf.j2   #  <------- templates end in .j2
+        files/            #
+            bar.txt       #  <-- files for use with the copy resource
+            foo.sh        #  <-- script files for use with the script resource
+        vars/             #
+            main.yml      #  <-- variables associated with this role
+        defaults/         #
+            main.yml      #  <-- default lower priority variables for this role
+        meta/             #
+            main.yml      #  <-- role dependencies
+        library/          # roles can also include custom modules
+        module_utils/     # roles can also include custom module_utils
+        lookup_plugins/   # or other types of plugins, like lookup in this case
+
+    webtier/              # same kind of structure as "common" was above, done for the webtier role
+    monitoring/           # ""
+    fooapp/               # ""
+#+END_SRC
+
+By default, Ansible will look in most role directories for a ~main.yml~ file for
+relevant content (also ~main.yaml~ and ~main~):
+
+- ~tasks/main.yml~ - A list of tasks that the role provides to the play for
+  execution.
+- ~handlers/main.yml~ - handlers that are imported into the parent play for use
+  by the role or other roles and tasks in the play.
+- ~defaults/main.yml~ - very low precedence values for variables provided by the
+  role. A role’s own defaults will take priority over other role’s defaults, but
+  any/all other variable sources will override this.
+- ~vars/main.yml~ - high precedence variables provided by the role to the play.
+- ~files/stuff.txt~ - one or more files that are available for the role and it’s
+  children.
+- ~templates/something.j2~ - templates to use in the role or child roles.
+- ~meta/main.yml~ - metadata for the role, including role dependencies and
+  optional Galaxy metadata such as platforms supported. This is required for
+  uploading into galaxy as a standalone role, but not for using the role in your
+  play.
+
+You can add other YAML files in some directories, but they won’t be used by
+default. You can place platform-specific tasks in separate files and refer to
+them in the ~tasks/main.yml~ file:
+
+#+BEGIN_SRC yaml
+---
+- name: Install the correct web server for RHEL
+  import_tasks: redhat.yml
+  when: ansible_facts['os_family']|lower == 'redhat'
+
+- name: Install the correct web server for Debian
+  import_tasks: debian.yml
+  when: ansible_facts['os_family']|lower == 'debian'
+#+END_SRC
+
+Directories ~defaults~ and ~vars~ may also include nested directories. If your
+variables file is a directory, Ansible reads all variables files and directories
+inside in alphabetical order. If a nested directory contains variables files as
+well as directories, Ansible reads the directories first. Below is an example of
+a ~vars/main~ directory:
+
+#+BEGIN_SRC
+roles/
+    common/          # this hierarchy represents a "role"
+        vars/
+            main/    #  <-- variables associated with this role
+                first_nested_directory/
+                    first_variables_file.yml
+                second_nested_directory/
+                    second_variables_file.yml
+                third_variables_file.yml
+#+END_SRC
+
+**** Storing and finding roles
+
+By default, Ansible looks for roles in the following locations:
+
+- in collections, if you are using them
+- in a directory called ~roles/~, relative to the playbook file
+- in the configured ~roles_path~
+- in the directory where the playbook file is located
+
+Alternatively, you can call a role with a fully qualified path:
+
+#+BEGIN_SRC yaml
+---
+- hosts: webservers
+  roles:
+    - role: '/path/to/my/roles/common'
+#+END_SRC
+
+**** Using roles
+
+You can use roles in the following ways:
+
+- at the play level with the ~roles~ option: This is the classic way of using
+  roles in a play.
+- at the tasks level with ~include_role~: You can reuse roles dynamically
+  anywhere in the ~tasks~ section of a play using ~include_role~.
+- at the tasks level with ~import_role~: You can reuse roles statically anywhere
+  in the ~tasks~ section of a play using ~import_role~.
+
+***** Using roles at the play level
+
+The classic (original) way to use roles is with the ~roles~ option for a given
+play:
+
+#+BEGIN_SRC yaml
+---
+- hosts: webservers
+  roles:
+    - common
+    - webservers
+#+END_SRC
+
+When you use the ~roles~ option at the play level, Ansible treats the roles as
+static imports and processes them during playbook parsing. Ansible executes each
+play in this order:
+
+- Any ~pre_tasks~ defined in the play.
+- Any handlers triggered by pre_tasks.
+- Each role listed in ~roles:~, in the order listed.
+- Any ~tasks~ defined in the play.
+- Any handlers triggered by the roles or tasks.
+- Any ~post_tasks~ defined in the play.
+- Any handlers triggered by post_tasks.
+
+You can pass other keywords to the roles option:
+
+#+BEGIN_SRC yaml
+---
+- hosts: webservers
+  roles:
+    - common
+    - role: foo_app_instance
+      vars:
+        dir: '/opt/a'
+        app_port: 5000
+      tags: typeA
+    - role: foo_app_instance
+      vars:
+        dir: '/opt/b'
+        app_port: 5001
+      tags: typeB
+#+END_SRC
+
+When you add a tag to the ~role~ option, Ansible applies the tag to ALL tasks
+within the role.
+
+***** Including roles: dynamic reuse
+
+You can reuse roles dynamically anywhere in the ~tasks~ section of a play using
+~include_role~. While roles added in a ~roles~ section run before any other
+tasks in a play, included roles run in the order they are defined.
+
+#+BEGIN_SRC yaml
+---
+- hosts: webservers
+  tasks:
+    - name: Print a message
+      ansible.builtin.debug:
+        msg: "this task runs before the example role"
+
+    - name: Include the example role
+      include_role:
+        name: example
+
+    # Pass more keywords
+    - name: Include the foo_app_instance role
+      include_role:
+        name: foo_app_instance
+      vars:
+        dir: '/opt/a'
+        app_port: 5000
+      tags: typeA
+      when: "ansible_facts['os_family'] == 'RedHat'"
+
+    - name: Print a message
+      ansible.builtin.debug:
+        msg: "this task runs after the example role"
+#+END_SRC
+
+***** Importing roles: static reuse
+
+You can reuse roles statically anywhere in the ~tasks~ section of a play using
+~import_role~. The behavior is the same as using the ~roles~ keyword.
+
+*** Module defaults
+
+If you frequently call the same module with the same arguments, it can be useful
+to define default arguments for that particular module using the
+~module_defaults~ keyword.
+
+#+BEGIN_SRC yaml
+---
+- hosts: localhost
+  module_defaults:
+    ansible.builtin.file:
+      owner: root
+      group: root
+      mode: 0755
+  tasks:
+    - name: Create file1
+      ansible.builtin.file:
+        state: touch
+        path: /tmp/file1
+
+    - name: Create file2
+      ansible.builtin.file:
+        state: touch
+        path: /tmp/file2
+
+    - name: Create file3
+      ansible.builtin.file:
+        state: touch
+        path: /tmp/file3
+#+END_SRC
+
+The ~module_defaults~ keyword can be used at the play, block, and task level.
+Any module arguments explicitly specified in a task will override any
+established default for that module argument.
+
+You can remove any previously established defaults for a module by specifying an
+empty dict.
+
+#+BEGIN_SRC yaml
+---
+- name: Create file1
+  ansible.builtin.file:
+    state: touch
+    path: /tmp/file1
+  module_defaults:
+    file: {}
+#+END_SRC
+
+Any module defaults set at the play level (and block/task level when using
+~include_role~ or ~import_role~) will apply to any roles used, which may cause
+unexpected behavior in the role.
+
+*** Using variables
+
+https://docs.ansible.com/projects/ansible/latest/playbook_guide/playbooks_variables.html
+
+*** Discovering variables: facts and magic variables
+
+With Ansible you can retrieve or discover certain variables containing
+information about your remote systems or about Ansible itself. Variables related
+to remote systems are called facts. Variables related to Ansible are called
+magic variables.
+
+**** Ansible facts
+
+You can access this data in the ~ansible_facts~ variable. By default, you can
+also access some Ansible facts as top-level variables with the ~ansible_~
+prefix. To see all available facts, add this task to a play:
+
+#+BEGIN_SRC yaml
+---
+- name: Print all available facts
+  ansible.builtin.debug:
+    var: ansible_facts
+#+END_SRC
+
+You can reference the model of the first disk in the facts in a template or
+playbook as:
+
+#+BEGIN_SRC
+{{ ansible_facts['devices']['xvda']['model'] }}
+#+END_SRC
+
+To reference the system hostname:
+
+#+BEGIN_SRC
+{{ ansible_facts['nodename'] }}
+#+END_SRC
+
+Note that ~ansible_~ prefix shown in the setup module output is not used when
+addressing these variables.
+
+**** Adding custom facts
+
+he setup module in Ansible automatically discovers a standard set of facts about
+each host. If you want to add custom values to your facts, you can write a
+custom facts module, set temporary facts with a ~ansible.builtin.set_fact~ task,
+or provide permanent custom facts using the facts.d directory.
+
+**** Information about Ansible: magic variables
+
+The most commonly used magic variables are ~hostvars~, ~groups~, ~group_names~,
+and ~inventory_hostname~. With ~hostvars~, you can access variables defined for
+any host in the play, at any point in a playbook. You can access Ansible facts
+using the ~hostvars~ variable too, but only after you have gathered (or cached)
+facts. Note that variables defined at play objects are not defined for specific
+hosts and therefore are not mapped to hostvars.
+
+If you want to configure your database server using the value of a "fact" from
+another node, or the value of an inventory variable assigned to another node,
+you can use ~hostvars~ in a template or on an action line:
+
+#+BEGIN_SRC
+{{ hostvars['test.example.com']['ansible_facts']['distribution'] }}
+#+END_SRC
+
+With ~groups~, a list of all the groups (and hosts) in the inventory, you can
+enumerate all hosts within a group. For example:
+
+#+BEGIN_SRC
+{% for host in groups['app_servers'] %}
+   # something that applies to all app servers.
+{% endfor %}
+#+END_SRC
+
+You can use groups and hostvars together to find all the IP addresses in a
+group.
+
+#+BEGIN_SRC
+{% for host in groups['app_servers'] %}
+   {{ hostvars[host]['ansible_facts']['eth0']['ipv4']['address'] }}
+{% endfor %}
+#+END_SRC
+
+** Using Ansible collections
+*** Installing collections with ~ansible-galaxy~
+
+By default, ~ansible-galaxy collection install~ uses https://galaxy.ansible.com
+as the Galaxy server. By default, Ansible installs the collection in
+~~/.ansible/collections~ under the ~ansible_collections~ directory.
+
+To install a collection hosted in Galaxy:
+
+#+BEGIN_SRC bash :noeval
+ansible-galaxy collection install my_namespace.my_collection
+#+END_SRC
+
+To upgrade a collection to the latest available version from the Galaxy server
+you can use the ~--upgrade~ option:
+
+#+BEGIN_SRC bash :noeval
+ansible-galaxy collection install my_namespace.my_collection --upgrade
+#+END_SRC
+
+**** Install multiple collections with a requirements file
+
+You can set up a ~requirements.yml~ file to install multiple collections in one
+command. This file is a YAML file in the format:
+
+#+BEGIN_SRC yaml
+---
+collections:
+# With just the collection name
+- my_namespace.my_collection
+
+# With the collection name, version, and source options
+- name: my_namespace.my_other_collection
+  version: ">=1.2.0" # Version range identifiers (default: ``*``)
+  source: ... # The Galaxy URL to pull the collection from (default: ``--api-server`` from cmdline)
+#+END_SRC
+
+You can also add roles to a requirements.yml file, under the roles key.
+
+#+BEGIN_SRC yaml
+---
+roles:
+  # Install a role from Ansible Galaxy.
+  - name: geerlingguy.java
+    version: "1.9.6" # note that ranges are not supported for roles
+
+collections:
+  # Install a collection from Ansible Galaxy.
+  - name: geerlingguy.php_roles
+    version: ">=0.9.3"
+    source: https://galaxy.ansible.com
+#+END_SRC
+
+To install both roles and collections at the same time with one command, run the
+following:
+
+#+BEGIN_SRC bash :noeval
+ansible-galaxy install -r requirements.yml
+#+END_SRC
 
 * Snippets
 ** Try out variables
@@ -2526,6 +3263,13 @@ username is ~username~ and password will be provided interactively.
 
 #+BEGIN_SRC bash :noeval
 ansible all -i aaa.bbb.ccc.ddd, -m setup --extra-vars "ansible_user=username" --ask-pass
+#+END_SRC
+
+If you already have an inventory and configured working SSH credeentials you can
+run:
+
+#+BEGIN_SRC bash :noeval
+ansible <hostname> -m ansible.builtin.setup
 #+END_SRC
 
 * Old
